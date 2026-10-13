@@ -29,7 +29,7 @@
 - PC 전용. 해상도는 16:9 기준.
 
 ## 알려진 한계 / 확인 필요
-- 3D 팔 IK 자세와 주먹 모양은 화면에서 검증되지 않음(Hand Angle, Wrist To Hand, Shoulder Center, Arm Length로 조정).
+- 3D 팔: arms.fbx의 socket 본(주먹 안 쥐는 점)에 림을 넣고, 손가락은 림에 닿을 때까지 굽힘. 화면 검증 진행 중(Grip Roll, Thumb Up, Grip Nudge, Finger Pad, Hand Angle, Shoulder Center, Arm Length로 조정).
 - 건물 스프라이트 수가 많아 성능 확인 필요.
 
 ## 에셋 라이선스

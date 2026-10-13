@@ -57,18 +57,26 @@ public class ProtoDrive : MonoBehaviour
     public float wheelMaxAngle = 100f;     // 최대 핸들 회전각(도)
     public Vector3 shoulderCenter = new Vector3(0f, -0.33f, 0.04f);
     public float armLength = 0.60f;        // 어깨~손목 전체 길이로 모델을 스케일
-    public float wristToHand = 0.07f;
     public float handAngle = 30f;          // 핸들 3시/9시 기준 위로 몇 도 (10시-2시 = 30)
-    [Tooltip("손 방향을 림에 맞춘다. 끄면 예전처럼 팔 방향 그대로")]
-    public bool orientHands = true;
-    [Tooltip("손가락이 뻗는 방향: 0 = 정면(앞유리 쪽), 90 = 림 안쪽(핸들 중심 쪽). 손이 림에서 뜨면 이 값을 바꿔 본다")]
-    public float fingerAimAngle = 45f;
-    [Tooltip("손을 손가락 축으로 추가 회전(도). 손바닥이 바깥을 보면 180")]
-    public float handRoll = 0f;
-    [Tooltip("손가락 3마디 굽힘각(도). 클수록 꽉 쥠")]
-    public Vector3 fingerCurl = new Vector3(75f, 85f, 60f);
-    [Tooltip("엄지 3마디 굽힘각(도)")]
-    public Vector3 thumbCurl = new Vector3(35f, 45f, 35f);
+    [Range(0f, 1f)]
+    [Tooltip("손이 핸들 회전을 따라가는 정도. 1 = 핸들과 함께 돈다(팔이 화면 밖으로 빠질 수 있음), 0 = 손은 고정이고 림만 미끄러진다")]
+    public float gripFollow = 0.4f;
+    [Range(0f, 180f)]
+    [Tooltip("손을 림 둘레로 돌리는 각도(도). 90 = 손가락이 앞유리 쪽. 작을수록 손등이 운전자 쪽을 향해 더 보이고 손가락은 림 뒤로 숨는다")]
+    public float gripRoll = 65f;
+    [Tooltip("엄지가 림을 따라 위(12시) 쪽을 향한다. 끄면 손을 뒤집어 아래를 향하게 한다")]
+    public bool thumbUp = true;
+    [Tooltip("손 위치 미세 조정(m). x = 손가락 방향, y = 손바닥 방향, z = 엄지 방향")]
+    public Vector3 gripNudge = Vector3.zero;
+    [Tooltip("손가락 3마디 최대 굽힘각(도). 실제로는 림에 닿는 순간 멈춘다")]
+    public Vector3 fingerCurl = new Vector3(90f, 100f, 80f);
+    [Tooltip("엄지 3마디 최대 굽힘각(도). 림에 닿는 순간 멈춘다")]
+    public Vector3 thumbCurl = new Vector3(40f, 50f, 40f);
+    [Range(0f, 1f)]
+    [Tooltip("손가락을 최소 이 비율만큼은 항상 굽힌다(최대 굽힘 대비). 림에 닿지 않는 손가락은 끝까지 오므린다")]
+    public float minCurl = 0.55f;
+    [Tooltip("손가락 두께 여유(m). 손가락이 림을 파고들면 키우고, 림에서 뜨면 줄인다")]
+    public float fingerPad = 0.008f;
 
     class Ped
     {
@@ -101,21 +109,29 @@ public class ProtoDrive : MonoBehaviour
         public Transform[] bones;      // 1,2,3 마디
         public Transform tip;          // _end
         public Quaternion[] rest;
-        public bool thumb;             // 굽힘각은 fingerCurl / thumbCurl 에서 매 프레임 읽는다
+        public bool thumb;             // 최대 굽힘각은 fingerCurl / thumbCurl
+        public Vector3 axisLocal;      // 손목 로컬 굽힘축 (+각도로 돌리면 손바닥 쪽으로 굽는다)
     }
 
     class ArmIK
     {
-        public Transform upper, fore, wrist;
+        public Transform upper, fore, wrist, twist0, twist1;
         public float lenU, lenF;
         public Transform target;
-        public float tangentAngle;     // 림 접선 계산용 (도)
-        public float gripAngle;        // 핸들 위 잡는 위치 (라디안, 핸들 로컬)
-        public Transform midRoot, idxRoot, pinkyRoot;   // 손 방향 계산용 손가락 뿌리 본
+        public float baseAngle;        // 핸들이 안 돌았을 때 잡는 위치 (도)
+        public float gripAngle;        // 지금 잡는 위치 (라디안, 핸들 로컬)
+        public float thumbSense = 1f;  // 엄지가 향할 림 방향(반시계 +1 / 시계 -1). 핸들을 돌려도 손이 갑자기 뒤집히지 않게 고정
+        public Quaternion restUpper, restFore, restWrist, restTwist0, restTwist1;   // 에셋 원래 자세 (로컬 회전)
+        // 에셋 기본 자세에서 잰 손 모양: 손가락 방향 F, 손바닥 방향 P (손목 로컬), 좌우(chir), 손목→쥐는 점(socket)
+        public Vector3 fwdLocal, palmLocal, socketK;
+        public float chir = 1f;        // cross(F, P) 가 엄지 쪽이면 +1, 반대면 -1 (왼손/오른손)
+        public bool handOk;
+        public Vector3 gripPoint, wristGoal, fwdD, palmD;   // 이번 프레임 목표
         public Vector3 poleLocal;
         public List<Finger> fingers = new List<Finger>();
     }
 
+    const float RimTube = 0.018f;            // 핸들 림 단면 반지름(m)
     const float StripLen = 4f;
     const int StripCount = 40;
     const float CarHalfWidth = 1.0f;
@@ -357,7 +373,7 @@ public class ProtoDrive : MonoBehaviour
 
         var ring = new GameObject("Rim");
         ring.transform.SetParent(wheelSpin, false);
-        ring.AddComponent<MeshFilter>().sharedMesh = MakeTorus(wheelRadius, 0.018f, 36, 10);
+        ring.AddComponent<MeshFilter>().sharedMesh = MakeTorus(wheelRadius, RimTube, 36, 10);
         ring.AddComponent<MeshRenderer>().sharedMaterial = darkMat;
 
         for (int k = 0; k < 2; k++)
@@ -468,19 +484,56 @@ public class ProtoDrive : MonoBehaviour
             upper = bones["bicep." + side],
             fore = bones["forearm." + side],
             wrist = bones["wrist." + side],
-            poleLocal = pole
+            poleLocal = pole,
+            baseAngle = angleDeg,
+            gripAngle = angleDeg * Mathf.Deg2Rad,
+            // 기준 위치에서 반시계 접선이 핸들 위쪽을 향하면 +1 (오른손 2시 = +1, 왼손 10시 = -1)
+            thumbSense = Mathf.Cos(angleDeg * Mathf.Deg2Rad) >= 0f ? 1f : -1f
         };
+        bones.TryGetValue("forearm.Twist0." + side, out a.twist0);
+        bones.TryGetValue("forearm.Twist1." + side, out a.twist1);
+        a.restUpper = a.upper.localRotation;
+        a.restFore = a.fore.localRotation;
+        a.restWrist = a.wrist.localRotation;
+        if (a.twist0 != null) a.restTwist0 = a.twist0.localRotation;
+        if (a.twist1 != null) a.restTwist1 = a.twist1.localRotation;
         a.lenU = Vector3.Distance(a.upper.position, a.fore.position);
         a.lenF = Vector3.Distance(a.fore.position, a.wrist.position);
 
         var tgt = new GameObject("GripTarget." + side).transform;
         tgt.SetParent(wheelSpin, false);
-        float r = angleDeg * Mathf.Deg2Rad;
-        tgt.localPosition = new Vector3(Mathf.Cos(r), Mathf.Sin(r), 0f) * wheelRadius;
         a.target = tgt;
-        a.tangentAngle = angleDeg + 90f;
 
-        // 손가락: 마디 3개 + 끝 본. 림을 감싸 쥐도록 매 프레임 굽힌다.
+        // 손 모양 측정 (에셋 기본 자세). 손가락은 기본 자세에서 살짝 굽어 있으므로, 가운뎃손가락 끝이 처진 쪽이 손바닥이다.
+        // socket 본 = 무기 손잡이가 놓이는 자리(주먹 안). 여기에 림을 넣으면 주먹이 림을 감싼다.
+        bones.TryGetValue("finger_middle1." + side, out var mid1);
+        bones.TryGetValue("finger_index1." + side, out var idx1);
+        bones.TryGetValue("finger_pinky1." + side, out var pinky1);
+        bones.TryGetValue("finger_middle3." + side + "_end", out var midTip);
+        bones.TryGetValue("socket." + side, out var socket);
+        if (mid1 != null && idx1 != null && pinky1 != null && midTip != null && mid1.IsChildOf(a.wrist))
+        {
+            Vector3 W = a.wrist.position;
+            Vector3 F = (mid1.position - W).normalized;
+            Vector3 P = Vector3.ProjectOnPlane(midTip.position - W, F);
+            if (P.sqrMagnitude > 1e-10f)
+            {
+                P.Normalize();
+                Vector3 L = Vector3.Cross(F, P);
+                a.chir = Vector3.Dot(L, idx1.position - pinky1.position) >= 0f ? 1f : -1f;
+                Vector3 off = socket != null && socket.IsChildOf(a.wrist)
+                    ? socket.position - W
+                    : (mid1.position - W) * 0.9f + P * Vector3.Distance(mid1.position, W) * 0.4f;
+                a.socketK = new Vector3(Vector3.Dot(off, F), Vector3.Dot(off, P), Vector3.Dot(off, L));
+                a.fwdLocal = a.wrist.InverseTransformDirection(F);
+                a.palmLocal = a.wrist.InverseTransformDirection(P);
+                a.handOk = true;
+            }
+        }
+        if (!a.handOk)
+            Debug.LogWarning("ProtoDrive: 손가락 본으로 손 모양을 재지 못해 손 방향/손가락 쥐기를 건너뜁니다. (" + side + ")");
+
+        // 손가락: 마디 3개 + 끝 본. 굽힘축 = 첫 마디 방향 x 손바닥 방향 (+각도면 손바닥 쪽으로 굽는다)
         string[] names = { "pinky", "ring", "middle", "index", "thumb" };
         foreach (var n in names)
         {
@@ -495,35 +548,64 @@ public class ProtoDrive : MonoBehaviour
             string endKey = "finger_" + n + "3." + side + "_end";
             if (!ok || !bones.TryGetValue(endKey, out f.tip)) continue;
             f.thumb = n == "thumb";
+            if (a.handOk)
+            {
+                Vector3 P = a.wrist.TransformDirection(a.palmLocal);
+                Vector3 ax = Vector3.Cross(f.bones[1].position - f.bones[0].position, P);
+                if (ax.sqrMagnitude < 1e-10f) ax = Vector3.Cross(a.wrist.TransformDirection(a.fwdLocal), P);
+                f.axisLocal = a.wrist.InverseTransformDirection(ax.normalized);
+            }
             a.fingers.Add(f);
-        }
-
-        // 손 방향 맞추기용: 손목의 자식이어야 손가락이 같이 돈다
-        a.gripAngle = r;
-        bones.TryGetValue("finger_middle1." + side, out a.midRoot);
-        bones.TryGetValue("finger_index1." + side, out a.idxRoot);
-        bones.TryGetValue("finger_pinky1." + side, out a.pinkyRoot);
-        if (a.midRoot == null || a.idxRoot == null || a.pinkyRoot == null
-            || !a.midRoot.IsChildOf(a.wrist) || !a.idxRoot.IsChildOf(a.wrist) || !a.pinkyRoot.IsChildOf(a.wrist))
-        {
-            Debug.LogWarning("ProtoDrive: 손가락 뿌리 본을 손목 아래에서 찾지 못해 손 방향 맞추기를 건너뜁니다. (" + side + ")");
-            a.midRoot = a.idxRoot = a.pinkyRoot = null;
         }
         return a;
     }
 
-    // 2본 IK: 어깨→팔꿈치→손목. 본 방향 규약을 몰라도 되도록 실제 자식 본 위치를 기준으로 회전시킨다.
+    // 손이 잡는 위치와 손 방향 목표.
+    // - 핸들이 steerAngle 만큼 돌아도 손은 gripFollow 비율만 따라가고, 나머지는 림 위를 미끄러진다 (핸들은 -steerAngle 만큼 돈다)
+    // - 막대를 쥔 주먹: 네 손가락이 림 접선을 따라 쌓이고, 손가락 방향은 림 단면(바깥 R ~ 앞유리 N) 안에서 gripRoll 각도
+    // - 손목 위치 = 림 중심선 위의 점 - (손목→socket). 그래서 socket(주먹 안)에 림이 들어간다
+    void UpdateGrip(ArmIK a)
+    {
+        float phi = a.baseAngle + (1f - gripFollow) * steerAngle;
+        float r = phi * Mathf.Deg2Rad;
+        a.gripAngle = r;
+        Vector3 radialL = new Vector3(Mathf.Cos(r), Mathf.Sin(r), 0f);
+        a.target.localPosition = radialL * wheelRadius;
+        a.gripPoint = a.target.position;
+        if (!a.handOk)
+        {
+            a.wristGoal = a.gripPoint;
+            return;
+        }
+
+        Vector3 R = wheelSpin.TransformDirection(radialL);
+        Vector3 N = wheelSpin.forward;
+        Vector3 thumbDir = wheelSpin.TransformDirection(new Vector3(-Mathf.Sin(r), Mathf.Cos(r), 0f)) * a.thumbSense * (thumbUp ? 1f : -1f);
+        float th = gripRoll * Mathf.Deg2Rad;
+        a.fwdD = (R * Mathf.Cos(th) + N * Mathf.Sin(th)).normalized;
+        a.palmD = a.chir * Vector3.Cross(thumbDir, a.fwdD);
+        Vector3 L = Vector3.Cross(a.fwdD, a.palmD);
+        Vector3 off = a.fwdD * a.socketK.x + a.palmD * a.socketK.y + L * a.socketK.z;
+        Vector3 nudge = a.fwdD * gripNudge.x + a.palmD * gripNudge.y + thumbDir * gripNudge.z;
+        a.wristGoal = a.gripPoint - off + nudge;
+    }
+
+    // 2본 IK: 어깨→팔꿈치→손목. 매 프레임 에셋 원래 자세에서 시작하므로 회전이 누적되어 틀어지지 않는다.
+    // 본 방향 규약을 몰라도 되도록 실제 자식 본 위치를 기준으로 회전시킨다.
     void SolveArm(ArmIK a)
     {
+        a.upper.localRotation = a.restUpper;
+        a.fore.localRotation = a.restFore;
+        a.wrist.localRotation = a.restWrist;
+        if (a.twist0 != null) a.twist0.localRotation = a.restTwist0;
+        if (a.twist1 != null) a.twist1.localRotation = a.restTwist1;
+
         Vector3 S = a.upper.position;
-        Vector3 T = a.target.position;
-        Vector3 dirST = (T - S);
-        float d0 = dirST.magnitude;
+        Vector3 T = a.wristGoal;
+        float d0 = (T - S).magnitude;
         if (d0 < 1e-5f) return;
-        dirST /= d0;
-        T -= dirST * wristToHand;           // 손바닥이 림에 오도록 손목은 조금 앞에서 멈춤
-        float d = Mathf.Clamp((T - S).magnitude, Mathf.Abs(a.lenU - a.lenF) + 0.01f, a.lenU + a.lenF - 0.005f);
-        Vector3 dir = (T - S).normalized;
+        float d = Mathf.Clamp(d0, Mathf.Abs(a.lenU - a.lenF) + 0.01f, a.lenU + a.lenF - 0.005f);
+        Vector3 dir = (T - S) / d0;
         T = S + dir * d;
 
         float along = (a.lenU * a.lenU - a.lenF * a.lenF + d * d) / (2f * d);
@@ -537,56 +619,70 @@ public class ProtoDrive : MonoBehaviour
         a.fore.rotation = Quaternion.FromToRotation(a.wrist.position - a.fore.position, T - a.fore.position) * a.fore.rotation;
     }
 
-    // 손 방향: 막대(림)를 쥐면 네 손가락이 막대 축(접선)을 따라 나란히 쌓이고, 뻗은 손가락은 림 단면(앞쪽~안쪽) 방향을 가리킨다.
-    // 본 축 규약을 몰라도 되도록 손목→가운뎃손가락, 새끼→검지 뿌리 벡터만 사용한다. 엄지가 림 위쪽(12시 방향)을 향하게 맞춘다.
+    // 손 방향: 측정해 둔 (손가락 F, 손바닥 P) 를 목표 (fwdD, palmD) 에 그대로 맞춘다. 왼손/오른손은 chir 로 이미 반영됨.
+    // 손목이 팔뚝 축으로 돈 만큼을 팔뚝 비틀림 본(Twist0/1)에 1/3 씩 나눠 줘서 팔뚝 피부가 꼬이지 않게 한다.
     void OrientHand(ArmIK a)
     {
-        if (!orientHands || a.midRoot == null) return;
-        float g = a.gripAngle;
-        Vector3 radial = new Vector3(Mathf.Cos(g), Mathf.Sin(g), 0f);
-        Vector3 tan = new Vector3(-Mathf.Sin(g), Mathf.Cos(g), 0f);
-        if (tan.y < 0f) tan = -tan;                                   // 위쪽(12시)을 향하는 접선
-        float ar = fingerAimAngle * Mathf.Deg2Rad;
-        Vector3 aim = Vector3.forward * Mathf.Cos(ar) - radial * Mathf.Sin(ar);
-        Vector3 fwdD = wheelSpin.TransformDirection(aim).normalized;
-        Vector3 latD = Vector3.ProjectOnPlane(wheelSpin.TransformDirection(tan), fwdD).normalized;
-        if (latD.sqrMagnitude < 1e-6f) return;
+        if (!a.handOk) return;
+        Vector3 fH = a.wrist.TransformDirection(a.fwdLocal);
+        Vector3 pH = a.wrist.TransformDirection(a.palmLocal);
+        a.wrist.rotation = Quaternion.LookRotation(a.fwdD, a.palmD) * Quaternion.Inverse(Quaternion.LookRotation(fH, pH)) * a.wrist.rotation;
 
-        Vector3 fwdH = (a.midRoot.position - a.wrist.position).normalized;
-        Quaternion q = Quaternion.FromToRotation(fwdH, fwdD);
-        Vector3 latH = Vector3.ProjectOnPlane(q * (a.idxRoot.position - a.pinkyRoot.position), fwdD);
-        if (latH.sqrMagnitude < 1e-8f)
-        {
-            a.wrist.rotation = q * a.wrist.rotation;
-            return;
-        }
-        float roll = Vector3.SignedAngle(latH, latD, fwdD) + handRoll;
-        a.wrist.rotation = Quaternion.AngleAxis(roll, fwdD) * q * a.wrist.rotation;
+        if (a.twist0 == null || a.wrist.parent == null) return;
+        Vector3 axis = (a.wrist.position - a.fore.position).normalized;
+        Vector3 pRest = a.wrist.parent.rotation * (a.restWrist * a.palmLocal);
+        Vector3 pNow = a.wrist.TransformDirection(a.palmLocal);
+        float tw = Vector3.SignedAngle(Vector3.ProjectOnPlane(pRest, axis), Vector3.ProjectOnPlane(pNow, axis), axis);
+        a.twist0.rotation = Quaternion.AngleAxis(tw / 3f, axis) * a.twist0.rotation;
+        if (a.twist1 != null) a.twist1.rotation = Quaternion.AngleAxis(tw / 3f, axis) * a.twist1.rotation;
     }
 
-    // 손가락을 림 접선축으로 굽혀 주먹 쥔 모양으로 만든다. 굽힘 방향은 끝 본이 림 중심에 가까워지는 쪽을 고른다.
+    // 손가락 쥐기: 손바닥 쪽으로 조금씩 굽히다가 손가락 끝이 림 표면에 닿는 순간 멈춘다.
+    // 핸들이 돌거나 손 위치가 바뀌어도 매 프레임 다시 찾으므로 림을 파고들거나 허공을 쥐지 않는다.
     void CurlFingers(ArmIK a)
     {
-        Vector3 grip = a.target.position;
-        float t = a.tangentAngle * Mathf.Deg2Rad;
-        Vector3 axis = wheelSpin.TransformDirection(new Vector3(Mathf.Cos(t), Mathf.Sin(t), 0f)).normalized;
-
+        float surface = RimTube + fingerPad;
         foreach (var f in a.fingers)
         {
-            for (int k = 0; k < 3; k++) f.bones[k].localRotation = f.rest[k];
-            Vector3 c = f.thumb ? thumbCurl : fingerCurl;
-            for (int k = 0; k < 3; k++)
+            if (!a.handOk)
             {
-                float ang = k == 0 ? c.x : (k == 1 ? c.y : c.z);
-                var b = f.bones[k];
-                Quaternion r0 = b.rotation;
-                b.rotation = Quaternion.AngleAxis(ang, axis) * r0;
-                float dPlus = (f.tip.position - grip).sqrMagnitude;
-                b.rotation = Quaternion.AngleAxis(-ang, axis) * r0;
-                float dMinus = (f.tip.position - grip).sqrMagnitude;
-                b.rotation = Quaternion.AngleAxis(dPlus < dMinus ? ang : -ang, axis) * r0;
+                for (int k = 0; k < 3; k++) f.bones[k].localRotation = f.rest[k];
+                continue;
             }
+            Vector3 axis = a.wrist.TransformDirection(f.axisLocal);
+            Vector3 maxAng = f.thumb ? thumbCurl : fingerCurl;
+            // 최소 minCurl 만큼은 항상 굽히고, 림에 닿지 않는 손가락(림 아래로 삐져나온 새끼/약지 등)은 끝까지 오므린다
+            const int steps = 20;
+            float best = 1f;
+            bool wasOut = false;
+            for (int i = 0; i <= steps; i++)
+            {
+                float s = Mathf.Lerp(minCurl, 1f, i / (float)steps);
+                PoseFinger(f, axis, maxAng * s);
+                float dist = RimDist(f.tip.position);
+                if (dist > surface) wasOut = true;
+                else if (wasOut) { best = s; break; }
+            }
+            PoseFinger(f, axis, maxAng * best);
         }
+    }
+
+    static void PoseFinger(Finger f, Vector3 axis, Vector3 ang)
+    {
+        for (int k = 0; k < 3; k++) f.bones[k].localRotation = f.rest[k];
+        for (int k = 0; k < 3; k++)
+        {
+            float g = k == 0 ? ang.x : (k == 1 ? ang.y : ang.z);
+            f.bones[k].rotation = Quaternion.AngleAxis(g, axis) * f.bones[k].rotation;
+        }
+    }
+
+    // 점에서 림(원형 튜브의 중심선)까지 거리
+    float RimDist(Vector3 p)
+    {
+        Vector3 l = wheelSpin.InverseTransformPoint(p);
+        float rho = new Vector2(l.x, l.y).magnitude;
+        return new Vector2(rho - wheelRadius, l.z).magnitude;
     }
 
     static Mesh MakeTorus(float R, float r, int seg, int sides)
@@ -983,6 +1079,8 @@ public class ProtoDrive : MonoBehaviour
         if (wheelSpin != null) wheelSpin.localRotation = Quaternion.Euler(0f, 0f, -steerAngle);
         if (arms3D)
         {
+            UpdateGrip(armLeft);
+            UpdateGrip(armRight);
             SolveArm(armLeft);
             SolveArm(armRight);
             OrientHand(armLeft);
