@@ -8,6 +8,8 @@
 - 튜닝 변수는 public 필드로 노출해서 인스펙터에서 바로 조절 가능하게 할 것.
 - 확인하지 않은 것을 확인했다고 말하지 말 것. Unity 에디터를 직접 실행할 수 없으므로 컴파일/플레이 결과는 사용자가 알려 줌.
 - 삭제, 푸시, 저장소 생성 같은 되돌리기 어렵거나 외부로 나가는 작업은 실행 전에 확인받을 것.
+- 기능 작업이 끝나면 qa-tester로 확인한다.
+- 외부 에셋은 전부 Assets/_External/ 안에 둔다(.gitignore로 제외됨, 업로드 금지).
 
 ## 게임 규칙
 - 차는 제자리, 월드가 다가온다. 도로는 앞쪽으로 갈수록 아래로 휜다(y = -curvature * z^2, 동물의 숲 방식).
@@ -23,7 +25,7 @@
 - 에셋: GandalfHardcore City Tiles, arms.fbx, arm_albedo_*.png
 
 ## 기술 환경
-- Unity 6 (6000.2.10f1 권장), URP, 새 Input System. Active Input Handling은 Both 또는 Input System.
+- Unity 6 (6000.3.5f2), URP, 새 Input System. Active Input Handling은 Both 또는 Input System.
 - PC 전용. 해상도는 16:9 기준.
 
 ## 알려진 한계 / 확인 필요

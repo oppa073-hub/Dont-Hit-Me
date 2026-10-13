@@ -148,11 +148,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a7d3e91c2b84f0e9a16d4b8c3e72f55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProtoDrive
-  buildingTiles: {fileID: 2800000, guid: 73221189949dd034f90ea0a649886a40, type: 3}
-  decoTiles: {fileID: 2800000, guid: cfe220cd50042cd4fbd5b51ce31cf711, type: 3}
-  cityBackground: {fileID: 2800000, guid: 02675b0a060ff0340a5975f895e31335, type: 3}
-  armAlbedo: {fileID: 2800000, guid: 30d2cfac9a6e87643a47d29a3a0afc75, type: 3}
-  armsModel: {fileID: 919132149155446097, guid: 3ab63383d3a5a594a82febb32959958c, type: 3}
+  buildingTiles: {fileID: 2800000, guid: c80bd9f93b0cff541878173d9d418230, type: 3}
+  decoTiles: {fileID: 2800000, guid: a7fdd0e114edd5b4ea7fb3ab22b59022, type: 3}
+  cityBackground: {fileID: 2800000, guid: e3816c413e43197469ce2db4804835f2, type: 3}
+  armAlbedo: {fileID: 2800000, guid: eca9b4f146419ef40ad4bb63a62c6d93, type: 3}
+  armsModel: {fileID: 919132149155446097, guid: 158f9a9a1ad6e9e43ac95a9dcd4c2f9f, type: 3}
   use3DArms: 1
   curvature: 0.002
   roadHalfWidth: 4
