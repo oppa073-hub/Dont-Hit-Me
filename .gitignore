@@ -37,8 +37,11 @@ crashlytics-build.properties
 .DS_Store
 Thumbs.db
 
-# Third-party / license-restricted assets (no redistribution)
-# Re-add them locally; they are not uploaded. Remove this block only if the repo stays Private and you want them backed up.
+# ALL external assets go in Assets/_External/ (never uploaded)
+/Assets/_External/
+/Assets/_External.meta
+
+# Third-party / license-restricted assets (fallback patterns if one lands outside _External)
 **/GandalfHardcore*/
 **/GandalfHardcore*.meta
 **/arms.fbx
