@@ -1,0 +1,47 @@
+# Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# IDE / generated project files
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.pdb
+*.mdb
+*.booproj
+*.unityproj
+
+# Crash / logs
+sysinfo.txt
+*.log
+crashlytics-build.properties
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Third-party / license-restricted assets (no redistribution)
+# Re-add them locally; they are not uploaded. Remove this block only if the repo stays Private and you want them backed up.
+**/GandalfHardcore*/
+**/GandalfHardcore*.meta
+**/arms.fbx
+**/arms.fbx.meta
+**/arm_albedo_*.png
+**/arm_albedo_*.png.meta
