@@ -36,5 +36,5 @@
 - GandalfHardcore City Tiles: 상업 사용과 수정 허용, 재판매·재배포 금지. 저장소는 Private 유지.
 
 ## Git
-- 원격: (저장소 주소를 여기에 적기)
+- 원격: https://github.com/oppa073-hub/Dont-Hit-Me.git
 - 저장소는 Private. 푸시 전 확인받을 것.
