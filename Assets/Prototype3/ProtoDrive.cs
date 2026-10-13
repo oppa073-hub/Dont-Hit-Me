@@ -22,6 +22,8 @@ public class ProtoDrive : MonoBehaviour
     [Tooltip("클수록 지평선이 가까워지고 더 둥글게 휜다")]
     public float curvature = 0.0008f;
     public float roadHalfWidth = 4f;
+    [Tooltip("이 거리(m) 밖의 건물은 문/소품/지붕 장식/다가오는 쪽 단면을 끈다(최적화). 0 = 끔. 단면이 갑자기 사라져 보이면 키운다")]
+    public float lodDistance = 70f;
     public float camHeight = 1.2f;
 
     [Header("Car")]
@@ -94,6 +96,8 @@ public class ProtoDrive : MonoBehaviour
         public int floors = 3, pal;
         public float setback;
         public float propScale = 1f;
+        public bool wantDoor, wantProp;   // 이 건물이 문/소품을 가졌는지 (가까울 때만 실제로 켠다)
+        public bool far;                  // 마지막으로 적용한 원거리 단순화 상태
     }
 
     class Strip
@@ -971,7 +975,8 @@ public class ProtoDrive : MonoBehaviour
         float ts = TileScale;
         const float depth = 6f;
 
-        if (s.lastIdx != idx)
+        bool changed = s.lastIdx != idx;
+        if (changed)
         {
             int run = idx / 3;                       // 3구간(12m)이 한 건물
             int seed = run * 2 + sideIdx;
@@ -999,14 +1004,14 @@ public class ProtoDrive : MonoBehaviour
                 sd.fCornice.size = new Vector2(fc, 1f);
 
                 sd.door.sprite = doorTiles[sd.pal];
-                sd.door.gameObject.SetActive(idx % 3 == 1);
+                sd.wantDoor = idx % 3 == 1;
 
                 int kind = 0;
                 if ((idx + sideIdx * 2) % 4 == 0) kind = 1;
                 else if (Hash(idx * 3 + sideIdx * 7) < 0.12f) kind = 2;
                 else if (Hash(idx * 5 + sideIdx * 11) < 0.15f) kind = 3;
                 else if (Hash(idx * 7 + sideIdx * 13) < 0.10f) kind = 4;
-                sd.prop.gameObject.SetActive(kind != 0);
+                sd.wantProp = kind != 0;
                 sd.prop.flipX = sideIdx == 0;   // 가로등 머리가 도로 쪽을 향하게
                 switch (kind)
                 {
@@ -1026,11 +1031,26 @@ public class ProtoDrive : MonoBehaviour
         Place(s.bldg[sideIdx], new Vector3(cx, baseY, zc) + pitchRot * new Vector3(0f, H * 0.5f, 0f), pitchRot, new Vector3(depth, H, StripLen));
         if (!hasCity) return;
 
+        // 원거리 단순화: 멀리 있는 건물은 벽 두 장(윗층/1층)만 남기고 나머지는 끈다. 상태가 바뀔 때만 SetActive.
+        bool far = lodDistance > 0f && zc > lodDistance;
+        if (changed || sd.far != far)
+        {
+            sd.far = far;
+            bool near = !far;
+            sd.cornice.gameObject.SetActive(near);
+            sd.fUpper.gameObject.SetActive(near);
+            sd.fGround.gameObject.SetActive(near);
+            sd.fCornice.gameObject.SetActive(near);
+            sd.door.gameObject.SetActive(near && sd.wantDoor);
+            sd.prop.gameObject.SetActive(near && sd.wantProp);
+        }
+
         // 도로 쪽 정면 (법선이 +-x)
         var faceRot = pitchRot * Quaternion.Euler(0f, sgn * 90f, 0f);
         Vector3 basePos = new Vector3(faceX - sgn * 0.02f, baseY, zc);
         Place(sd.ground.transform, basePos, faceRot, Vector3.one * ts);
         Place(sd.upper.transform, basePos + faceRot * new Vector3(0f, 2f * ts, 0f), faceRot, Vector3.one * ts);
+        if (far) return;
         Place(sd.cornice.transform, basePos + faceRot * new Vector3(0f, (2f + sd.floors * 2f) * ts, 0f), faceRot, Vector3.one * ts);
         if (sd.door.gameObject.activeSelf)
             Place(sd.door.transform, basePos + faceRot * new Vector3(-(TileCols - 1) * 0.5f * ts * TileW, 0f, -0.02f), faceRot, Vector3.one * ts);
@@ -1139,6 +1159,10 @@ public class ProtoDrive : MonoBehaviour
 
     GUIStyle style;
 
+    // HUD 문자열 캐시
+    int hudLives = -1, hudMaxLives = -1, hudTotal = -1, hudKmh = -1, hudNear = -1, hudHits = -1, hudPeds = -1, hudSec = -1;
+    string hudHearts = "", hudScore = "", hudStats = "";
+
     void Label(Rect r, string text, int size, Color color, TextAnchor anchor)
     {
         if (style == null) style = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = false };
@@ -1224,15 +1248,31 @@ public class ProtoDrive : MonoBehaviour
 
         DrawCabin();
 
-        string hearts = new string('♥', Mathf.Max(0, lives)) + new string('♡', Mathf.Max(0, maxLives - lives));
-        Label(new Rect(20 * u, 14 * u, 500 * u, 40 * u), hearts, 30, new Color(1f, 0.4f, 0.5f), TextAnchor.UpperLeft);
+        // 문자열은 값이 바뀔 때만 새로 만든다 (OnGUI 는 프레임당 여러 번 불려서 매번 만들면 GC 쓰레기가 쌓인다)
+        if (lives != hudLives || maxLives != hudMaxLives)
+        {
+            hudLives = lives;
+            hudMaxLives = maxLives;
+            hudHearts = new string('♥', Mathf.Max(0, lives)) + new string('♡', Mathf.Max(0, maxLives - lives));
+        }
+        Label(new Rect(20 * u, 14 * u, 500 * u, 40 * u), hudHearts, 30, new Color(1f, 0.4f, 0.5f), TextAnchor.UpperLeft);
         int total = score + Mathf.FloorToInt(distScore);
-        Label(new Rect(20 * u, 54 * u, 500 * u, 40 * u), "SCORE  " + total, 22, Color.white, TextAnchor.UpperLeft);
+        if (total != hudTotal)
+        {
+            hudTotal = total;
+            hudScore = "SCORE  " + total;
+        }
+        Label(new Rect(20 * u, 54 * u, 500 * u, 40 * u), hudScore, 22, Color.white, TextAnchor.UpperLeft);
 
-        string stats = (speed * 3.6f).ToString("0") + " km/h"
+        int kmh = Mathf.RoundToInt(speed * 3.6f), sec = Mathf.RoundToInt(elapsed);
+        if (kmh != hudKmh || nearMisses != hudNear || hits != hudHits || peds.Count != hudPeds || sec != hudSec)
+        {
+            hudKmh = kmh; hudNear = nearMisses; hudHits = hits; hudPeds = peds.Count; hudSec = sec;
+            hudStats = kmh + " km/h"
                      + "\nnear miss " + nearMisses + "   hit " + hits
-                     + "\npeds " + peds.Count + "   t " + elapsed.ToString("0") + "s";
-        Label(new Rect(W - 420 * u, 14 * u, 400 * u, 100 * u), stats, 18, new Color(1f, 1f, 1f, 0.9f), TextAnchor.UpperRight);
+                     + "\npeds " + peds.Count + "   t " + sec + "s";
+        }
+        Label(new Rect(W - 420 * u, 14 * u, 400 * u, 100 * u), hudStats, 18, new Color(1f, 1f, 1f, 0.9f), TextAnchor.UpperRight);
 
         Label(new Rect(0, H - 30 * u, W, 26 * u), "A/D 또는 ←/→ 조향   S/↓ 브레이크   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerCenter);
 
