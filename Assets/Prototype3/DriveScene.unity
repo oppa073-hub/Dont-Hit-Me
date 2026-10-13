@@ -163,13 +163,10 @@ MonoBehaviour:
   brakeFactor: 0.5
   maxLateral: 6
   lateralAccel: 25
-  spawnInterval: 1.6
-  minSpawnInterval: 0.55
+  spawnInterval: 0.9
+  minSpawnInterval: 0.35
   intervalRamp: 0.012
-  walkSpeedMin: 1.2
-  walkSpeedMax: 3.8
-  pauseChance: 0.35
-  maxPeds: 10
+  maxPeds: 30
   nearMissDist: 2.2
   nearMissBonus: 50
   maxLives: 3
