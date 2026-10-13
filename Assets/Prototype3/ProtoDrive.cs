@@ -62,8 +62,8 @@ public class ProtoDrive : MonoBehaviour
     [Tooltip("손이 핸들 회전을 따라가는 정도. 1 = 핸들과 함께 돈다(팔이 화면 밖으로 빠질 수 있음), 0 = 손은 고정이고 림만 미끄러진다")]
     public float gripFollow = 0.4f;
     [Range(0f, 180f)]
-    [Tooltip("손을 림 둘레로 돌리는 각도(도). 90 = 손가락이 앞유리 쪽. 작을수록 손등이 운전자 쪽을 향해 더 보이고 손가락은 림 뒤로 숨는다")]
-    public float gripRoll = 65f;
+    [Tooltip("손목 접기(도). 주먹은 림에 둔 채 손을 림 둘레로 돌린다. 클수록 손목이 접혀 손가락이 앞유리 쪽 아래로 숨고 손등/주먹 마디가 위로 온다. 작을수록 손가락이 바깥으로 펴져 보인다")]
+    public float gripRoll = 85f;
     [Tooltip("엄지가 림을 따라 위(12시) 쪽을 향한다. 끄면 손을 뒤집어 아래를 향하게 한다")]
     public bool thumbUp = true;
     [Tooltip("손 위치 미세 조정(m). x = 손가락 방향, y = 손바닥 방향, z = 엄지 방향")]

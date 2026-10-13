@@ -177,6 +177,20 @@ MonoBehaviour:
   hitSpeedFactor: 0.4
   hitStop: 0.08
   shakeHit: 0.15
+  wheelCenter: {x: 0, y: -0.36, z: 0.55}
+  wheelRadius: 0.17
+  wheelMaxAngle: 100
+  shoulderCenter: {x: 0, y: -0.33, z: 0.04}
+  armLength: 0.6
+  handAngle: 30
+  gripFollow: 0.4
+  gripRoll: 35
+  thumbUp: 1
+  gripNudge: {x: 0, y: 0, z: 0}
+  fingerCurl: {x: 75, y: 85, z: 60}
+  thumbCurl: {x: -18, y: 45, z: 35}
+  minCurl: 0.55
+  fingerPad: 0.008
 --- !u!4 &572437491
 Transform:
   m_ObjectHideFlags: 0
