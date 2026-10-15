@@ -33,8 +33,12 @@ public class ProtoDrive : MonoBehaviour
     public int intersectionLen = 2;
     [Tooltip("교차로에서 좌우로 뻗는 가로 도로 길이(m)")]
     public float crossStreetLength = 30f;
-    [Tooltip("깜빡이를 켠 상태에서 교차로 중심까지 이 거리(m) 안으로 오면 자동으로 회전을 시작한다")]
-    public float turnStartDistance = 14f;
+    [Tooltip("깜빡이를 켠 상태에서 교차로 중심까지 이 거리(m) 안으로 오면 회전을 시작한다. 작을수록 교차로 한가운데에서 돈다(0보다 커야 함)")]
+    public float turnCenterTolerance = 1.5f;
+    [Tooltip("회전(월드가 90도 도는 데) 걸리는 시간(초). 교차로 한가운데에서 이 시간 동안 돈다")]
+    public float turnDuration = 1.1f;
+    [Tooltip("깜빡이를 켠 상태에서 교차로 중심까지 이 거리(m) 안으로 오면 turnCruiseSpeed로 자동 감속한다")]
+    public float turnSlowDistance = 22f;
     [Tooltip("회전하는 동안 자동으로 맞춰지는 속도(m/s). 브레이크를 밟지 않아도 이 속도로 돈다")]
     public float turnCruiseSpeed = 9f;
     [Range(10f, 80f)]
@@ -255,7 +259,7 @@ public class ProtoDrive : MonoBehaviour
     // 회전 연출: 월드를 교차로 중심 둘레로 회전시키고, 중간에 새 도로 구간으로 교체한 뒤, 끝나면 좌표를 다시 잡는다
     bool turning, retargeted, skipCross;
     int turnDir, turnInterIdx, lastKNext = int.MinValue;
-    float turnAlpha, turnCenterRoad, turnZ0, retargetFadeT = -1f;
+    float turnAlpha, turnCenterRoad, turnZ0, turnT, retargetFadeT = -1f;
     // 구간을 그릴 때 Place 가 적용하는 회전 (UpdateWorldVisuals 가 구간마다 설정)
     bool rendRot;
     float rendTheta, rendPivotZ;
@@ -925,9 +929,13 @@ public class ProtoDrive : MonoBehaviour
         bool brake = kb.sKey.isPressed || kb.downArrowKey.isPressed;
         float target = Mathf.Min(maxSpeed, baseSpeed + elapsed * speedRamp) * (brake ? brakeFactor : 1f);
         if (turning) target = turnCruiseSpeed;                // 회전 중에는 자동으로 감속/가속해서 같은 속도로 돈다
+        else if (blinker != 0 && nextInterDist > 0f && nextInterDist < turnSlowDistance)
+            target = Mathf.Min(target, turnCruiseSpeed);      // 깜빡이를 켠 채 교차로에 다가가면 미리 감속
         speed = Mathf.MoveTowards(speed, target, 20f * dt);
+        float prevDist = dist;
         dist += speed * dt;
-        distScore += speed * dt * 0.1f;
+        if (turning) dist = Mathf.Min(dist, turnCenterRoad - 8f);   // 회전 중에는 교차로 중심을 넘어가지 않는다 (중심에서 제자리 회전)
+        distScore += (dist - prevDist) * 0.1f;
 
         // 깜빡이: Q 좌 / E 우 (다시 누르면 해제)
         if (!turning)
@@ -963,7 +971,7 @@ public class ProtoDrive : MonoBehaviour
         return m < intersectionLen;
     }
 
-    // 회전: 깜빡이를 켜고 교차로 중심까지 turnStartDistance 안으로 오면 자동으로 시작한다.
+    // 회전: 깜빡이를 켜고 교차로 중심에 도착하면(turnCenterTolerance 안) 그 자리에서 turnDuration 동안 자동으로 돈다.
     // 월드를 교차로 중심 둘레로 0→90도 회전시키고(UpdateWorldVisuals), 중간에 짧게 어두워지는 순간 옛 도로 대신
     // 새 도로 구간으로 교체하고, 중심에 도착하면 좌표를 다시 잡아(CompleteTurn) 새 도로가 그냥 앞으로 이어지게 한다.
     void UpdateIntersection(float dt)
@@ -995,9 +1003,10 @@ public class ProtoDrive : MonoBehaviour
                 lastKNext = kNext;
             }
 
-            if (blinker != 0 && zC <= turnStartDistance && zC > 4f && taxi != TaxiState.Talking)
+            if (blinker != 0 && zC <= turnCenterTolerance && zC > 0f && taxi != TaxiState.Talking)
             {
                 turning = true;
+                turnT = 0f;
                 retargeted = false;
                 retargetFadeT = -1f;
                 turnDir = blinker;
@@ -1011,9 +1020,9 @@ public class ProtoDrive : MonoBehaviour
             return;
         }
 
-        // 회전 진행: 교차로 중심에 가까워지는 만큼 회전한다 (속도와 무관하게 중심에서 정확히 90도)
-        float zCt = turnCenterRoad - roadPos;
-        float p = Mathf.Clamp01(1f - zCt / Mathf.Max(0.1f, turnZ0));
+        // 회전 진행: 차가 교차로 중심에 도착한 뒤, turnDuration 동안 시간에 맞춰 0→90도 돈다
+        turnT += dt;
+        float p = Mathf.Clamp01(turnT / Mathf.Max(0.1f, turnDuration));
         turnAlpha = 90f * (p * p * (3f - 2f * p));
 
         // 장면 교체는 짧게 어두워지는 순간에 한다 (옛 도로의 가까운 건물과 새 도로의 건물이 겹치는 부분을 가린다)
@@ -1034,7 +1043,7 @@ public class ProtoDrive : MonoBehaviour
             }
         }
 
-        if (zCt <= 0f || p >= 1f) CompleteTurn();
+        if (p >= 1f) CompleteTurn();
     }
 
     // 회전이 끝나는 순간: 새 도로가 앞으로 이어지도록 좌표를 옮기고, 방향/도시 해시를 바꾼다.
@@ -1932,7 +1941,7 @@ public class ProtoDrive : MonoBehaviour
             hudInterHeading = heading;
             string bl = blinker < 0 ? "좌회전 예약" : (blinker > 0 ? "우회전 예약" : "직진 (Q 좌 / E 우 깜빡이)");
             hudInterText = "방향 " + HeadNames[heading] + " (" + gx + "," + gy + ")   다음 교차로 " + dm + " m   " + bl
-                         + (blinker != 0 ? "   — 교차로 " + Mathf.RoundToInt(turnStartDistance) + "m 전부터 자동 회전" : "");
+                         + (blinker != 0 ? "   — 교차로 한가운데에서 자동 회전" : "");
         }
         Label(new Rect(0, H * 0.34f, W, 26 * u), hudInterText, 16, new Color(0.8f, 0.95f, 1f, 0.9f), TextAnchor.MiddleCenter);
 
