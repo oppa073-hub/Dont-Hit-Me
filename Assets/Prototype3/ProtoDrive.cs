@@ -322,7 +322,7 @@ public class ProtoDrive : MonoBehaviour
 
     // 교차로 / 회전 상태
     int blinker;                         // -1 좌, 0 없음, +1 우
-    int heading, gx, gy, citySalt;
+    int heading, gx, gy;                 // (gx,gy) = 방금 지난 교차로, heading = 진행 방향 (0 북, 1 동, 2 남, 3 서)
     float fade, nextInterDist;
     // 회전 연출: 월드를 교차로 중심 둘레로 회전시키고, 중간에 새 도로 구간으로 교체한 뒤, 끝나면 좌표를 다시 잡는다
     bool turning, retargeted;
@@ -331,7 +331,8 @@ public class ProtoDrive : MonoBehaviour
     // 구간을 그릴 때 Place 가 적용하는 회전 (UpdateWorldVisuals 가 구간마다 설정)
     bool rendRot;
     float rendTheta, rendPivotZ;
-    int rendSalt;
+    // 건물 해시용: 지금 그리는 구간이 속한 도로의 월드 기준. (rendNodeX,Y)는 교차로 번호 rendNodeK 의 격자 좌표, rendHead 는 그 도로의 진행 방향.
+    int rendNodeX, rendNodeY, rendNodeK, rendHead;
     int hudInterDist = -1, hudInterBlinker = -2, hudInterHeading = -1, hudInterGx = int.MinValue, hudInterGy = int.MinValue;
     string hudInterText = "";
     static readonly int[] HeadX = { 0, 1, 0, -1 };
@@ -1254,7 +1255,6 @@ public class ProtoDrive : MonoBehaviour
         heading = 0;
         gx = 0;
         gy = 0;
-        citySalt = 0;
         turning = retargeted = false;
         destX = destY = 0;
         overshot = false;
@@ -1362,6 +1362,13 @@ public class ProtoDrive : MonoBehaviour
 
     float Period { get { return Mathf.Max(intersectionLen + 1, intersectionEvery) * StripLen; } }   // 교차로 간격(m)
 
+    // 달린 거리 d 에서 앞으로 만날 교차로 번호. 교차로 갱신과 건물 해시가 같은 식을 쓰도록 한 곳에 둔다.
+    int KNextAt(float d)
+    {
+        float len = intersectionLen * StripLen;
+        return Mathf.CeilToInt(((d + 8f) - len * 0.5f) / Period);
+    }
+
     // 목적지를 "다음 교차로 N 기준" 앞 f칸 / 오른쪽 r칸(왼쪽은 음수)으로 바꾼다. sd 는 목적지 줄(r==0)에서 차→목적지 앞쪽 거리(m).
     // (gx,gy)는 방금 지난 교차로, N = (gx,gy)+진행방향. 회전 중이면 회전이 끝난 뒤의 상태로 계산해 CompleteTurn 때 값이 튀지 않게 한다.
     void NavState(out int bx, out int by, out int h, out float zE)
@@ -1414,7 +1421,7 @@ public class ProtoDrive : MonoBehaviour
         float period = e * StripLen;
         float len = intersectionLen * StripLen;
         float roadPos = dist + 8f;                                   // 카메라(z=0)가 놓인 도로 좌표
-        int kNext = Mathf.CeilToInt((roadPos - len * 0.5f) / period); // 앞으로 만날 교차로 번호
+        int kNext = KNextAt(dist);                                    // 앞으로 만날 교차로 번호
         float zC = kNext * period + len * 0.5f - roadPos;             // 그 교차로 중심까지 남은 거리
         nextInterDist = zC;
 
@@ -1491,7 +1498,6 @@ public class ProtoDrive : MonoBehaviour
         gx += HeadX[heading];                                        // 이 교차로에 도착
         gy += HeadY[heading];
         heading = (heading + turnDir + 4) % 4;
-        citySalt++;                                                  // 장면 교체 때 쓴 해시(citySalt + 1)와 같아진다
 
         // 새 도로의 교차로 중심 = RebaseBlocks 번째 교차로 (장면 교체 때 새 도로 구간에 쓴 번호와 같다)
         float rebaseRoad = e * RebaseBlocks * StripLen;
@@ -1903,6 +1909,11 @@ public class ProtoDrive : MonoBehaviour
         float rebaseCenter = rebaseIdx * StripLen + intersectionLen * StripLen * 0.5f;
         float distB = rebaseCenter - pivotZ - 8f;                          // 새 도로 쪽 dist (중심이 pivotZ 앞에 오도록)
 
+        // 건물 해시의 월드 기준: 앞으로 만날 교차로 N 의 격자 좌표와 번호 (회전 중에는 회전하는 교차로)
+        int kNextCur = turning ? turnInterIdx / e : KNextAt(dist);
+        int nodeX = gx + HeadX[heading], nodeY = gy + HeadY[heading];
+        int headB = (heading + turnDir + 4) & 3;                           // 회전 뒤 새 도로의 방향
+
         for (int i = 0; i < StripCount; i++)
         {
             var s = strips[i];
@@ -1930,7 +1941,10 @@ public class ProtoDrive : MonoBehaviour
             rendRot = turning;
             rendTheta = roleB ? thetaB : thetaA;
             rendPivotZ = pivotZ;
-            rendSalt = roleB ? citySalt + 1 : citySalt;
+            rendNodeX = nodeX;
+            rendNodeY = nodeY;
+            rendNodeK = roleB ? RebaseBlocks : kNextCur;                   // 새 도로의 회전 교차로 번호는 RebaseBlocks (idx 도 그 기준으로 옮겨 있다)
+            rendHead = roleB ? headB : heading;
 
             float drop = Drop(zc);
             float pitch = Mathf.Atan(2f * curvature * zc) * Mathf.Rad2Deg;
@@ -2049,11 +2063,29 @@ public class ProtoDrive : MonoBehaviour
         }
         if (inter) return;
 
-        int hidx = idx + rendSalt * 1013;            // 회전할 때마다 건물 배치가 달라지게 하는 해시용 번호
+        // 해시용 번호는 도로 구간의 월드 좌표로 정한다: 같은 길은 어느 방향/어느 때 지나도 같은 건물이 보인다.
+        // 구간(두 교차로 사이)을 양의 방향(북/동) 기준으로 통일하고, 반대 방향으로 달릴 때는 구간 안 위치와 좌우를 뒤집는다.
+        int e = Mathf.Max(intersectionLen + 1, intersectionEvery);
+        int k = idx / e;                                              // idx 는 항상 0 이상
+        int j = idx - k * e;                                          // 이 구간이 교차로에서 몇 번째 조각인지
+        int dk = k - rendNodeK;
+        int cx0 = rendNodeX + HeadX[rendHead] * dk;                   // 이 도로 구간이 시작하는 교차로(진행 방향 기준)
+        int cy0 = rendNodeY + HeadY[rendHead] * dk;
+        int jc = j, sideC = sideIdx;
+        if (rendHead >= 2)
+        {
+            cx0 += HeadX[rendHead];                                   // 반대편 교차로가 양의 방향 기준 시작점이다
+            cy0 += HeadY[rendHead];
+            jc = e + intersectionLen - 1 - j;
+            sideC = 1 - sideIdx;
+        }
+        int segKey = unchecked((cx0 * 73856093) ^ (cy0 * 19349663) ^ ((rendHead & 1) * 83492791)) & 0xFFFFF;
+        int stride = (e + 2) / 3 * 3;                                 // e 이상인 3의 배수 (기본 20 → 21). 구간끼리 번호가 겹치지 않고 3구간 묶음이 맞게 정렬
+        int hidx = segKey * stride + jc;
         if (changed)
         {
             int run = hidx / 3;                      // 3구간(12m)이 한 건물
-            int seed = run * 2 + sideIdx;
+            int seed = run * 2 + sideC;
             sd.pal = Mathf.Min(3, Mathf.FloorToInt(Hash(seed * 13 + 1) * 4f));
             sd.floors = 3 + Mathf.FloorToInt(Hash(seed * 17 + 2) * 5f);
             sd.setback = Hash(seed * 29 + 5) * 1.5f;  // 건물마다 앞뒤로 들쑥날쑥 -> 옆면이 보여서 입체감
@@ -2061,7 +2093,7 @@ public class ProtoDrive : MonoBehaviour
 
             if (hasCity)
             {
-                int shop = Mathf.Min(2, Mathf.FloorToInt(Hash(hidx * 19 + sideIdx) * 3f));
+                int shop = Mathf.Min(2, Mathf.FloorToInt(Hash(hidx * 19 + sideC) * 3f));
                 sd.upper.sprite = winTiles[sd.pal];
                 sd.upper.size = new Vector2(TileCols, sd.floors * 2f);
                 sd.ground.sprite = shopTiles[shop];
@@ -2081,16 +2113,16 @@ public class ProtoDrive : MonoBehaviour
                 sd.wantDoor = ((hidx % 3) + 3) % 3 == 1;
 
                 int kind = 0;
-                if (((hidx + sideIdx * 2) % 4 + 4) % 4 == 0) kind = 1;
-                else if (Hash(hidx * 3 + sideIdx * 7) < 0.12f) kind = 2;
-                else if (Hash(hidx * 5 + sideIdx * 11) < 0.15f) kind = 3;
-                else if (Hash(hidx * 7 + sideIdx * 13) < 0.10f) kind = 4;
+                if (((hidx + sideC * 2) % 4 + 4) % 4 == 0) kind = 1;
+                else if (Hash(hidx * 3 + sideC * 7) < 0.12f) kind = 2;
+                else if (Hash(hidx * 5 + sideC * 11) < 0.15f) kind = 3;
+                else if (Hash(hidx * 7 + sideC * 13) < 0.10f) kind = 4;
                 sd.wantProp = kind != 0;
                 sd.prop.flipX = sideIdx == 0;   // 가로등 머리가 도로 쪽을 향하게
                 switch (kind)
                 {
                     case 1: sd.prop.sprite = lampSprite; sd.propScale = 2f; break;
-                    case 2: sd.prop.sprite = Hash(hidx * 23 + sideIdx) < 0.5f ? lightRedSprite : lightGreenSprite; sd.propScale = 1.6f; break;
+                    case 2: sd.prop.sprite = Hash(hidx * 23 + sideC) < 0.5f ? lightRedSprite : lightGreenSprite; sd.propScale = 1.6f; break;
                     case 3: sd.prop.sprite = trashSprite; sd.propScale = 1.2f; break;
                     case 4: sd.prop.sprite = mailSprite; sd.propScale = 1.2f; break;
                 }
