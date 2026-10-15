@@ -30,7 +30,8 @@ public class ProtoDrive : MonoBehaviour
     public float baseSpeed = 12f;          // m/s
     public float maxSpeed = 30f;
     public float speedRamp = 0.2f;         // 초당 증가
-    public float brakeFactor = 0.5f;
+    [Tooltip("브레이크를 누를 때 목표 속도에 곱하는 값. 0 = 완전히 멈춤(택시는 정차해야 해서 0)")]
+    public float brakeFactor = 0f;
     public float maxLateral = 6f;          // 최대 횡이동 속도
     public float lateralAccel = 25f;       // 조향 관성 (작을수록 묵직)
 
@@ -64,6 +65,28 @@ public class ProtoDrive : MonoBehaviour
     public Vector2 crossSpeed = new Vector2(1.2f, 2.4f);
     public float nearMissDist = 2.2f;      // 중심 간 횡거리 (2.3 이상이면 안전)
     public int nearMissBonus = 50;
+
+    [Header("Taxi (손님 태우기)")]
+    [Tooltip("손님이 새로 나타나기까지 걸리는 시간(초) 범위. 손님을 내려 준 뒤/놓친 뒤부터 센다")]
+    public Vector2 callerDelay = new Vector2(3f, 7f);
+    [Tooltip("손님이 나타나는 거리(m)")]
+    public float callerDistance = 60f;
+    [Tooltip("이 속도(m/s) 이하이면 정차로 본다")]
+    public float pickupSpeed = 1.5f;
+    [Tooltip("손님과 차 사이 최대 좌우 거리(m). 차를 손님 쪽 인도로 붙여야 한다")]
+    public float pickupLateral = 3.6f;
+    [Tooltip("목적지까지 거리(m) 범위")]
+    public Vector2 tripDistance = new Vector2(250f, 600f);
+    public int baseFare = 2000;
+    [Tooltip("미터당 요금(원)")]
+    public int farePerMeter = 3;
+    [Range(0f, 1f)]
+    [Tooltip("손님을 태운 채 사람을 칠 때마다 요금에 곱하는 값")]
+    public float hitFareMul = 0.8f;
+    [Tooltip("옆 시점으로 돌릴 때의 시야각(작을수록 손님이 크게 보임)")]
+    public float sideFov = 42f;
+    [Tooltip("시점 전환 속도(도/초)")]
+    public float yawSpeed = 220f;
 
     [Header("Rules / Feel")]
     public int maxLives = 3;
@@ -111,7 +134,10 @@ public class ProtoDrive : MonoBehaviour
         public float side;                // 인도 쪽 (-1 왼쪽, +1 오른쪽)
         public float walkZ;               // 인도를 따라 걷는 속도(월드 기준, +는 멀어지는 쪽)
         public float triggerZ, waitTime, curbX;
+        public bool caller;               // 택시를 부르는 손님 (머리 위에 !)
     }
+
+    enum TaxiState { Cruise, Talking, Carrying }
 
     class Side
     {
@@ -196,6 +222,35 @@ public class ProtoDrive : MonoBehaviour
     Color popupColor = Color.white;
     bool gameOver;
 
+    // 택시 상태
+    TaxiState taxi;
+    Ped caller;
+    float callerTimer, camYaw, camYawTarget, tripMeters, fareMul = 1f, destDist, reactUntil;
+    int fareTotal, trips;
+    string paxName = "", paxLine = "", destName = "", reactText = "";
+    Color paxSkin, paxHair, paxShirt;
+    Transform destMarker;
+    bool cabinVisible = true;
+
+    static readonly string[] PaxNames = { "김 사장님", "박 할머니", "이 학생", "최 아저씨", "정 부장님", "한 아주머니" };
+    static readonly string[] DestNames = { "시청", "중앙역", "대학병원", "공항", "호텔", "시장", "도서관", "공원 입구" };
+    static readonly string[] HelloLines =
+    {
+        "택시! 여기요! {0}까지 가 주세요.",
+        "기사님, {0}으로 빨리 부탁드려요.",
+        "{0}까지 가 주세요. 늦었어요!",
+        "어휴, 잡았다. {0}요, 천천히 안전하게요."
+    };
+    static readonly string[] ReactLines = { "꺄악!!", "기사님! 조심하세요!!", "방금 사람 쳤어요!?", "으아악!!", "뭐예요 지금!?" };
+    static readonly Color[] SkinTones =
+    {
+        new Color(0.96f, 0.80f, 0.66f), new Color(0.88f, 0.68f, 0.52f), new Color(0.72f, 0.52f, 0.38f), new Color(0.98f, 0.86f, 0.76f)
+    };
+    static readonly Color[] HairTones =
+    {
+        new Color(0.10f, 0.08f, 0.07f), new Color(0.32f, 0.20f, 0.12f), new Color(0.75f, 0.72f, 0.70f), new Color(0.55f, 0.35f, 0.15f)
+    };
+
     float SpawnZ => Mathf.Min(StripCount * StripLen - 12f, Mathf.Sqrt(camHeight / curvature) + Mathf.Sqrt(1.75f / curvature) + 8f);
     float Drop(float z) => -curvature * z * z;
 
@@ -276,6 +331,11 @@ public class ProtoDrive : MonoBehaviour
 
         BuildBackdrop();
         BuildCabin();
+
+        // 목적지 표지 기둥 (손님을 태운 동안만 보인다)
+        destMarker = Block("DestMarker");
+        destMarker.GetComponent<Renderer>().sharedMaterial = dashMat;
+        destMarker.gameObject.SetActive(false);
 
         ResetGame();
     }
@@ -761,6 +821,15 @@ public class ProtoDrive : MonoBehaviour
         hurtFlash = invuln = 0f;
         popupUntil = 0f;
         gameOver = false;
+
+        taxi = TaxiState.Cruise;
+        caller = null;
+        callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+        camYaw = camYawTarget = 0f;
+        fareMul = 1f;
+        fareTotal = trips = 0;
+        reactUntil = 0f;
+        if (destMarker != null) destMarker.gameObject.SetActive(false);
     }
 
     void Update()
@@ -772,6 +841,18 @@ public class ProtoDrive : MonoBehaviour
         if (gameOver)
         {
             if (kb.rKey.wasPressedThisFrame) ResetGame();
+            UpdateWorldVisuals();
+            return;
+        }
+
+        // 손님과 대화 중: 월드는 멈춰 있고 Space 로 태우거나 X 로 거절한다
+        if (taxi == TaxiState.Talking)
+        {
+            hurtFlash = Mathf.Max(0f, hurtFlash - Time.deltaTime);   // 피격 직후 정차해도 붉은 화면이 남지 않게
+            invuln = Mathf.Max(0f, invuln - Time.deltaTime);
+            bool turned = Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f;
+            if (turned && kb.spaceKey.wasPressedThisFrame) AcceptPassenger();
+            else if (turned && kb.xKey.wasPressedThisFrame) DeclinePassenger();
             UpdateWorldVisuals();
             return;
         }
@@ -811,11 +892,115 @@ public class ProtoDrive : MonoBehaviour
         }
 
         UpdatePeds(dt);
+        if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         UpdateWorldVisuals();
     }
 
+    // ---------- 택시: 손님 호출 / 정차 / 대화 / 탑승 / 도착 ----------
+
+    void UpdateTaxi(float dt)
+    {
+        // 손님이 사라졌다(지나쳐서 제거됨)
+        if (caller != null && (caller.t == null || !peds.Contains(caller)))
+        {
+            caller = null;
+            callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+            if (taxi == TaxiState.Cruise) Popup("손님을 놓쳤다", new Color(0.8f, 0.8f, 0.8f));
+        }
+
+        if (taxi == TaxiState.Cruise)
+        {
+            if (caller == null)
+            {
+                callerTimer -= dt;
+                if (callerTimer <= 0f) MakeCaller();
+            }
+            else if (speed <= pickupSpeed && caller.z > -2.5f && caller.z < 9f && Mathf.Abs(caller.x - carX) < pickupLateral)
+            {
+                BeginTalk();
+            }
+        }
+        else if (taxi == TaxiState.Carrying)
+        {
+            float rem = destDist - dist;
+            if (speed <= pickupSpeed && Mathf.Abs(rem) < 14f)
+            {
+                Arrive();
+            }
+            else if (rem < -45f)
+            {
+                // 지나쳤다: 목적지를 앞쪽으로 다시 잡고 요금을 깎는다 (이번 단계는 U턴 없음)
+                Popup("목적지를 지나쳤어요!", new Color(1f, 0.5f, 0.4f));
+                destDist = dist + 140f;
+                fareMul = Mathf.Max(0.2f, fareMul - 0.2f);
+            }
+        }
+    }
+
+    void MakeCaller()
+    {
+        var p = SpawnPed(0, callerDistance);
+        p.caller = true;
+        p.walkZ = 0f;                                        // 연석에서 제자리
+        p.x = p.side * (roadHalfWidth + 1.2f);
+        caller = p;
+    }
+
+    void BeginTalk()
+    {
+        taxi = TaxiState.Talking;
+        speed = 0f;
+        paxName = PaxNames[Random.Range(0, PaxNames.Length)];
+        destName = DestNames[Random.Range(0, DestNames.Length)];
+        paxLine = string.Format(HelloLines[Random.Range(0, HelloLines.Length)], destName);
+        paxSkin = SkinTones[Random.Range(0, SkinTones.Length)];
+        paxHair = HairTones[Random.Range(0, HairTones.Length)];
+        paxShirt = caller.baseColor;
+        tripMeters = Random.Range(tripDistance.x, tripDistance.y);
+
+        // 손님 쪽(왼쪽/오른쪽)으로 시점을 돌린다
+        float dx = caller.x - (carX - 0.4f);
+        camYawTarget = Mathf.Atan2(dx, Mathf.Max(0.5f, caller.z)) * Mathf.Rad2Deg;
+    }
+
+    void AcceptPassenger()
+    {
+        taxi = TaxiState.Carrying;
+        fareMul = 1f;
+        destDist = dist + tripMeters;
+        int idx = peds.IndexOf(caller);
+        if (idx >= 0) Remove(idx);                           // 손님은 차 안으로
+        caller = null;
+        camYawTarget = 0f;
+        Popup("출발!", new Color(1f, 0.9f, 0.4f));
+    }
+
+    void DeclinePassenger()
+    {
+        if (caller != null)
+        {
+            caller.caller = false;
+            caller.walkZ = Random.Range(sidewalkWalkSpeed.x, sidewalkWalkSpeed.y) * (Random.value < 0.5f ? -1f : 1f);
+        }
+        caller = null;
+        callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+        taxi = TaxiState.Cruise;
+        camYawTarget = 0f;
+    }
+
+    void Arrive()
+    {
+        int fare = Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul);
+        fareTotal += fare;
+        trips++;
+        score += Mathf.RoundToInt(fare / 100f);
+        Popup("도착! +" + fare + "원", new Color(1f, 0.85f, 0.3f));
+        taxi = TaxiState.Cruise;
+        callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+    }
+
     // 새 사람 한 명을 인도에 만든다. kind 를 -1 로 주면 비율대로 무작위 종류를 고른다.
-    void SpawnPed(int kind = -1, float z = -1f)
+    Ped SpawnPed(int kind = -1, float z = -1f)
     {
         if (kind < 0)
         {
@@ -852,6 +1037,7 @@ public class ProtoDrive : MonoBehaviour
             phase = Random.value * 6f
         };
         peds.Add(p);
+        return p;
     }
 
     void UpdatePeds(float dt)
@@ -966,6 +1152,14 @@ public class ProtoDrive : MonoBehaviour
         speed *= hitSpeedFactor;
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + 0.3f;
+
+        // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
+        if (taxi == TaxiState.Carrying)
+        {
+            reactText = ReactLines[Random.Range(0, ReactLines.Length)];
+            reactUntil = Time.unscaledTime + 1.6f;
+            fareMul = Mathf.Max(0.2f, fareMul * hitFareMul);
+        }
         if (invuln > 0f) return;
 
         lives--;
@@ -1024,13 +1218,24 @@ public class ProtoDrive : MonoBehaviour
             }
         }
 
+        // 목적지 표지 기둥
+        if (destMarker != null)
+        {
+            float mz = destDist - dist;
+            bool show = taxi == TaxiState.Carrying && mz > -25f && mz < SpawnZ;
+            if (destMarker.gameObject.activeSelf != show) destMarker.gameObject.SetActive(show);
+            if (show) Place(destMarker, new Vector3(roadHalfWidth + 0.8f, Drop(mz) + 3f, mz), Quaternion.identity, new Vector3(0.4f, 6f, 0.4f));
+        }
+
         foreach (var p in peds)
         {
             bool fallen = p.fallT >= 0f;
             float bob = (!fallen && p.pauseLeft <= 0f) ? Mathf.Sin((elapsed + p.phase) * 10f) * 0.05f : 0f;
             float h = fallen ? 0.35f : 0.875f + bob;
             p.t.position = new Vector3(p.x, Drop(p.z) + h, p.z);
-            p.t.rotation = Quaternion.Euler(0f, 0f, fallen ? -p.dir * 85f : 0f);
+            // 옆 시점으로 손님을 볼 때는 손님이 카메라를 향하게 돌린다 (평소 보행자는 정면 고정)
+            float faceYaw = (taxi == TaxiState.Talking && p == caller) ? camYaw : 0f;
+            p.t.rotation = Quaternion.Euler(0f, faceYaw, fallen ? -p.dir * 85f : 0f);
             if (p.pauseLeft > 0f) p.sr.color = Color.Lerp(p.baseColor, Color.white, 0.5f);
             else if (!fallen) p.sr.color = p.baseColor;
         }
@@ -1161,11 +1366,18 @@ public class ProtoDrive : MonoBehaviour
         Vector3 off = Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;
-        cam.transform.rotation = Quaternion.Euler(0f, 0f, roll);
+        camYaw = Mathf.MoveTowardsAngle(camYaw, camYawTarget, yawSpeed * Time.unscaledDeltaTime);
+        cam.transform.rotation = Quaternion.Euler(0f, camYaw, roll);
+        float fovTarget = taxi == TaxiState.Talking ? sideFov : 70f;
+        cam.fieldOfView = Mathf.MoveTowards(cam.fieldOfView, fovTarget, 120f * Time.unscaledDeltaTime);
+
+        // 옆 시점(손님 대화) 중에는 손/핸들/대시보드를 숨긴다
+        cabinVisible = taxi != TaxiState.Talking && Mathf.Abs(camYaw) < 4f;
+        if (viewRoot != null && viewRoot.gameObject.activeSelf != cabinVisible) viewRoot.gameObject.SetActive(cabinVisible);
 
         // 핸들 회전 → 손 위치가 따라 움직이므로 IK 는 그 뒤에 푼다
         if (wheelSpin != null) wheelSpin.localRotation = Quaternion.Euler(0f, 0f, -steerAngle);
-        if (arms3D)
+        if (arms3D && cabinVisible)
         {
             UpdateGrip(armLeft);
             UpdateGrip(armRight);
@@ -1254,17 +1466,60 @@ public class ProtoDrive : MonoBehaviour
         GUI.color = Color.white;
     }
 
+    // 얼굴 하나를 도형으로 그린다 (머리카락 + 피부 + 눈 + 입). shocked 이면 눈이 커지고 입이 벌어진다.
+    void DrawFace(Vector2 c, float s, Color skin, Color hair, bool shocked)
+    {
+        Dot(c + new Vector2(0f, -s * 0.10f), s * 1.10f, hair);
+        Dot(c + new Vector2(0f, s * 0.06f), s * 0.92f, skin);
+        float ex = s * 0.17f, ey = c.y - s * 0.02f;
+        float eye = shocked ? s * 0.20f : s * 0.11f;
+        if (shocked)
+        {
+            Dot(new Vector2(c.x - ex, ey), eye, Color.white);
+            Dot(new Vector2(c.x + ex, ey), eye, Color.white);
+        }
+        Dot(new Vector2(c.x - ex, ey), eye * 0.55f, Color.black);
+        Dot(new Vector2(c.x + ex, ey), eye * 0.55f, Color.black);
+        if (shocked) Dot(new Vector2(c.x, c.y + s * 0.30f), s * 0.20f, new Color(0.25f, 0.05f, 0.05f));
+        else Fill(new Rect(c.x - s * 0.12f, c.y + s * 0.27f, s * 0.24f, Mathf.Max(2f, s * 0.04f)), new Color(0.35f, 0.12f, 0.1f));
+    }
+
+    // 룸미러: 평소엔 빈 거울, 손님을 태우면 기사 얼굴 뒤로 손님 얼굴이 보인다
+    void DrawRearMirror(float W, float H)
+    {
+        bool carrying = taxi == TaxiState.Carrying;
+        float mw = carrying ? W * 0.16f : W * 0.106f;
+        float mh = carrying ? H * 0.085f : H * 0.04f;
+        var r = new Rect(W * 0.5f - mw * 0.5f, H * 0.098f, mw, mh);
+        Fill(new Rect(r.x - 4f, r.y - 4f, r.width + 8f, r.height + 8f), new Color(0.1f, 0.1f, 0.12f));
+        Fill(r, new Color(0.35f, 0.4f, 0.45f));
+        if (!carrying) return;
+
+        float s = mh * 0.62f;
+        bool shocked = Time.unscaledTime < reactUntil;
+        DrawFace(new Vector2(r.center.x + mw * 0.16f, r.center.y - mh * 0.02f), s * 0.85f, paxSkin, paxHair, shocked);   // 뒤쪽 손님
+        DrawFace(new Vector2(r.center.x - mw * 0.14f, r.center.y + mh * 0.06f), s, SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);   // 기사
+    }
+
     void DrawCabin()
     {
         float W = Screen.width, H = Screen.height;
         var frame = new Color(0.1f, 0.1f, 0.12f);
+
+        // 옆 시점(손님 대화): 창틀과 문 안쪽만 보인다
+        if (!cabinVisible)
+        {
+            Fill(new Rect(0, 0, W, H * 0.06f), frame);
+            Fill(new Rect(0, H * 0.90f, W, H * 0.10f + 2f), frame);
+            return;
+        }
 
         // 앞유리 프레임: 지붕, A필러, 룸미러 (대시보드/핸들/팔은 3D)
         Fill(new Rect(0, 0, W, H * 0.09f), frame);
         Fill(new Rect(0, 0, W * 0.055f, H), frame);
         Fill(new Rect(W * 0.945f, 0, W * 0.055f, H), frame);
         Fill(new Rect(W * 0.44f, H * 0.09f, W * 0.12f, H * 0.055f), frame);
-        Fill(new Rect(W * 0.447f, H * 0.098f, W * 0.106f, H * 0.04f), new Color(0.35f, 0.4f, 0.45f));
+        DrawRearMirror(W, H);
 
         if (arms3D) return;
 
@@ -1308,6 +1563,77 @@ public class ProtoDrive : MonoBehaviour
         Dot(hand + new Vector2(H * 0.01f, -H * 0.045f), H * 0.05f, new Color(0.85f, 0.65f, 0.5f));
     }
 
+    // 택시 UI: 손님 머리 위 '!', 목적지 표시, 탑승 정보, 대화 상자, 사고 시 손님 리액션
+    void DrawTaxiGui(float W, float H, float u)
+    {
+        if (cam == null) return;
+
+        // 손님 머리 위 느낌표
+        if (caller != null && caller.t != null && taxi != TaxiState.Carrying)
+        {
+            Vector3 sp = cam.WorldToScreenPoint(caller.t.position + Vector3.up * 1.2f);
+            if (sp.z > 0f)
+            {
+                float size = Mathf.Clamp(1100f / sp.z, 26f, 90f);
+                Label(new Rect(sp.x - 40 * u, H - sp.y - size * u, 80 * u, size * u * 1.2f), "!", Mathf.RoundToInt(size), new Color(1f, 0.85f, 0.1f), TextAnchor.MiddleCenter);
+            }
+        }
+
+        // 목적지 표지 위 글자
+        if (taxi == TaxiState.Carrying && destMarker != null && destMarker.gameObject.activeSelf)
+        {
+            Vector3 sp = cam.WorldToScreenPoint(destMarker.position + Vector3.up * 3.4f);
+            if (sp.z > 0f)
+            {
+                float size = Mathf.Clamp(1400f / sp.z, 20f, 60f);
+                Label(new Rect(sp.x - 120 * u, H - sp.y - size * u, 240 * u, size * u * 1.3f), destName, Mathf.RoundToInt(size), new Color(1f, 0.9f, 0.3f), TextAnchor.MiddleCenter);
+            }
+        }
+
+        // 탑승 정보 (상단 가운데)
+        if (taxi == TaxiState.Carrying)
+        {
+            int rem = Mathf.Max(0, Mathf.RoundToInt(destDist - dist));
+            int fareNow = Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul);
+            Label(new Rect(0, H * 0.20f, W, 30 * u), paxName + " → " + destName + "   남은 거리 " + rem + " m   요금 " + fareNow + "원", 20, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.20f + 28 * u, W, 24 * u), "목적지 근처에서 브레이크로 정차하면 내려 드립니다", 15, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter);
+        }
+        else if (taxi == TaxiState.Cruise)
+        {
+            string hint = caller != null
+                ? "손님이 기다린다! 손님 쪽 인도에 붙어서 브레이크로 멈추세요"
+                : "손님을 찾는 중...";
+            Label(new Rect(0, H * 0.20f, W, 28 * u), hint, 18, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
+        }
+
+        // 누적 요금 (좌측 상단 아래)
+        Label(new Rect(20 * u, 84 * u, 500 * u, 30 * u), "요금 " + fareTotal + "원   (" + trips + "명)", 18, new Color(1f, 0.92f, 0.5f), TextAnchor.UpperLeft);
+
+        // 손님 대화 상자
+        if (taxi == TaxiState.Talking && Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f)
+        {
+            var box = new Rect(W * 0.10f, H * 0.62f, W * 0.80f, H * 0.30f);
+            Fill(box, new Color(0.05f, 0.05f, 0.08f, 0.88f));
+            DrawFace(new Vector2(box.x + box.height * 0.55f, box.center.y), box.height * 0.62f, paxSkin, paxHair, false);
+            Dot(new Vector2(box.x + box.height * 0.55f, box.yMax - box.height * 0.10f), box.height * 0.36f, paxShirt);
+            float tx = box.x + box.height * 1.15f;
+            Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), paxName, 24, new Color(1f, 0.85f, 0.4f), TextAnchor.UpperLeft);
+            style.wordWrap = true;
+            Label(new Rect(tx, box.y + 52 * u, box.width - box.height * 1.3f, box.height - 90 * u), paxLine, 24, Color.white, TextAnchor.UpperLeft);
+            style.wordWrap = false;
+            Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), "[Space] 태우기    [X] 거절", 18, new Color(0.7f, 0.9f, 1f), TextAnchor.LowerLeft);
+        }
+
+        // 사고 시 손님 리액션
+        if (taxi == TaxiState.Carrying && Time.unscaledTime < reactUntil)
+        {
+            Vector2 c = new Vector2(W * 0.5f, H * 0.42f);
+            Fill(new Rect(c.x - 230 * u, c.y - 120 * u, 460 * u, 240 * u), new Color(0f, 0f, 0f, 0.55f));
+            DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, paxSkin, paxHair, true);
+            Label(new Rect(c.x - 40 * u, c.y - 40 * u, 260 * u, 80 * u), reactText, 30, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
+        }
+    }
+
     void OnGUI()
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
@@ -1343,6 +1669,8 @@ public class ProtoDrive : MonoBehaviour
         Label(new Rect(W - 420 * u, 14 * u, 400 * u, 100 * u), hudStats, 18, new Color(1f, 1f, 1f, 0.9f), TextAnchor.UpperRight);
 
         Label(new Rect(0, H - 30 * u, W, 26 * u), "A/D 또는 ←/→ 조향   S/↓ 브레이크   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerCenter);
+
+        DrawTaxiGui(W, H, u);
 
         if (Time.unscaledTime < popupUntil)
             Label(new Rect(0, H * 0.28f, W, 50 * u), popupText, 34, popupColor, TextAnchor.MiddleCenter);

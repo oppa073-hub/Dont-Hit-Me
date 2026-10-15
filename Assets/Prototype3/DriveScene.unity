@@ -160,7 +160,7 @@ MonoBehaviour:
   baseSpeed: 20
   maxSpeed: 40
   speedRamp: 0.2
-  brakeFactor: 0.5
+  brakeFactor: 0
   maxLateral: 6
   lateralAccel: 25
   spawnInterval: 0.9
