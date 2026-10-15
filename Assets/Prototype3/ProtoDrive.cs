@@ -141,10 +141,10 @@ public class ProtoDrive : MonoBehaviour
     [Tooltip("내비 지도에 보일 격자 칸 수(위아래 각각). 클수록 넓게 보이고 작게 그려진다")]
     public int miniMapRange = 3;
     [Tooltip("왼쪽 A필러 아래/위 끝 (운전석 쪽, 가까움)")]
-    public Vector3 pillarLBase = new Vector3(-0.90f, -0.50f, 0.95f);
+    public Vector3 pillarLBase = new Vector3(-0.90f, -0.56f, 0.95f);
     public Vector3 pillarLTop = new Vector3(-0.56f, 0.55f, 0.50f);
     [Tooltip("오른쪽 A필러 아래/위 끝 (조수석 쪽, 멀어서 화면 오른쪽 끝에 조금만 보인다)")]
-    public Vector3 pillarRBase = new Vector3(1.10f, -0.50f, 1.00f);
+    public Vector3 pillarRBase = new Vector3(1.10f, -0.56f, 1.00f);
     public Vector3 pillarRTop = new Vector3(0.85f, 0.55f, 0.60f);
     public float pillarThickness = 0.07f;
 
@@ -297,7 +297,9 @@ public class ProtoDrive : MonoBehaviour
     bool hintNear;
     int hudRem = -1, hudFareNow = -1;
     string hudPaxName = "", hudDestName = "", hudTripText = "";
-    string paxName = "", paxLine = "", destName = "", reactText = "";
+    string paxName = "", paxLine = "", destName = "", reactText = "", thanksText = "";
+    PaxType pax;                         // 지금 태운/대화 중인 손님의 유형
+    float thanksUntil;
     Color paxSkin, paxHair, paxShirt;
     Transform destMarker;
     bool cabinVisible = true;
@@ -320,16 +322,75 @@ public class ProtoDrive : MonoBehaviour
     static readonly int[] HeadY = { 1, 0, -1, 0 };
     static readonly string[] HeadNames = { "북", "동", "남", "서" };
 
-    static readonly string[] PaxNames = { "김 사장님", "박 할머니", "이 학생", "최 아저씨", "정 부장님", "한 아주머니" };
-    static readonly string[] DestNames = { "시청", "중앙역", "대학병원", "공항", "호텔", "시장", "도서관", "공원 입구" };
-    static readonly string[] HelloLines =
+    // 손님 유형 표: 여기만 고치면 이름/대사/목적지/요금이 바뀐다. hello 의 {0} 은 목적지 이름.
+    // 조사 때문에 {0} 뒤에는 "까지"처럼 받침과 상관없는 말만 쓴다 (예: "{0}까지 가 주세요").
+    class PaxType
     {
-        "택시! 여기요! {0}까지 가 주세요.",
-        "기사님, {0}으로 빨리 부탁드려요.",
-        "{0}까지 가 주세요. 늦었어요!",
-        "어휴, 잡았다. {0}요, 천천히 안전하게요."
+        public string[] names, dests, hello, react, thanks;
+        public float fareMul = 1f;       // 이 유형의 기본 요금 배율
+        public float hitSense = 1f;      // 사람을 쳤을 때 감액이 얼마나 커지는지 (1 = hitFareMul 그대로, 클수록 더 깎음)
+        public int hair = -1;            // HairTones 번호. -1 이면 무작위
+        public int weight = 2;           // 나타날 확률 가중치
+    }
+
+    static readonly PaxType[] PaxTypes =
+    {
+        new PaxType   // 회사원: 요금 높고 사고에 엄격하다
+        {
+            names = new[] { "김 사장님", "정 부장님", "박 과장님" },
+            dests = new[] { "시청", "공항", "호텔", "중앙역" },
+            hello = new[] { "{0}까지 가 주세요. 미팅에 늦었어요.", "기사님, {0}까지. 급합니다.", "{0}까지요. 최대한 빨리, 하지만 안전하게." },
+            react = new[] { "이봐요, 운전 똑바로 합시다!", "지금 뭐 하시는 겁니까!", "사람을 칠 뻔했잖아요!" },
+            thanks = new[] { "수고했어요. 잔돈은 됐습니다.", "시간 맞춰 왔군요. 좋아요." },
+            fareMul = 1.2f, hitSense = 1.3f
+        },
+        new PaxType   // 할머니: 느긋하고 놀람이 크다
+        {
+            names = new[] { "박 할머니", "최 할머니", "윤 할머니" },
+            dests = new[] { "대학병원", "시장", "공원 입구" },
+            hello = new[] { "아이고, 택시 잡았네. {0}까지 천천히 가 주오.", "기사 양반, {0}까지 가 주시게.", "{0}에 가요. 서두르지 말아요." },
+            react = new[] { "아이고 깜짝이야!", "아이구, 이게 무슨 일이래!", "아이고 놀래라!!" },
+            thanks = new[] { "고마워요, 젊은이. 복 받을 거야.", "안전하게 데려다줘서 고맙소." },
+            fareMul = 1.0f, hitSense = 1.0f, hair = 2
+        },
+        new PaxType   // 학생: 요금은 조금 낮고, 리액션은 크지만 사고 감액은 작다
+        {
+            names = new[] { "이 학생", "한 학생", "서 학생" },
+            dests = new[] { "도서관", "중앙역", "시청" },
+            hello = new[] { "기사님, {0}까지요! 빨리빨리요!", "{0}까지 가 주세요! 수업 늦었어요!", "{0}! 지각이에요 지각!" },
+            react = new[] { "헐 뭐야!! 방금 뭐 쳤어요?", "꺄악!! 기사님!!", "으아악!! 대박!!" },
+            thanks = new[] { "감사합니다! 별점 5점 드릴게요!", "덕분에 안 늦었어요! 감사합니다!" },
+            fareMul = 0.9f, hitSense = 0.8f
+        },
+        new PaxType   // 아저씨
+        {
+            names = new[] { "최 아저씨", "오 아저씨", "강 아저씨" },
+            dests = new[] { "시장", "중앙역", "공원 입구", "시청" },
+            hello = new[] { "어이, {0}까지 갑시다.", "{0}까지 가요. 막히지 않게 잘 가 봅시다.", "택시! {0}까지 부탁해요." },
+            react = new[] { "어허, 운전 조심해!", "에이, 이 사람아!", "거 운전 좀 살살 합시다!" },
+            thanks = new[] { "수고했소.", "잘 왔네. 고마워요." },
+            fareMul = 1.0f, hitSense = 1.0f
+        },
+        new PaxType   // 아주머니
+        {
+            names = new[] { "한 아주머니", "송 아주머니", "조 아주머니" },
+            dests = new[] { "시장", "대학병원", "도서관", "공원 입구" },
+            hello = new[] { "기사님, {0}까지요. 애들 데리러 가야 해요.", "{0}까지 부탁드려요. 장 본 게 무거워서요.", "어휴, 잡았다. {0}요, 천천히 안전하게요." },
+            react = new[] { "꺄악!! 기사님!!", "어머, 어머! 조심하세요!!", "방금 사람 쳤어요!?" },
+            thanks = new[] { "안전하게 와서 고마워요.", "고마워요, 기사님. 수고하세요." },
+            fareMul = 1.0f, hitSense = 1.0f
+        },
+        new PaxType   // VIP: 요금이 매우 높지만 사고에 아주 민감하다
+        {
+            names = new[] { "VIP 손님", "이사장님", "관광객 스미스" },
+            dests = new[] { "공항", "호텔", "시청" },
+            hello = new[] { "{0}까지 부탁합니다. 아주 부드럽게요.", "{0}까지. 승차감이 중요합니다.", "{0}! Please, smooth ride." },
+            react = new[] { "오 마이 갓!!", "이게 무슨 무례한 운전입니까!", "Stop! 방금 뭐였죠!?" },
+            thanks = new[] { "Excellent! 훌륭한 운전이었어요.", "만족합니다. 수고했어요." },
+            fareMul = 1.5f, hitSense = 1.7f, weight = 1
+        },
     };
-    static readonly string[] ReactLines = { "꺄악!!", "기사님! 조심하세요!!", "방금 사람 쳤어요!?", "으아악!!", "뭐예요 지금!?" };
+
     static readonly Color[] SkinTones =
     {
         new Color(0.96f, 0.80f, 0.66f), new Color(0.88f, 0.68f, 0.52f), new Color(0.72f, 0.52f, 0.38f), new Color(0.98f, 0.86f, 0.76f)
@@ -550,8 +611,8 @@ public class ProtoDrive : MonoBehaviour
         go.transform.SetParent(parent, false);
         var tm = go.AddComponent<TextMesh>();
         tm.font = cabinFont;
-        tm.fontSize = 64;
-        tm.characterSize = height * 10f / 64f;
+        tm.fontSize = 32;                                            // 작게 보이는 글자라 텍스처를 키우면 오히려 거칠어진다
+        tm.characterSize = height * 10f / 32f;
         tm.anchor = anchor;
         tm.alignment = TextAlignment.Center;
         tm.color = c;
@@ -567,6 +628,7 @@ public class ProtoDrive : MonoBehaviour
         var m = new Mesh { name = "NavArrow" };
         m.vertices = new[] { new Vector3(0f, 0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(0f, -0.2f, 0f), new Vector3(-0.5f, -0.5f, 0f) };
         m.triangles = new[] { 0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2 };
+        m.RecalculateNormals();
         m.RecalculateBounds();
         return m;
     }
@@ -595,7 +657,7 @@ public class ProtoDrive : MonoBehaviour
         clusterRoot.localPosition = cp;
         clusterRoot.localRotation = Quaternion.LookRotation(cp);
         clusterFace.localScale = new Vector3(0.30f, Mathf.Min(0.10f, hoodH * 0.8f), 1f);
-        clusterText.transform.localPosition = new Vector3(0f, 0f, -0.002f);
+        clusterText.transform.localPosition = new Vector3(0.085f, 0f, -0.002f);   // 핸들 세로 스포크/허브에 가리지 않게 오른쪽으로 비킨다
 
         Pillar(pillarL, pillarLBase, pillarLTop);
         Pillar(pillarR, pillarRBase, pillarRTop);
@@ -694,7 +756,7 @@ public class ProtoDrive : MonoBehaviour
         if (carrying)
         {
             DestRel(out int f, out int r, out float sd);
-            rem = Mathf.RoundToInt((Mathf.Abs(sd) + Mathf.Abs(r) * period) / 10f) * 10;
+            rem = Mathf.RoundToInt(Mathf.Abs(sd) + Mathf.Abs(r) * period);   // 상단 HUD 와 같은 값
             float nF = zE / period;                                  // 다음 교차로까지 앞쪽 칸 수
             float dx = r * cs, dyv = (nF + f) * cs;
             float gw = lw * 2f;
@@ -718,7 +780,8 @@ public class ProtoDrive : MonoBehaviour
                 NavSeg(ref n, d, new Vector2(dx, d.y), gw, hw, hh);
             }
             float m = cs * 0.35f;
-            navDest.localPosition = new Vector3(Mathf.Clamp(dx, -hw + m, hw - m), Mathf.Clamp(carY + dyv, -hh + m, hh - m), -0.0025f);
+            float barTop = -hh + hgt * 0.18f;                        // 아래 정보 띠 위쪽 (목적지가 띠 속에 숨지 않게)
+            navDest.localPosition = new Vector3(Mathf.Clamp(dx, -hw + m, hw - m), Mathf.Clamp(carY + dyv, barTop + m, hh - m), -0.0025f);
             navDest.localRotation = Quaternion.Euler(0f, 0f, 45f);
             navDest.localScale = new Vector3(cs * 0.5f, cs * 0.5f, 1f);
         }
@@ -1164,6 +1227,8 @@ public class ProtoDrive : MonoBehaviour
         fareMul = 1f;
         fareTotal = trips = 0;
         reactUntil = 0f;
+        pax = null;
+        thanksUntil = 0f;
         blinker = 0;
         heading = 0;
         gx = 0;
@@ -1486,15 +1551,42 @@ public class ProtoDrive : MonoBehaviour
         caller = p;
     }
 
+    static string PickOne(string[] a)
+    {
+        return a[Random.Range(0, a.Length)];
+    }
+
+    // 가중치에 따라 손님 유형을 하나 뽑는다
+    static PaxType PickPaxType()
+    {
+        int total = 0;
+        foreach (var t in PaxTypes) total += Mathf.Max(0, t.weight);
+        int roll = Random.Range(0, Mathf.Max(1, total));
+        foreach (var t in PaxTypes)
+        {
+            roll -= Mathf.Max(0, t.weight);
+            if (roll < 0) return t;
+        }
+        return PaxTypes[0];
+    }
+
+    // 지금 정산하면 받을 요금 (HUD 와 정산이 같은 값을 쓴다)
+    int CurrentFare()
+    {
+        float typeMul = pax != null ? pax.fareMul : 1f;
+        return Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul * typeMul);
+    }
+
     void BeginTalk()
     {
         taxi = TaxiState.Talking;
         speed = 0f;
-        paxName = PaxNames[Random.Range(0, PaxNames.Length)];
-        destName = DestNames[Random.Range(0, DestNames.Length)];
-        paxLine = string.Format(HelloLines[Random.Range(0, HelloLines.Length)], destName);
+        pax = PickPaxType();
+        paxName = PickOne(pax.names);
+        destName = PickOne(pax.dests);
+        paxLine = string.Format(PickOne(pax.hello), destName);
         paxSkin = SkinTones[Random.Range(0, SkinTones.Length)];
-        paxHair = HairTones[Random.Range(0, HairTones.Length)];
+        paxHair = HairTones[pax.hair >= 0 ? pax.hair % HairTones.Length : Random.Range(0, HairTones.Length)];
         paxShirt = caller.baseColor;
 
         // 손님 쪽(왼쪽/오른쪽)으로 시점을 돌린다
@@ -1541,7 +1633,12 @@ public class ProtoDrive : MonoBehaviour
 
     void Arrive()
     {
-        int fare = Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul);
+        int fare = CurrentFare();
+        if (pax != null)
+        {
+            thanksText = paxName + ": \"" + PickOne(pax.thanks) + "\"";
+            thanksUntil = Time.unscaledTime + 3f;
+        }
         fareTotal += fare;
         trips++;
         score += Mathf.RoundToInt(fare / 100f);
@@ -1707,9 +1804,11 @@ public class ProtoDrive : MonoBehaviour
         // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
         if (taxi == TaxiState.Carrying)
         {
-            reactText = ReactLines[Random.Range(0, ReactLines.Length)];
+            reactText = PickOne(pax != null ? pax.react : PaxTypes[0].react);
             reactUntil = Time.unscaledTime + 1.6f;
-            fareMul = Mathf.Max(0.2f, fareMul * hitFareMul);
+            float sense = pax != null ? pax.hitSense : 1f;
+            float hitMul = Mathf.Clamp01(1f - (1f - hitFareMul) * sense);    // 유형이 민감할수록 더 깎는다
+            fareMul = Mathf.Max(0.2f, fareMul * hitMul);
         }
         if (invuln > 0f) return;
 
@@ -2218,28 +2317,12 @@ public class ProtoDrive : MonoBehaviour
 
         if (arms3D) return;
 
-        // 3D 팔을 못 쓸 때의 대체: 2D 대시보드/핸들/왼팔
-        Fill(new Rect(0, H * 0.80f, W, H * 0.20f + 2f), new Color(0.16f, 0.16f, 0.19f));
-
+        // 3D 팔을 못 쓸 때의 대체: 2D 왼팔만 (대시보드/핸들/내비는 항상 3D 로 있으므로 2D 로 다시 덮지 않는다)
         Vector2 c = new Vector2(W * 0.34f, H * 0.90f);
         float R = H * 0.27f;
-        float rim = H * 0.05f;
-        var wheelCol = new Color(0.05f, 0.05f, 0.06f);
-
-        const int n = 48;
-        for (int k = 0; k < n; k++)
-        {
-            float a = k / (float)n * Mathf.PI * 2f;
-            Dot(c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * R, rim, wheelCol);
-        }
 
         float ang2d = steerAngle / wheelMaxAngle * 100f;
         var saved = GUI.matrix;
-        GUIUtility.RotateAroundPivot(ang2d, c);
-        Fill(new Rect(c.x - R, c.y - H * 0.014f, R * 2f, H * 0.028f), wheelCol);
-        Fill(new Rect(c.x - H * 0.014f, c.y, H * 0.028f, R), wheelCol);
-        Dot(c, H * 0.09f, new Color(0.12f, 0.12f, 0.14f));
-        GUI.matrix = saved;
 
         float th = (180f + ang2d) * Mathf.Deg2Rad;
         Vector2 hand = c + new Vector2(Mathf.Cos(th), Mathf.Sin(th)) * R;
@@ -2298,7 +2381,7 @@ public class ProtoDrive : MonoBehaviour
                 hintNear = near;
                 hintText = NavHint(nf, nr, near);
             }
-            int fareNow = Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul);
+            int fareNow = CurrentFare();
             if (rem != hudRem || fareNow != hudFareNow || paxName != hudPaxName || destName != hudDestName)
             {
                 hudRem = rem;
@@ -2400,12 +2483,14 @@ public class ProtoDrive : MonoBehaviour
         }
         Label(new Rect(W - 420 * u, 14 * u, 400 * u, 100 * u), hudStats, 18, new Color(1f, 1f, 1f, 0.9f), TextAnchor.UpperRight);
 
-        Label(new Rect(0, H - 30 * u, W, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerCenter);
+        Label(new Rect(20 * u, H - 30 * u, W * 0.62f, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerLeft);   // 내비(오른쪽 아래)와 겹치지 않게 왼쪽 정렬
 
         DrawTaxiGui(W, H, u);
 
         if (Time.unscaledTime < popupUntil)
             Label(new Rect(0, H * 0.28f, W, 50 * u), popupText, 34, popupColor, TextAnchor.MiddleCenter);
+        if (taxi == TaxiState.Cruise && Time.unscaledTime < thanksUntil)
+            Label(new Rect(0, H * 0.34f + 30 * u, W, 34 * u), thanksText, 22, new Color(1f, 1f, 1f, 0.9f), TextAnchor.MiddleCenter);
 
         // 회전 중 장면 교체 순간에 잠깐 어두워진다
         if (fade > 0f) Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, Mathf.Clamp01(fade)));
