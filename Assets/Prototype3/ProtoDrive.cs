@@ -103,8 +103,12 @@ public class ProtoDrive : MonoBehaviour
     public float pickupSpeed = 1.5f;
     [Tooltip("손님과 차 사이 최대 좌우 거리(m). 차를 손님 쪽 인도로 붙여야 한다")]
     public float pickupLateral = 3.6f;
-    [Tooltip("목적지까지 거리(m) 범위")]
-    public Vector2 tripDistance = new Vector2(250f, 600f);
+    [Tooltip("목적지는 '다음 교차로'에서 앞쪽으로 최대 몇 칸까지 뽑을지 (0이면 다음 교차로 옆길만)")]
+    public int destMaxAhead = 3;
+    [Tooltip("목적지는 진행 방향 좌/우로 최대 몇 칸까지 뽑을지")]
+    public int destMaxSide = 2;
+    [Tooltip("목적지 교차로 중심에서 이 거리(m) 안에서 정차하면 도착. 이만큼 지나치면 '지나쳤어요'")]
+    public float arriveRadius = 9f;
     public int baseFare = 2000;
     [Tooltip("미터당 요금(원)")]
     public int farePerMeter = 3;
@@ -122,6 +126,27 @@ public class ProtoDrive : MonoBehaviour
     public float hitSpeedFactor = 0.4f;
     public float hitStop = 0.08f;
     public float shakeHit = 0.15f;
+
+    [Header("운전석 (카메라 로컬 좌표 m: x 오른쪽, y 위, z 앞). 플레이 중 바꿔도 바로 반영")]
+    [Tooltip("대시보드 윗면 높이. 낮출수록 앞 도로가 많이 보인다")]
+    public float dashTopY = -0.55f;
+    [Tooltip("계기판 후드(핸들 너머 속도계) 윗면 높이")]
+    public float hoodTopY = -0.30f;
+    [Tooltip("천장 아랫면 높이. 낮출수록 화면 위쪽이 많이 가려진다")]
+    public float roofY = 0.52f;
+    [Tooltip("내비 화면 중심 위치. 화면은 자동으로 운전자 눈을 향한다")]
+    public Vector3 navPos = new Vector3(0.48f, -0.38f, 0.70f);
+    [Tooltip("내비 화면 크기(m, 가로/세로)")]
+    public Vector2 navSize = new Vector2(0.26f, 0.16f);
+    [Tooltip("내비 지도에 보일 격자 칸 수(위아래 각각). 클수록 넓게 보이고 작게 그려진다")]
+    public int miniMapRange = 3;
+    [Tooltip("왼쪽 A필러 아래/위 끝 (운전석 쪽, 가까움)")]
+    public Vector3 pillarLBase = new Vector3(-0.90f, -0.50f, 0.95f);
+    public Vector3 pillarLTop = new Vector3(-0.56f, 0.55f, 0.50f);
+    [Tooltip("오른쪽 A필러 아래/위 끝 (조수석 쪽, 멀어서 화면 오른쪽 끝에 조금만 보인다)")]
+    public Vector3 pillarRBase = new Vector3(1.10f, -0.50f, 1.00f);
+    public Vector3 pillarRTop = new Vector3(0.85f, 0.55f, 0.60f);
+    public float pillarThickness = 0.07f;
 
     [Header("Cabin (카메라 로컬 좌표, 단위 m)")]
     public Vector3 wheelCenter = new Vector3(0f, -0.36f, 0.55f);
@@ -240,6 +265,15 @@ public class ProtoDrive : MonoBehaviour
 
     // 3D 차 내부
     Transform viewRoot, wheelSpin;
+    // 운전석 부품 (LayoutCabin 이 public 값으로 위치를 맞춘다)
+    Transform dashBody, dashLip, hood, clusterRoot, clusterFace, navStand, navScreen, navBezel, navBg, navBar, navCar, navDest, pillarL, pillarR, roof;
+    TextMesh clusterText, navHeadText, navInfoText;
+    readonly List<Transform> navGridV = new List<Transform>(), navGridH = new List<Transform>(), navRoute = new List<Transform>();
+    Material navRoadMat, navRoadHiMat, navRouteMat;
+    Shader unlitShader;
+    Font cabinFont;
+    int navKmh = -1, navHead = -1, navRem = -2;
+    string navDestShown;
     ArmIK armLeft, armRight;
     bool arms3D;
 
@@ -254,8 +288,15 @@ public class ProtoDrive : MonoBehaviour
     // 택시 상태
     TaxiState taxi;
     Ped caller;
-    float callerTimer, camYaw, camYawTarget, tripMeters, fareMul = 1f, destDist, reactUntil;
+    float callerTimer, camYaw, camYawTarget, tripMeters, fareMul = 1f, reactUntil;
     int fareTotal, trips;
+    int destX, destY;                    // 목적지 교차로의 격자 좌표 (AcceptPassenger 에서 정함)
+    bool overshot;                       // 이번 트립에서 이미 '지나침' 감액을 했는지
+    int hintF = int.MinValue, hintR;     // 안내 글자 캐시 키 (f,r 이 바뀔 때만 문자열을 다시 만든다)
+    string hintText = "";
+    bool hintNear;
+    int hudRem = -1, hudFareNow = -1;
+    string hudPaxName = "", hudDestName = "", hudTripText = "";
     string paxName = "", paxLine = "", destName = "", reactText = "";
     Color paxSkin, paxHair, paxShirt;
     Transform destMarker;
@@ -266,7 +307,7 @@ public class ProtoDrive : MonoBehaviour
     int heading, gx, gy, citySalt;
     float fade, nextInterDist;
     // 회전 연출: 월드를 교차로 중심 둘레로 회전시키고, 중간에 새 도로 구간으로 교체한 뒤, 끝나면 좌표를 다시 잡는다
-    bool turning, retargeted, skipCross;
+    bool turning, retargeted;
     int turnDir, turnInterIdx, lastKNext = int.MinValue;
     float turnAlpha, turnCenterRoad, turnT, worldMove, retargetFadeT = -1f;
     // 구간을 그릴 때 Place 가 적용하는 회전 (UpdateWorldVisuals 가 구간마다 설정)
@@ -479,6 +520,227 @@ public class ProtoDrive : MonoBehaviour
         return m;
     }
 
+    // 조명을 안 받는 단색 재질 (내비/계기판 화면처럼 스스로 빛나 보이게)
+    Material Unlit(Color c)
+    {
+        if (unlitShader == null) return Mat(c);
+        var m = new Material(unlitShader);
+        m.SetColor("_BaseColor", c);
+        return m;
+    }
+
+    // 운전석 부품 하나 (그림자 없음: 카메라에 붙은 물체라 월드에 그림자를 떨어뜨리면 안 된다)
+    Transform CabinPart(string name, PrimitiveType type, Transform parent, Material mat)
+    {
+        var go = GameObject.CreatePrimitive(type);
+        go.name = name;
+        Destroy(go.GetComponent<Collider>());
+        go.transform.SetParent(parent, false);
+        var rd = go.GetComponent<Renderer>();
+        rd.sharedMaterial = mat;
+        rd.shadowCastingMode = ShadowCastingMode.Off;
+        rd.receiveShadows = false;
+        return go.transform;
+    }
+
+    // 3D 글자. height 는 한 줄 높이(m). TextMesh 는 글꼴 크기 10 = 1m 기준이라 characterSize 로 맞춘다
+    TextMesh CabinText(string name, Transform parent, float height, TextAnchor anchor, Color c)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var tm = go.AddComponent<TextMesh>();
+        tm.font = cabinFont;
+        tm.fontSize = 64;
+        tm.characterSize = height * 10f / 64f;
+        tm.anchor = anchor;
+        tm.alignment = TextAlignment.Center;
+        tm.color = c;
+        var rd = go.GetComponent<MeshRenderer>();
+        if (cabinFont != null) rd.sharedMaterial = cabinFont.material;
+        rd.shadowCastingMode = ShadowCastingMode.Off;
+        return tm;
+    }
+
+    // 내비의 내 차 표시 (위를 향한 화살촉). 양면으로 만들어 감기 방향과 상관없이 보이게 한다
+    static Mesh ArrowMesh()
+    {
+        var m = new Mesh { name = "NavArrow" };
+        m.vertices = new[] { new Vector3(0f, 0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(0f, -0.2f, 0f), new Vector3(-0.5f, -0.5f, 0f) };
+        m.triangles = new[] { 0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2 };
+        m.RecalculateBounds();
+        return m;
+    }
+
+    void Pillar(Transform t, Vector3 b, Vector3 top)
+    {
+        Vector3 d = top - b;
+        t.localPosition = (b + top) * 0.5f;
+        t.localRotation = Quaternion.FromToRotation(Vector3.up, d);
+        t.localScale = new Vector3(pillarThickness, d.magnitude, pillarThickness * 1.4f);
+    }
+
+    // 운전석 부품 배치. 매 프레임 불러서 인스펙터 값을 바꾸면 플레이 중에도 바로 보인다
+    void LayoutCabin()
+    {
+        float dy = dashTopY;
+        dashBody.localPosition = new Vector3(0.3f, dy - 0.08f, 0.85f);
+        dashBody.localScale = new Vector3(3.2f, 0.16f, 1.1f);
+        dashLip.localPosition = new Vector3(0.3f, dy + 0.008f, 1.37f);          // 앞유리와 만나는 끝선
+        dashLip.localScale = new Vector3(3.2f, 0.016f, 0.06f);
+
+        float hoodH = Mathf.Max(0.02f, hoodTopY - dy);
+        hood.localPosition = new Vector3(0f, dy + hoodH * 0.5f, 0.78f);
+        hood.localScale = new Vector3(0.42f, hoodH, 0.22f);
+        Vector3 cp = new Vector3(0f, hoodTopY - Mathf.Min(0.07f, hoodH * 0.5f), 0.64f);   // 후드 운전자 쪽 면 바로 앞
+        clusterRoot.localPosition = cp;
+        clusterRoot.localRotation = Quaternion.LookRotation(cp);
+        clusterFace.localScale = new Vector3(0.30f, Mathf.Min(0.10f, hoodH * 0.8f), 1f);
+        clusterText.transform.localPosition = new Vector3(0f, 0f, -0.002f);
+
+        Pillar(pillarL, pillarLBase, pillarLTop);
+        Pillar(pillarR, pillarRBase, pillarRTop);
+        roof.localPosition = new Vector3(0.4f, roofY + 0.05f, 0.6f);
+        roof.localScale = new Vector3(3.4f, 0.1f, 0.7f);
+
+        float w = Mathf.Max(0.05f, navSize.x), h = Mathf.Max(0.04f, navSize.y);
+        navScreen.localPosition = navPos;
+        navScreen.localRotation = Quaternion.LookRotation(navPos);               // 화면이 운전자 눈을 향한다
+        navBezel.localPosition = new Vector3(0f, 0f, 0.012f);
+        navBezel.localScale = new Vector3(w + 0.03f, h + 0.03f, 0.02f);
+        navBg.localScale = new Vector3(w, h, 1f);
+        navBar.localPosition = new Vector3(0f, -h * 0.41f, -0.0028f);
+        navBar.localScale = new Vector3(w, h * 0.18f, 1f);
+        navHeadText.transform.localPosition = new Vector3(-w * 0.5f + 0.008f, h * 0.5f - 0.004f, -0.003f);
+        navInfoText.transform.localPosition = new Vector3(0f, -h * 0.41f, -0.0032f);
+        float standH = Mathf.Max(0.01f, navPos.y - h * 0.5f - dy + 0.03f);
+        navStand.localPosition = new Vector3(navPos.x, dy - 0.03f + standH * 0.5f, navPos.z + 0.04f);
+        navStand.localScale = new Vector3(w * 0.5f, standH, 0.05f);
+    }
+
+    void NavQuad(List<Transform> pool, int i, Vector3 pos, Vector2 size, Material mat)
+    {
+        if (i >= pool.Count) pool.Add(CabinPart("NavLine", PrimitiveType.Quad, navScreen, mat));
+        var q = pool[i];
+        if (!q.gameObject.activeSelf) q.gameObject.SetActive(true);
+        q.localPosition = pos;
+        q.localScale = new Vector3(size.x, size.y, 1f);
+        var rd = q.GetComponent<Renderer>();
+        if (rd.sharedMaterial != mat) rd.sharedMaterial = mat;
+    }
+
+    static void HideFrom(List<Transform> pool, int n)
+    {
+        for (int i = n; i < pool.Count; i++)
+            if (pool[i].gameObject.activeSelf) pool[i].gameObject.SetActive(false);
+    }
+
+    // 안내선 한 토막 (가로 또는 세로). 화면 밖은 잘라내고, 통째로 밖이면 그리지 않는다
+    void NavSeg(ref int n, Vector2 a, Vector2 b, float th, float hw, float hh)
+    {
+        if (Mathf.Approximately(a.y, b.y)) { if (a.y < -hh || a.y > hh) return; }
+        else if (a.x < -hw || a.x > hw) return;
+        a.x = Mathf.Clamp(a.x, -hw, hw); b.x = Mathf.Clamp(b.x, -hw, hw);
+        a.y = Mathf.Clamp(a.y, -hh, hh); b.y = Mathf.Clamp(b.y, -hh, hh);
+        NavQuad(navRoute, n++, new Vector3((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f, -0.002f),
+                new Vector2(Mathf.Abs(a.x - b.x) + th, Mathf.Abs(a.y - b.y) + th), navRouteMat);
+    }
+
+    // 내비 화면(진행 방향이 위쪽인 격자 지도, 내 차 화살표, 목적지, L자 안내선, 남은 거리)과 계기판 속도
+    void UpdateNav()
+    {
+        int kmh = Mathf.RoundToInt(speed * 3.6f);
+        if (kmh != navKmh)
+        {
+            navKmh = kmh;
+            clusterText.text = kmh + " km/h";
+        }
+
+        float w = Mathf.Max(0.05f, navSize.x), hgt = Mathf.Max(0.04f, navSize.y);
+        float hw = w * 0.5f, hh = hgt * 0.5f;
+        NavState(out int bx, out int by, out int h, out float zE);
+        float period = Period;
+        float t = 1f - zE / period;                                  // 방금 지난 교차로에서 다음 교차로까지 몇 %
+        float px = bx + HeadX[h] * t, py = by + HeadY[h] * t;
+        int rh = (h + 1) & 3;
+        float pf = px * HeadX[h] + py * HeadY[h];                    // 내 위치: 진행 방향 좌표
+        float pr = px * HeadX[rh] + py * HeadY[rh];                  // 내 위치: 오른쪽 좌표
+        float cs = hgt / (2f * Mathf.Max(1, miniMapRange) + 1f);     // 한 칸 크기(m)
+        float carY = -hgt * 0.16f;                                   // 앞쪽이 더 많이 보이게 아래쪽에 둔다
+        float lw = cs * 0.14f;
+
+        // 격자 도로 (지금 달리는 도로는 밝게)
+        int n = 0;
+        int k0 = Mathf.RoundToInt(pr);
+        for (int k = Mathf.FloorToInt(pr - hw / cs); k <= Mathf.CeilToInt(pr + hw / cs); k++)
+        {
+            float x = (k - pr) * cs;
+            if (Mathf.Abs(x) > hw) continue;
+            NavQuad(navGridV, n++, new Vector3(x, 0f, k == k0 ? -0.0012f : -0.001f), new Vector2(lw, hgt), k == k0 ? navRoadHiMat : navRoadMat);
+        }
+        HideFrom(navGridV, n);
+        n = 0;
+        for (int j = Mathf.FloorToInt(pf + (-hh - carY) / cs); j <= Mathf.CeilToInt(pf + (hh - carY) / cs); j++)
+        {
+            float y = carY + (j - pf) * cs;
+            if (y < -hh || y > hh) continue;
+            NavQuad(navGridH, n++, new Vector3(0f, y, -0.0011f), new Vector2(w, lw), navRoadMat);
+        }
+        HideFrom(navGridH, n);
+
+        // 목적지와 L자 안내선 (정수 f,r 기준이라 f==0 경계에서 깜빡이지 않는다)
+        n = 0;
+        int rem = -1;
+        bool carrying = taxi == TaxiState.Carrying;
+        if (carrying)
+        {
+            DestRel(out int f, out int r, out float sd);
+            rem = Mathf.RoundToInt((Mathf.Abs(sd) + Mathf.Abs(r) * period) / 10f) * 10;
+            float nF = zE / period;                                  // 다음 교차로까지 앞쪽 칸 수
+            float dx = r * cs, dyv = (nF + f) * cs;
+            float gw = lw * 2f;
+            var a = new Vector2(0f, carY);
+            if (f >= 0)
+            {
+                var b = new Vector2(0f, carY + dyv);
+                NavSeg(ref n, a, b, gw, hw, hh);
+                NavSeg(ref n, b, new Vector2(dx, b.y), gw, hw, hh);
+            }
+            else
+            {
+                // 목적지가 뒤쪽: 다음 교차로까지 가서 옆으로 돌아 나온다 (r==0 이면 오른쪽으로 한 칸)
+                float s = r != 0 ? r : 1f;
+                var b = new Vector2(0f, carY + nF * cs);
+                var c = new Vector2(s * cs, b.y);
+                var d = new Vector2(c.x, carY + dyv);
+                NavSeg(ref n, a, b, gw, hw, hh);
+                NavSeg(ref n, b, c, gw, hw, hh);
+                NavSeg(ref n, c, d, gw, hw, hh);
+                NavSeg(ref n, d, new Vector2(dx, d.y), gw, hw, hh);
+            }
+            float m = cs * 0.35f;
+            navDest.localPosition = new Vector3(Mathf.Clamp(dx, -hw + m, hw - m), Mathf.Clamp(carY + dyv, -hh + m, hh - m), -0.0025f);
+            navDest.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            navDest.localScale = new Vector3(cs * 0.5f, cs * 0.5f, 1f);
+        }
+        HideFrom(navRoute, n);
+        if (navDest.gameObject.activeSelf != carrying) navDest.gameObject.SetActive(carrying);
+
+        navCar.localPosition = new Vector3(0f, carY, -0.003f);
+        navCar.localScale = new Vector3(cs * 0.7f, cs * 0.8f, 1f);
+
+        if (h != navHead)
+        {
+            navHead = h;
+            navHeadText.text = HeadNames[h];
+        }
+        if (rem != navRem || (carrying && !ReferenceEquals(destName, navDestShown)))
+        {
+            navRem = rem;
+            navDestShown = destName;
+            navInfoText.text = carrying ? destName + "  " + rem + "m" : "손님 찾는 중";
+        }
+    }
+
     // ---------- 차 내부 (3D 핸들 + 3D 팔 IK) ----------
 
     void BuildCabin()
@@ -487,14 +749,40 @@ public class ProtoDrive : MonoBehaviour
         rootGo.transform.SetParent(cam.transform, false);
         viewRoot = rootGo.transform;
 
-        // 대시보드: 화면 아래쪽을 가리는 어두운 판
-        var dash = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        dash.name = "Dashboard";
-        Destroy(dash.GetComponent<Collider>());
-        dash.transform.SetParent(viewRoot, false);
-        dash.transform.localPosition = new Vector3(0f, -0.62f, 0.85f);
-        dash.transform.localScale = new Vector3(2.4f, 0.14f, 1.1f);
-        dash.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.14f, 0.14f, 0.17f));
+        // 운전석: 대시보드, 계기판 후드, 내비, A필러, 천장 (위치/크기는 LayoutCabin 이 매 프레임 public 값으로 맞춘다)
+        unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
+        cabinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        var dashMatIn = Mat(new Color(0.15f, 0.15f, 0.17f));
+        var trimMat = Mat(new Color(0.58f, 0.56f, 0.53f));       // 필러/천장 내장재 (밝은 회베이지)
+        dashBody = CabinPart("Dashboard", PrimitiveType.Cube, viewRoot, dashMatIn);
+        dashLip = CabinPart("DashLip", PrimitiveType.Cube, viewRoot, Mat(new Color(0.06f, 0.06f, 0.07f)));
+        hood = CabinPart("ClusterHood", PrimitiveType.Cube, viewRoot, dashMatIn);
+        pillarL = CabinPart("PillarL", PrimitiveType.Cube, viewRoot, trimMat);
+        pillarR = CabinPart("PillarR", PrimitiveType.Cube, viewRoot, trimMat);
+        roof = CabinPart("Roof", PrimitiveType.Cube, viewRoot, trimMat);
+
+        // 계기판: 핸들 너머로 보이는 속도 표시
+        clusterRoot = new GameObject("Cluster").transform;
+        clusterRoot.SetParent(viewRoot, false);
+        clusterFace = CabinPart("ClusterFace", PrimitiveType.Quad, clusterRoot, Unlit(new Color(0.02f, 0.03f, 0.04f)));
+        clusterText = CabinText("Speed", clusterRoot, 0.032f, TextAnchor.MiddleCenter, new Color(0.55f, 0.9f, 1f));
+
+        // 내비: 대시보드 위 받침대 + 테두리 + 화면. 지도는 화면 안의 얇은 판(쿼드)들로 그린다 (UpdateNav)
+        navStand = CabinPart("NavStand", PrimitiveType.Cube, viewRoot, dashMatIn);
+        navScreen = new GameObject("Nav").transform;
+        navScreen.SetParent(viewRoot, false);
+        navBezel = CabinPart("NavBezel", PrimitiveType.Cube, navScreen, Mat(new Color(0.04f, 0.04f, 0.05f)));
+        navBg = CabinPart("NavBg", PrimitiveType.Quad, navScreen, Unlit(new Color(0.07f, 0.13f, 0.16f)));
+        navBar = CabinPart("NavBar", PrimitiveType.Quad, navScreen, Unlit(new Color(0.02f, 0.05f, 0.07f)));
+        navRoadMat = Unlit(new Color(0.30f, 0.36f, 0.42f));
+        navRoadHiMat = Unlit(new Color(0.78f, 0.82f, 0.86f));
+        navRouteMat = Unlit(new Color(0.30f, 0.95f, 0.45f));
+        navDest = CabinPart("NavDest", PrimitiveType.Quad, navScreen, Unlit(new Color(1f, 0.82f, 0.2f)));
+        navCar = CabinPart("NavCar", PrimitiveType.Quad, navScreen, Unlit(Color.white));
+        navCar.GetComponent<MeshFilter>().sharedMesh = ArrowMesh();
+        navHeadText = CabinText("NavHead", navScreen, 0.016f, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.85f));
+        navInfoText = CabinText("NavInfo", navScreen, 0.014f, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
+        LayoutCabin();
 
         // 핸들: 토러스 + 스포크
         var pivot = new GameObject("Wheel").transform;
@@ -881,7 +1169,12 @@ public class ProtoDrive : MonoBehaviour
         gx = 0;
         gy = 0;
         citySalt = 0;
-        turning = retargeted = skipCross = false;
+        turning = retargeted = false;
+        destX = destY = 0;
+        overshot = false;
+        hintF = int.MinValue;
+        hudRem = -1;
+        tripMeters = 0f;
         lastKNext = int.MinValue;
         turnAlpha = 0f;
         retargetFadeT = -1f;
@@ -981,6 +1274,51 @@ public class ProtoDrive : MonoBehaviour
         return m < intersectionLen;
     }
 
+    float Period { get { return Mathf.Max(intersectionLen + 1, intersectionEvery) * StripLen; } }   // 교차로 간격(m)
+
+    // 목적지를 "다음 교차로 N 기준" 앞 f칸 / 오른쪽 r칸(왼쪽은 음수)으로 바꾼다. sd 는 목적지 줄(r==0)에서 차→목적지 앞쪽 거리(m).
+    // (gx,gy)는 방금 지난 교차로, N = (gx,gy)+진행방향. 회전 중이면 회전이 끝난 뒤의 상태로 계산해 CompleteTurn 때 값이 튀지 않게 한다.
+    void NavState(out int bx, out int by, out int h, out float zE)
+    {
+        float period = Period;
+        bx = gx;
+        by = gy;
+        h = heading;
+        zE = nextInterDist;
+        if (turning)
+        {
+            bx += HeadX[h];
+            by += HeadY[h];
+            h = (h + turnDir + 4) % 4;
+            zE = Mathf.Max(0f, turnCenterRoad - (dist + 8f)) + period;   // 회전하는 교차로 중심까지 + 한 칸
+        }
+    }
+
+    void DestRel(out int f, out int r, out float sd)
+    {
+        NavState(out int bx, out int by, out int h, out float zE);
+        float period = Period;
+        int dx = destX - (bx + HeadX[h]);
+        int dy = destY - (by + HeadY[h]);
+        int rh = (h + 1) & 3;                                        // 진행 방향의 오른쪽
+        f = dx * HeadX[h] + dy * HeadY[h];
+        r = dx * HeadX[rh] + dy * HeadY[rh];
+        sd = zE + f * period;
+    }
+
+    // near: 목적지 줄 위에서 도착 반경 안(브레이크로 정차하면 도착되는 곳)
+    string NavHint(int f, int r, bool near)
+    {
+        string turn = r < 0 ? "좌회전" : "우회전";                  // r==0 이면 돌아가는 길은 우회전
+        string side = r < 0 ? "왼쪽 " : "오른쪽 ";
+        int m = Mathf.Abs(r);
+        if (near) return "목적지 교차로예요 — 브레이크로 정차하세요";
+        if (f < 0) return "목적지가 뒤쪽이에요 — 다음 교차로에서 " + turn + "해 돌아가세요";
+        if (r == 0) return f == 0 ? "목적지가 바로 앞 교차로예요" : "목적지: 앞 " + (f + 1) + "칸 — 직진";
+        if (f == 0) return "목적지: 앞 1칸, " + side + m + "칸 — 다음 교차로에서 " + turn;
+        return "목적지: 앞 " + (f + 1) + "칸, " + side + m + "칸 — 교차로 " + f + "개 지난 뒤 다음 교차로에서 " + turn;
+    }
+
     // 회전: 깜빡이를 켜고 교차로 중심에 도착하면(turnCenterTolerance 안) 그 자리에서 turnDuration 동안 자동으로 돈다.
     // 월드를 교차로 중심 둘레로 0→90도 회전시키고(UpdateWorldVisuals), 중간에 짧게 어두워지는 순간 옛 도로 대신
     // 새 도로 구간으로 교체하고, 중심에 도착하면 좌표를 다시 잡아(CompleteTurn) 새 도로가 그냥 앞으로 이어지게 한다.
@@ -999,7 +1337,7 @@ public class ProtoDrive : MonoBehaviour
             if (kNext != lastKNext)
             {
                 // 교차로를 막 지났다
-                if (lastKNext != int.MinValue && !skipCross)
+                if (lastKNext != int.MinValue)
                 {
                     gx += HeadX[heading];
                     gy += HeadY[heading];
@@ -1009,7 +1347,6 @@ public class ProtoDrive : MonoBehaviour
                         blinker = 0;
                     }
                 }
-                skipCross = false;
                 lastKNext = kNext;
             }
 
@@ -1072,10 +1409,8 @@ public class ProtoDrive : MonoBehaviour
 
         // 새 도로의 교차로 중심 = RebaseBlocks 번째 교차로 (장면 교체 때 새 도로 구간에 쓴 번호와 같다)
         float rebaseRoad = e * RebaseBlocks * StripLen;
-        float newDist = rebaseRoad + len * 0.5f - 0.01f - 8f;
-        float delta = newDist - dist;
-        dist = newDist;
-        if (taxi == TaxiState.Carrying) destDist += delta;           // 남은 거리는 그대로
+        // 중심 '직후'에 놓는다: 그러면 다음 교차로가 곧바로 kNext 가 되어, (gx,gy)는 항상 "방금 지난 교차로"다
+        dist = rebaseRoad + len * 0.5f + 0.01f - 8f;
         carX = lateralVel = 0f;
 
         turning = false;
@@ -1083,8 +1418,8 @@ public class ProtoDrive : MonoBehaviour
         turnAlpha = 0f;
         retargetFadeT = -1f;
         fade = 0f;
-        skipCross = true;                                            // 이 교차로는 이미 셌다
         lastKNext = Mathf.CeilToInt(((dist + 8f) - len * 0.5f) / period);
+        nextInterDist = period - 0.01f;                              // 다음 프레임 UpdateTaxi 가 낡은 값(≈0)을 쓰지 않게 새 좌표 기준으로 맞춘다
         foreach (var s in strips) s.lastIdx = int.MinValue;
         invuln = Mathf.Max(invuln, postTurnInvuln);
 
@@ -1122,17 +1457,22 @@ public class ProtoDrive : MonoBehaviour
         }
         else if (taxi == TaxiState.Carrying)
         {
-            float rem = destDist - dist;
-            if (speed <= pickupSpeed && Mathf.Abs(rem) < 14f)
+            // 회전 중에는 판정하지 않는다. 목적지 줄(r==0) 위에서만 도착/지나침을 본다.
+            DestRel(out int f, out int r, out float sd);
+            if (!turning && r == 0)
             {
-                Arrive();
-            }
-            else if (rem < -45f)
-            {
-                // 지나쳤다: 목적지를 앞쪽으로 다시 잡고 요금을 깎는다 (이번 단계는 U턴 없음)
-                Popup("목적지를 지나쳤어요!", new Color(1f, 0.5f, 0.4f));
-                destDist = dist + 140f;
-                fareMul = Mathf.Max(0.2f, fareMul - 0.2f);
+                float radius = Mathf.Max(1f, arriveRadius);
+                if (speed <= pickupSpeed && Mathf.Abs(sd) <= radius)
+                {
+                    Arrive();
+                }
+                else if (sd < -radius && !overshot)
+                {
+                    // 지나쳤다: 트립당 한 번만 요금을 깎는다. 목적지는 그대로 두고 옆길로 돌아와 다시 접근한다.
+                    overshot = true;
+                    Popup("목적지를 지나쳤어요!", new Color(1f, 0.5f, 0.4f));
+                    fareMul = Mathf.Max(0.2f, fareMul - 0.2f);
+                }
             }
         }
     }
@@ -1156,7 +1496,6 @@ public class ProtoDrive : MonoBehaviour
         paxSkin = SkinTones[Random.Range(0, SkinTones.Length)];
         paxHair = HairTones[Random.Range(0, HairTones.Length)];
         paxShirt = caller.baseColor;
-        tripMeters = Random.Range(tripDistance.x, tripDistance.y);
 
         // 손님 쪽(왼쪽/오른쪽)으로 시점을 돌린다
         float dx = caller.x - (carX - 0.4f);
@@ -1167,7 +1506,19 @@ public class ProtoDrive : MonoBehaviour
     {
         taxi = TaxiState.Carrying;
         fareMul = 1f;
-        destDist = dist + tripMeters;
+
+        // 목적지: 다음 교차로 N 기준 앞 0..destMaxAhead칸, 옆 -destMaxSide..+destMaxSide칸 (N 자체는 제외)
+        int h = heading;                                     // 대화는 회전 중에 시작되지 않는다
+        int rh = (h + 1) & 3;
+        int f = Random.Range(0, Mathf.Max(0, destMaxAhead) + 1);
+        int r = Random.Range(-Mathf.Max(0, destMaxSide), Mathf.Max(0, destMaxSide) + 1);
+        if (f == 0 && r == 0) f = 1;
+        destX = gx + HeadX[h] + f * HeadX[h] + r * HeadX[rh];
+        destY = gy + HeadY[h] + f * HeadY[h] + r * HeadY[rh];
+        tripMeters = (Mathf.Abs(destX - gx) + Mathf.Abs(destY - gy)) * Period;   // 맨해튼 칸수 × 80m. 요금/남은 거리 모두 이 기준
+        overshot = false;
+        hintF = int.MinValue;
+
         int idx = peds.IndexOf(caller);
         if (idx >= 0) Remove(idx);                           // 손님은 차 안으로
         caller = null;
@@ -1478,8 +1829,10 @@ public class ProtoDrive : MonoBehaviour
         // 목적지 표지 기둥
         if (destMarker != null)
         {
-            float mz = destDist - dist;
-            bool show = taxi == TaxiState.Carrying && mz > -25f && mz < SpawnZ && !(turning && retargeted);
+            // 목적지가 지금 달리는 도로 위(r==0)에 있을 때만 보인다. 회전 중에는 옛 도로 위에 있는 경우(회전하는 교차로 자체)만, 장면 교체 전까지.
+            DestRel(out int mf, out int mr, out float mz);
+            bool show = taxi == TaxiState.Carrying && mr == 0 && mz > -25f && mz < SpawnZ
+                        && (!turning || (!retargeted && mf < 0));
             if (destMarker.gameObject.activeSelf != show) destMarker.gameObject.SetActive(show);
             rendRot = turning;
             rendTheta = thetaA;
@@ -1705,6 +2058,11 @@ public class ProtoDrive : MonoBehaviour
         // 옆 시점(손님 대화) 중에는 손/핸들/대시보드를 숨긴다
         cabinVisible = taxi != TaxiState.Talking && Mathf.Abs(camYaw) < 4f;
         if (viewRoot != null && viewRoot.gameObject.activeSelf != cabinVisible) viewRoot.gameObject.SetActive(cabinVisible);
+        if (cabinVisible && navScreen != null)
+        {
+            LayoutCabin();
+            UpdateNav();
+        }
 
         // 핸들 회전 → 손 위치가 따라 움직이므로 IK 는 그 뒤에 푼다
         if (wheelSpin != null) wheelSpin.localRotation = Quaternion.Euler(0f, 0f, -steerAngle);
@@ -1845,11 +2203,17 @@ public class ProtoDrive : MonoBehaviour
             return;
         }
 
-        // 앞유리 프레임: 지붕, A필러, 룸미러 (대시보드/핸들/팔은 3D)
-        Fill(new Rect(0, 0, W, H * 0.09f), frame);
-        Fill(new Rect(0, 0, W * 0.055f, H), frame);
-        Fill(new Rect(W * 0.945f, 0, W * 0.055f, H), frame);
-        Fill(new Rect(W * 0.44f, H * 0.09f, W * 0.12f, H * 0.055f), frame);
+        // 앞유리 느낌: 위쪽 선팅 띠 + 옅은 반사 줄 (천장/필러/대시보드/내비는 3D, LayoutCabin)
+        for (int i = 0; i < 4; i++)
+            Fill(new Rect(0, H * (0.09f + i * 0.03f), W, H * 0.03f + 1f), new Color(0.1f, 0.22f, 0.3f, 0.24f - i * 0.055f));
+        var glassM = GUI.matrix;
+        GUIUtility.RotateAroundPivot(-24f, new Vector2(W * 0.30f, H * 0.32f));
+        Fill(new Rect(W * 0.05f, H * 0.32f - H * 0.012f, W * 0.5f, H * 0.024f), new Color(1f, 1f, 1f, 0.035f));
+        Fill(new Rect(W * 0.12f, H * 0.36f, W * 0.4f, H * 0.008f), new Color(1f, 1f, 1f, 0.03f));
+        GUI.matrix = glassM;
+
+        // 룸미러 받침 (천장에서 내려온다)
+        Fill(new Rect(W * 0.485f, 0, W * 0.03f, H * 0.11f), frame);
         DrawRearMirror(W, H);
 
         if (arms3D) return;
@@ -1924,10 +2288,27 @@ public class ProtoDrive : MonoBehaviour
         // 탑승 정보 (상단 가운데)
         if (taxi == TaxiState.Carrying)
         {
-            int rem = Mathf.Max(0, Mathf.RoundToInt(destDist - dist));
+            DestRel(out int nf, out int nr, out float nsd);
+            int rem = Mathf.RoundToInt(Mathf.Abs(nsd) + Mathf.Abs(nr) * Period);
+            bool near = nr == 0 && Mathf.Abs(nsd) <= Mathf.Max(1f, arriveRadius);
+            if (nf != hintF || nr != hintR || near != hintNear)
+            {
+                hintF = nf;
+                hintR = nr;
+                hintNear = near;
+                hintText = NavHint(nf, nr, near);
+            }
             int fareNow = Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul);
-            Label(new Rect(0, H * 0.20f, W, 30 * u), paxName + " → " + destName + "   남은 거리 " + rem + " m   요금 " + fareNow + "원", 20, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
-            Label(new Rect(0, H * 0.20f + 28 * u, W, 24 * u), "목적지 근처에서 브레이크로 정차하면 내려 드립니다", 15, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter);
+            if (rem != hudRem || fareNow != hudFareNow || paxName != hudPaxName || destName != hudDestName)
+            {
+                hudRem = rem;
+                hudFareNow = fareNow;
+                hudPaxName = paxName;
+                hudDestName = destName;
+                hudTripText = paxName + " → " + destName + "   남은 거리 " + rem + " m   요금 " + fareNow + "원";
+            }
+            Label(new Rect(0, H * 0.20f, W, 30 * u), hudTripText, 20, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.20f + 28 * u, W, 26 * u), hintText, 17, new Color(0.6f, 1f, 0.7f, 0.95f), TextAnchor.MiddleCenter);
         }
         else if (taxi == TaxiState.Cruise)
         {
