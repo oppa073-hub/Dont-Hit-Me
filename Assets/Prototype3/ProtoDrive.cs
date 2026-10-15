@@ -39,6 +39,15 @@ public class ProtoDrive : MonoBehaviour
     public float turnDuration = 1.1f;
     [Tooltip("깜빡이를 켠 상태에서 교차로 중심까지 이 거리(m) 안으로 오면 turnCruiseSpeed로 자동 감속한다")]
     public float turnSlowDistance = 22f;
+    [Tooltip("회전 중 장면 교체 때 화면이 어두워졌다 밝아지는 전체 시간(초). 가장 어두운 순간(절반)에 도로가 교체된다")]
+    public float swapFadeTime = 0.3f;
+    [Range(0f, 1f)]
+    [Tooltip("장면 교체 때 가장 어두워지는 정도. 0 = 안 어두워짐(교체 순간이 그대로 보임), 1 = 완전히 까맣게")]
+    public float swapFadeDarkness = 0.7f;
+    [Tooltip("회전 중 차가 도로 가운데로 모이는 속도(m/s)")]
+    public float turnCenteringSpeed = 4f;
+    [Tooltip("회전이 끝난 뒤 목숨이 깎이지 않는 무적 시간(초). 이 동안 부딪히면 감속/요금 감액은 일어난다")]
+    public float postTurnInvuln = 0.5f;
     [Tooltip("회전하는 동안 자동으로 맞춰지는 속도(m/s). 브레이크를 밟지 않아도 이 속도로 돈다")]
     public float turnCruiseSpeed = 9f;
     [Range(10f, 80f)]
@@ -259,7 +268,7 @@ public class ProtoDrive : MonoBehaviour
     // 회전 연출: 월드를 교차로 중심 둘레로 회전시키고, 중간에 새 도로 구간으로 교체한 뒤, 끝나면 좌표를 다시 잡는다
     bool turning, retargeted, skipCross;
     int turnDir, turnInterIdx, lastKNext = int.MinValue;
-    float turnAlpha, turnCenterRoad, turnZ0, turnT, retargetFadeT = -1f;
+    float turnAlpha, turnCenterRoad, turnT, worldMove, retargetFadeT = -1f;
     // 구간을 그릴 때 Place 가 적용하는 회전 (UpdateWorldVisuals 가 구간마다 설정)
     bool rendRot;
     float rendTheta, rendPivotZ;
@@ -917,7 +926,7 @@ public class ProtoDrive : MonoBehaviour
         lateralVel = Mathf.MoveTowards(lateralVel, input * maxLateral, lateralAccel * dt);
         float limit = roadHalfWidth - CarHalfWidth;
         carX += lateralVel * dt;
-        if (turning) carX = Mathf.MoveTowards(carX, 0f, 4f * dt);
+        if (turning) carX = Mathf.MoveTowards(carX, 0f, turnCenteringSpeed * dt);
         if (Mathf.Abs(carX) > limit)
         {
             carX = Mathf.Clamp(carX, -limit, limit);
@@ -935,6 +944,7 @@ public class ProtoDrive : MonoBehaviour
         float prevDist = dist;
         dist += speed * dt;
         if (turning) dist = Mathf.Min(dist, turnCenterRoad - 8f);   // 회전 중에는 교차로 중심을 넘어가지 않는다 (중심에서 제자리 회전)
+        worldMove = dist - prevDist;                                // 이번 프레임에 월드가 실제로 다가온 거리 (보행자도 이만큼만 이동)
         distScore += (dist - prevDist) * 0.1f;
 
         // 깜빡이: Q 좌 / E 우 (다시 누르면 해제)
@@ -1003,7 +1013,9 @@ public class ProtoDrive : MonoBehaviour
                 lastKNext = kNext;
             }
 
-            if (blinker != 0 && zC <= turnCenterTolerance && zC > 0f && taxi != TaxiState.Talking)
+            // 프레임이 튀어도 중심을 건너뛰지 않도록, 이번 프레임에 달리는 거리의 2배까지는 시작 범위로 본다
+            float startWindow = Mathf.Max(turnCenterTolerance, speed * dt * 2f);
+            if (blinker != 0 && zC <= startWindow && zC > 0f && taxi != TaxiState.Talking)
             {
                 turning = true;
                 turnT = 0f;
@@ -1011,7 +1023,6 @@ public class ProtoDrive : MonoBehaviour
                 retargetFadeT = -1f;
                 turnDir = blinker;
                 turnCenterRoad = roadPos + zC;
-                turnZ0 = zC;
                 turnInterIdx = kNext * e;                             // 이 교차로의 첫 구간 번호
                 turnAlpha = 0f;
                 blinker = 0;
@@ -1029,14 +1040,15 @@ public class ProtoDrive : MonoBehaviour
         if (!retargeted && retargetFadeT == -1f && turnAlpha >= turnSwapAngle) retargetFadeT = 0f;
         if (retargetFadeT >= 0f)
         {
+            float fadeTime = Mathf.Max(0.05f, swapFadeTime);
             retargetFadeT += Time.unscaledDeltaTime;
-            fade = 0.7f * Mathf.Sin(Mathf.PI * Mathf.Clamp01(retargetFadeT / 0.3f));
-            if (!retargeted && retargetFadeT >= 0.15f)
+            fade = swapFadeDarkness * Mathf.Sin(Mathf.PI * Mathf.Clamp01(retargetFadeT / fadeTime));
+            if (!retargeted && retargetFadeT >= fadeTime * 0.5f)
             {
                 retargeted = true;
                 foreach (var s in strips) s.lastIdx = int.MinValue;   // 새 도로 구간으로 다시 구성
             }
-            if (retargetFadeT >= 0.3f)
+            if (retargetFadeT >= fadeTime)
             {
                 retargetFadeT = -2f;
                 fade = 0f;
@@ -1074,7 +1086,7 @@ public class ProtoDrive : MonoBehaviour
         skipCross = true;                                            // 이 교차로는 이미 셌다
         lastKNext = Mathf.CeilToInt(((dist + 8f) - len * 0.5f) / period);
         foreach (var s in strips) s.lastIdx = int.MinValue;
-        invuln = Mathf.Max(invuln, 0.5f);
+        invuln = Mathf.Max(invuln, postTurnInvuln);
 
         // 사람들은 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게)
         caller = null;
@@ -1233,7 +1245,7 @@ public class ProtoDrive : MonoBehaviour
         for (int i = peds.Count - 1; i >= 0; i--)
         {
             var p = peds[i];
-            p.z -= speed * dt;
+            p.z -= turning ? worldMove : speed * dt;      // 회전 중에는 도로가 멈춰 있으니 사람만 앞으로 미끄러지지 않게
 
             if (p.fallT >= 0f)
             {
