@@ -109,6 +109,18 @@ public class ProtoDrive : MonoBehaviour
     public int destMaxSide = 2;
     [Tooltip("목적지 교차로 중심에서 이 거리(m) 안에서 정차하면 도착. 이만큼 지나치면 '지나쳤어요'")]
     public float arriveRadius = 9f;
+    [Range(0.2f, 1.5f)]
+    [Tooltip("제한 시간 계산용 평균 속도 비율. 손님을 태운 순간의 순항 속도 × 이 값으로 목적지까지 걸리는 시간을 잡는다. 작을수록 시간이 넉넉하다 (정차/감속/회전 시간을 반영한 값)")]
+    public float limitSpeedRatio = 0.7f;
+    [Tooltip("제한 시간에 더해 주는 여유(초). 정차, 깜빡이 감속, 회전 시간을 위한 값")]
+    public float timeBuffer = 12f;
+    [Tooltip("제한 시간을 넘긴 뒤 초당 깎이는 요금 비율 (0.02 = 초당 2%)")]
+    public float lateDropPerSec = 0.02f;
+    [Range(0f, 1f)]
+    [Tooltip("지각 감액만의 하한. 사고/지나침 감액과 합쳐도 요금은 기본의 20% 밑으로는 내려가지 않는다")]
+    public float lateMinMul = 0.3f;
+    [Tooltip("제한 시간을 절반 이상 남기고 도착할 때 받는 팁(원)의 최대값. 손님 유형의 팁 배율이 곱해진다")]
+    public int tipMax = 1500;
     public int baseFare = 2000;
     [Tooltip("미터당 요금(원)")]
     public int farePerMeter = 3;
@@ -300,6 +312,10 @@ public class ProtoDrive : MonoBehaviour
     string paxName = "", paxLine = "", destName = "", reactText = "", thanksText = "";
     PaxType pax;                         // 지금 태운/대화 중인 손님의 유형
     float thanksUntil;
+    float tripLimit, tripT;              // 이번 트립의 제한 시간 / 탑승 후 지난 시간(초)
+    bool lateWarned;                     // 지각 안내를 이미 했는지
+    int hudTimeLeft = int.MinValue, hudTip = -1;
+    static readonly string[] LateThanks = { "많이 늦었네요… 다음엔 좀 서둘러 주세요.", "약속 시간에 늦었잖아요. 아쉽네요.", "늦었지만 데려다줘서 고마워요." };
     Color paxSkin, paxHair, paxShirt;
     Transform destMarker;
     bool cabinVisible = true;
@@ -329,6 +345,8 @@ public class ProtoDrive : MonoBehaviour
         public string[] names, dests, hello, react, thanks;
         public float fareMul = 1f;       // 이 유형의 기본 요금 배율
         public float hitSense = 1f;      // 사람을 쳤을 때 감액이 얼마나 커지는지 (1 = hitFareMul 그대로, 클수록 더 깎음)
+        public float timeMul = 1f;       // 허용 시간 배율 (작을수록 급한 손님)
+        public float tipMul = 1f;        // 팁 배율
         public int hair = -1;            // HairTones 번호. -1 이면 무작위
         public int weight = 2;           // 나타날 확률 가중치
     }
@@ -342,7 +360,7 @@ public class ProtoDrive : MonoBehaviour
             hello = new[] { "{0}까지 가 주세요. 미팅에 늦었어요.", "기사님, {0}까지. 급합니다.", "{0}까지요. 최대한 빨리, 하지만 안전하게." },
             react = new[] { "이봐요, 운전 똑바로 합시다!", "지금 뭐 하시는 겁니까!", "사람을 칠 뻔했잖아요!" },
             thanks = new[] { "수고했어요. 잔돈은 됐습니다.", "시간 맞춰 왔군요. 좋아요." },
-            fareMul = 1.2f, hitSense = 1.3f
+            fareMul = 1.2f, hitSense = 1.3f, timeMul = 0.85f, tipMul = 1.5f
         },
         new PaxType   // 할머니: 느긋하고 놀람이 크다
         {
@@ -351,7 +369,7 @@ public class ProtoDrive : MonoBehaviour
             hello = new[] { "아이고, 택시 잡았네. {0}까지 천천히 가 주오.", "기사 양반, {0}까지 가 주시게.", "{0}에 가요. 서두르지 말아요." },
             react = new[] { "아이고 깜짝이야!", "아이구, 이게 무슨 일이래!", "아이고 놀래라!!" },
             thanks = new[] { "고마워요, 젊은이. 복 받을 거야.", "안전하게 데려다줘서 고맙소." },
-            fareMul = 1.0f, hitSense = 1.0f, hair = 2
+            fareMul = 1.0f, hitSense = 1.0f, hair = 2, timeMul = 1.3f, tipMul = 0.8f
         },
         new PaxType   // 학생: 요금은 조금 낮고, 리액션은 크지만 사고 감액은 작다
         {
@@ -360,7 +378,7 @@ public class ProtoDrive : MonoBehaviour
             hello = new[] { "기사님, {0}까지요! 빨리빨리요!", "{0}까지 가 주세요! 수업 늦었어요!", "{0}! 지각이에요 지각!" },
             react = new[] { "헐 뭐야!! 방금 뭐 쳤어요?", "꺄악!! 기사님!!", "으아악!! 대박!!" },
             thanks = new[] { "감사합니다! 별점 5점 드릴게요!", "덕분에 안 늦었어요! 감사합니다!" },
-            fareMul = 0.9f, hitSense = 0.8f
+            fareMul = 0.9f, hitSense = 0.8f, timeMul = 0.85f, tipMul = 0.5f
         },
         new PaxType   // 아저씨
         {
@@ -387,7 +405,7 @@ public class ProtoDrive : MonoBehaviour
             hello = new[] { "{0}까지 부탁합니다. 아주 부드럽게요.", "{0}까지. 승차감이 중요합니다.", "{0}! Please, smooth ride." },
             react = new[] { "오 마이 갓!!", "이게 무슨 무례한 운전입니까!", "Stop! 방금 뭐였죠!?" },
             thanks = new[] { "Excellent! 훌륭한 운전이었어요.", "만족합니다. 수고했어요." },
-            fareMul = 1.5f, hitSense = 1.7f, weight = 1
+            fareMul = 1.5f, hitSense = 1.7f, weight = 1, timeMul = 0.9f, tipMul = 2f
         },
     };
 
@@ -1229,6 +1247,9 @@ public class ProtoDrive : MonoBehaviour
         reactUntil = 0f;
         pax = null;
         thanksUntil = 0f;
+        tripLimit = tripT = 0f;
+        lateWarned = false;
+        hudTimeLeft = int.MinValue;
         blinker = 0;
         heading = 0;
         gx = 0;
@@ -1522,6 +1543,14 @@ public class ProtoDrive : MonoBehaviour
         }
         else if (taxi == TaxiState.Carrying)
         {
+            // 제한 시간 (대화/히트스톱 중에는 dt 가 0 이거나 이 함수가 안 불려서 흐르지 않는다)
+            tripT += dt;
+            if (!lateWarned && tripT > tripLimit)
+            {
+                lateWarned = true;
+                Popup("늦었어요! 요금이 깎입니다", new Color(1f, 0.6f, 0.4f));
+            }
+
             // 회전 중에는 판정하지 않는다. 목적지 줄(r==0) 위에서만 도착/지나침을 본다.
             DestRel(out int f, out int r, out float sd);
             if (!turning && r == 0)
@@ -1574,7 +1603,24 @@ public class ProtoDrive : MonoBehaviour
     int CurrentFare()
     {
         float typeMul = pax != null ? pax.fareMul : 1f;
-        return Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * fareMul * typeMul);
+        float mul = Mathf.Max(0.2f, fareMul * LateMul());                  // 사고/지나침/지각 감액을 합쳐도 20% 밑으로는 안 내려간다
+        return Mathf.RoundToInt((baseFare + farePerMeter * tripMeters) * mul * typeMul / 10f) * 10;
+    }
+
+    // 제한 시간을 넘긴 만큼 요금에 곱하는 값 (제한 안이면 1)
+    float LateMul()
+    {
+        float late = Mathf.Max(0f, tripT - tripLimit);
+        return Mathf.Max(Mathf.Clamp01(lateMinMul), 1f - Mathf.Max(0f, lateDropPerSec) * late);
+    }
+
+    // 제한 시간을 일찍 마칠수록 큰 팁 (남은 시간이 제한의 절반 이상이면 최대)
+    int CurrentTip()
+    {
+        float left = tripLimit - tripT;
+        if (left <= 0f || tripLimit <= 0f) return 0;
+        float k = Mathf.Clamp01(left / (tripLimit * 0.5f));
+        return Mathf.RoundToInt(Mathf.Max(0, tipMax) * k * (pax != null ? pax.tipMul : 1f) / 10f) * 10;
     }
 
     void BeginTalk()
@@ -1611,6 +1657,13 @@ public class ProtoDrive : MonoBehaviour
         overshot = false;
         hintF = int.MinValue;
 
+        // 제한 시간: 거리 ÷ (지금 순항 속도 × 평균 비율) × 손님 급함 + 여유. 속도가 오른 판 후반에도 시간이 맞게 짧아진다
+        float cruise = Mathf.Min(maxSpeed, baseSpeed + elapsed * speedRamp);
+        float avgSpeed = Mathf.Max(4f, cruise * Mathf.Clamp(limitSpeedRatio, 0.2f, 1.5f));
+        tripLimit = tripMeters / avgSpeed * (pax != null ? pax.timeMul : 1f) + Mathf.Max(0f, timeBuffer);
+        tripT = 0f;
+        lateWarned = false;
+
         int idx = peds.IndexOf(caller);
         if (idx >= 0) Remove(idx);                           // 손님은 차 안으로
         caller = null;
@@ -1636,13 +1689,14 @@ public class ProtoDrive : MonoBehaviour
         int fare = CurrentFare();
         if (pax != null)
         {
-            thanksText = paxName + ": \"" + PickOne(pax.thanks) + "\"";
+            thanksText = paxName + ": \"" + PickOne(tripT > tripLimit ? LateThanks : pax.thanks) + "\"";
             thanksUntil = Time.unscaledTime + 3f;
         }
-        fareTotal += fare;
+        int tip = CurrentTip();
+        fareTotal += fare + tip;
         trips++;
-        score += Mathf.RoundToInt(fare / 100f);
-        Popup("도착! +" + fare + "원", new Color(1f, 0.85f, 0.3f));
+        score += Mathf.RoundToInt((fare + tip) / 100f);
+        Popup(tip > 0 ? "도착! +" + fare + "원  (팁 +" + tip + ")" : "도착! +" + fare + "원", new Color(1f, 0.85f, 0.3f));
         taxi = TaxiState.Cruise;
         callerTimer = Random.Range(callerDelay.x, callerDelay.y);
     }
@@ -2382,15 +2436,22 @@ public class ProtoDrive : MonoBehaviour
                 hintText = NavHint(nf, nr, near);
             }
             int fareNow = CurrentFare();
-            if (rem != hudRem || fareNow != hudFareNow || paxName != hudPaxName || destName != hudDestName)
+            bool late = tripT > tripLimit;
+            int timeKey = late ? -Mathf.CeilToInt(tripT - tripLimit) : Mathf.CeilToInt(tripLimit - tripT);   // 음수면 지각한 초
+            int tipNow = CurrentTip();
+            if (rem != hudRem || fareNow != hudFareNow || timeKey != hudTimeLeft || tipNow != hudTip || paxName != hudPaxName || destName != hudDestName)
             {
                 hudRem = rem;
                 hudFareNow = fareNow;
+                hudTimeLeft = timeKey;
+                hudTip = tipNow;
                 hudPaxName = paxName;
                 hudDestName = destName;
-                hudTripText = paxName + " → " + destName + "   남은 거리 " + rem + " m   요금 " + fareNow + "원";
+                string timeStr = late ? "지각 " + (-timeKey) + "초" : "남은 시간 " + timeKey + "초";
+                string tipStr = tipNow > 0 ? " (팁 +" + tipNow + ")" : "";
+                hudTripText = paxName + " → " + destName + "   남은 거리 " + rem + " m   " + timeStr + "   요금 " + fareNow + "원" + tipStr;
             }
-            Label(new Rect(0, H * 0.20f, W, 30 * u), hudTripText, 20, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.20f, W, 30 * u), hudTripText, 20, late ? new Color(1f, 0.55f, 0.45f) : new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
             Label(new Rect(0, H * 0.20f + 28 * u, W, 26 * u), hintText, 17, new Color(0.6f, 1f, 0.7f, 0.95f), TextAnchor.MiddleCenter);
         }
         else if (taxi == TaxiState.Cruise)
