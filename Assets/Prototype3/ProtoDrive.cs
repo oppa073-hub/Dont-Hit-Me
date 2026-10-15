@@ -26,6 +26,16 @@ public class ProtoDrive : MonoBehaviour
     public float lodDistance = 70f;
     public float camHeight = 1.2f;
 
+    [Header("Intersection / Turn (교차로와 회전)")]
+    [Tooltip("교차로가 나오는 간격(구간 수, 1구간 = 4m). 20 = 80m마다")]
+    public int intersectionEvery = 20;
+    [Tooltip("교차로가 차지하는 구간 수. 2 = 8m")]
+    public int intersectionLen = 2;
+    [Tooltip("교차로에서 좌우로 뻗는 가로 도로 길이(m)")]
+    public float crossStreetLength = 30f;
+    [Tooltip("이 속도(m/s) 이하일 때만 깜빡이 방향으로 회전한다. 넘으면 직진")]
+    public float turnSpeed = 10f;
+
     [Header("Car")]
     public float baseSpeed = 12f;          // m/s
     public float maxSpeed = 30f;
@@ -231,6 +241,18 @@ public class ProtoDrive : MonoBehaviour
     Color paxSkin, paxHair, paxShirt;
     Transform destMarker;
     bool cabinVisible = true;
+
+    // 교차로 / 회전 상태
+    int blinker;                         // -1 좌, 0 없음, +1 우
+    int heading, gx, gy, citySalt, handledInter = -1, pendingTurn;
+    float turnT = -1f, fade, nextInterDist;
+    bool turnApplied;
+    int hudInterDist = -1, hudInterBlinker = -2, hudInterHeading = -1, hudInterGx = int.MinValue, hudInterGy = int.MinValue;
+    string hudInterText = "";
+    const float TurnFadeOut = 0.25f, TurnFadeIn = 0.35f;
+    static readonly int[] HeadX = { 0, 1, 0, -1 };
+    static readonly int[] HeadY = { 1, 0, -1, 0 };
+    static readonly string[] HeadNames = { "북", "동", "남", "서" };
 
     static readonly string[] PaxNames = { "김 사장님", "박 할머니", "이 학생", "최 아저씨", "정 부장님", "한 아주머니" };
     static readonly string[] DestNames = { "시청", "중앙역", "대학병원", "공항", "호텔", "시장", "도서관", "공원 입구" };
@@ -829,6 +851,15 @@ public class ProtoDrive : MonoBehaviour
         fareMul = 1f;
         fareTotal = trips = 0;
         reactUntil = 0f;
+        blinker = 0;
+        heading = 0;
+        gx = 0;
+        gy = -1;                                  // 첫 교차로를 지나면 (0, 0)
+        citySalt = 0;
+        handledInter = -1;
+        turnT = -1f;
+        fade = 0f;
+        foreach (var s in strips) if (s != null) s.lastIdx = int.MinValue;
         if (destMarker != null) destMarker.gameObject.SetActive(false);
     }
 
@@ -840,6 +871,8 @@ public class ProtoDrive : MonoBehaviour
 
         if (gameOver)
         {
+            fade = 0f;                       // 회전 페이드 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
+            turnT = -1f;
             if (kb.rKey.wasPressedThisFrame) ResetGame();
             UpdateWorldVisuals();
             return;
@@ -880,6 +913,10 @@ public class ProtoDrive : MonoBehaviour
         dist += speed * dt;
         distScore += speed * dt * 0.1f;
 
+        // 깜빡이: Q 좌 / E 우 (다시 누르면 해제)
+        if (kb.qKey.wasPressedThisFrame) blinker = blinker == -1 ? 0 : -1;
+        if (kb.eKey.wasPressedThisFrame) blinker = blinker == 1 ? 0 : 1;
+
         invuln = Mathf.Max(0f, invuln - dt);
         hurtFlash = Mathf.Max(0f, hurtFlash - dt);
 
@@ -893,7 +930,94 @@ public class ProtoDrive : MonoBehaviour
 
         UpdatePeds(dt);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
+        if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();
+    }
+
+    // ---------- 교차로 / 회전 ----------
+
+    bool IsIntersection(int idx)
+    {
+        int e = Mathf.Max(intersectionLen + 1, intersectionEvery);
+        int m = idx % e;
+        if (m < 0) m += e;
+        return m < intersectionLen;
+    }
+
+    // 교차로를 지나는 순간 깜빡이가 켜져 있고 속도가 충분히 낮으면 회전(페이드 컷)한다.
+    void UpdateIntersection(float dt)
+    {
+        // 손님과 대화를 시작하면 진행 중이던 회전/페이드는 취소한다 (대화 상자가 검은 화면에 가려지지 않게)
+        if (taxi == TaxiState.Talking)
+        {
+            turnT = -1f;
+            fade = 0f;
+            blinker = 0;
+            return;
+        }
+
+        // 페이드 컷 진행: 히트스톱(timeScale 0)과 무관하게 실시간으로 센다
+        if (turnT >= 0f)
+        {
+            turnT += Time.unscaledDeltaTime;
+            if (!turnApplied && turnT >= TurnFadeOut)
+            {
+                turnApplied = true;
+                ApplyTurn();
+            }
+            fade = turnT < TurnFadeOut ? turnT / TurnFadeOut : 1f - (turnT - TurnFadeOut) / TurnFadeIn;
+            if (turnT >= TurnFadeOut + TurnFadeIn)
+            {
+                turnT = -1f;
+                fade = 0f;
+            }
+        }
+
+        float period = Mathf.Max(intersectionLen + 1, intersectionEvery) * StripLen;
+        float len = intersectionLen * StripLen;
+        float roadPos = dist + 8f;                                   // 카메라(z=0)가 놓인 도로 좌표
+        int k = Mathf.RoundToInt((roadPos - len * 0.5f) / period);   // 가장 가까운 교차로 번호
+        float center = k * period + len * 0.5f;
+        float diff = roadPos - center;
+        nextInterDist = diff < 0f ? -diff : center + period - roadPos;
+
+        if (turnT < 0f && diff >= -2f && diff < 6f && handledInter != k)
+        {
+            handledInter = k;
+            gx += HeadX[heading];                                    // 이 교차로까지 한 블록 왔다
+            gy += HeadY[heading];
+            if (blinker != 0)
+            {
+                if (speed <= turnSpeed)
+                {
+                    pendingTurn = blinker;
+                    turnT = 0f;
+                    turnApplied = false;
+                    Popup(blinker < 0 ? "좌회전" : "우회전", new Color(0.6f, 0.9f, 1f));
+                }
+                else
+                {
+                    Popup("너무 빨라요! 속도를 줄이세요", new Color(1f, 0.6f, 0.3f));
+                }
+                blinker = 0;
+            }
+        }
+    }
+
+    // 화면이 완전히 어두워진 순간에 방향과 주변을 바꾼다. dist 는 이어서 가므로 새 도로는 그냥 계속되는 직선 도로다.
+    void ApplyTurn()
+    {
+        heading = (heading + pendingTurn + 4) % 4;
+        citySalt++;                                                  // 새 거리는 건물 배치가 달라진다
+        foreach (var s in strips) s.lastIdx = int.MinValue;          // 건물 다시 구성
+        carX = lateralVel = 0f;
+        invuln = Mathf.Max(invuln, 0.7f);                            // 페이드 인 동안 어두운 화면에서 맞지 않게
+
+        caller = null;                                               // 사람들은 모두 새로 깐다
+        callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+        foreach (var p in peds) if (p.t != null) Destroy(p.t.gameObject);
+        peds.Clear();
+        for (int i = 0; i < initialCrowd; i++) SpawnPed(0, Random.Range(6f, SpawnZ));
     }
 
     // ---------- 택시: 손님 호출 / 정차 / 대화 / 탑승 / 도착 ----------
@@ -1198,13 +1322,25 @@ public class ProtoDrive : MonoBehaviour
             var pitchRot = Quaternion.Euler(pitch, 0f, 0f);
             float len = StripLen * 1.08f;
             bool even = (idx & 1) == 0;
+            bool inter = IsIntersection(idx);
 
             Place(s.road, new Vector3(0f, drop - 0.1f, zc), pitchRot, new Vector3(rw * 2f, 0.2f, len));
-            Place(s.swL, new Vector3(-(rw + 2.5f), drop + 0.05f, zc), pitchRot, new Vector3(5f, 0.3f, len));
-            Place(s.swR, new Vector3(rw + 2.5f, drop + 0.05f, zc), pitchRot, new Vector3(5f, 0.3f, len));
-
-            s.dash.gameObject.SetActive(even);
-            Place(s.dash, new Vector3(0f, drop + 0.02f, zc), pitchRot, new Vector3(0.18f, 0.02f, StripLen * 0.5f));
+            if (inter)
+            {
+                // 교차로: 인도 박스를 가로 도로 아스팔트로 쓰고, 중앙선 대신 횡단보도 줄을 하나 둔다
+                float cx = rw + crossStreetLength * 0.5f;
+                Place(s.swL, new Vector3(-cx, drop - 0.1f, zc), pitchRot, new Vector3(crossStreetLength, 0.2f, len));
+                Place(s.swR, new Vector3(cx, drop - 0.1f, zc), pitchRot, new Vector3(crossStreetLength, 0.2f, len));
+                s.dash.gameObject.SetActive(true);
+                Place(s.dash, new Vector3(0f, drop + 0.03f, zc - StripLen * 0.5f + 0.5f), pitchRot, new Vector3(rw * 2f, 0.02f, 0.5f));
+            }
+            else
+            {
+                Place(s.swL, new Vector3(-(rw + 2.5f), drop + 0.05f, zc), pitchRot, new Vector3(5f, 0.3f, len));
+                Place(s.swR, new Vector3(rw + 2.5f, drop + 0.05f, zc), pitchRot, new Vector3(5f, 0.3f, len));
+                s.dash.gameObject.SetActive(even);
+                Place(s.dash, new Vector3(0f, drop + 0.02f, zc), pitchRot, new Vector3(0.18f, 0.02f, StripLen * 0.5f));
+            }
 
             for (int side = 0; side < 2; side++) UpdateBuilding(s, s.sides[side], side, idx, zc, drop, pitchRot, rw);
 
@@ -1212,7 +1348,7 @@ public class ProtoDrive : MonoBehaviour
             {
                 s.lastIdx = idx;
                 s.road.GetComponent<Renderer>().sharedMaterial = even ? roadA : roadB;
-                var sm = even ? swA : swB;
+                var sm = inter ? roadA : (even ? swA : swB);
                 s.swL.GetComponent<Renderer>().sharedMaterial = sm;
                 s.swR.GetComponent<Renderer>().sharedMaterial = sm;
             }
@@ -1249,9 +1385,32 @@ public class ProtoDrive : MonoBehaviour
         const float depth = 6f;
 
         bool changed = s.lastIdx != idx;
+        bool inter = IsIntersection(idx);
         if (changed)
         {
-            int run = idx / 3;                       // 3구간(12m)이 한 건물
+            // 교차로 구간에는 건물이 없다 (구간이 바뀔 때만 켜고 끈다)
+            s.bldg[sideIdx].gameObject.SetActive(!inter);
+            if (hasCity)
+            {
+                sd.upper.gameObject.SetActive(!inter);
+                sd.ground.gameObject.SetActive(!inter);
+                if (inter)
+                {
+                    sd.cornice.gameObject.SetActive(false);
+                    sd.fUpper.gameObject.SetActive(false);
+                    sd.fGround.gameObject.SetActive(false);
+                    sd.fCornice.gameObject.SetActive(false);
+                    sd.door.gameObject.SetActive(false);
+                    sd.prop.gameObject.SetActive(false);
+                }
+            }
+        }
+        if (inter) return;
+
+        int hidx = idx + citySalt * 1013;            // 회전할 때마다 건물 배치가 달라지게 하는 해시용 번호
+        if (changed)
+        {
+            int run = hidx / 3;                      // 3구간(12m)이 한 건물
             int seed = run * 2 + sideIdx;
             sd.pal = Mathf.Min(3, Mathf.FloorToInt(Hash(seed * 13 + 1) * 4f));
             sd.floors = 3 + Mathf.FloorToInt(Hash(seed * 17 + 2) * 5f);
@@ -1260,7 +1419,7 @@ public class ProtoDrive : MonoBehaviour
 
             if (hasCity)
             {
-                int shop = Mathf.Min(2, Mathf.FloorToInt(Hash(idx * 19 + sideIdx) * 3f));
+                int shop = Mathf.Min(2, Mathf.FloorToInt(Hash(hidx * 19 + sideIdx) * 3f));
                 sd.upper.sprite = winTiles[sd.pal];
                 sd.upper.size = new Vector2(TileCols, sd.floors * 2f);
                 sd.ground.sprite = shopTiles[shop];
@@ -1277,19 +1436,19 @@ public class ProtoDrive : MonoBehaviour
                 sd.fCornice.size = new Vector2(fc, 1f);
 
                 sd.door.sprite = doorTiles[sd.pal];
-                sd.wantDoor = idx % 3 == 1;
+                sd.wantDoor = ((hidx % 3) + 3) % 3 == 1;
 
                 int kind = 0;
-                if ((idx + sideIdx * 2) % 4 == 0) kind = 1;
-                else if (Hash(idx * 3 + sideIdx * 7) < 0.12f) kind = 2;
-                else if (Hash(idx * 5 + sideIdx * 11) < 0.15f) kind = 3;
-                else if (Hash(idx * 7 + sideIdx * 13) < 0.10f) kind = 4;
+                if (((hidx + sideIdx * 2) % 4 + 4) % 4 == 0) kind = 1;
+                else if (Hash(hidx * 3 + sideIdx * 7) < 0.12f) kind = 2;
+                else if (Hash(hidx * 5 + sideIdx * 11) < 0.15f) kind = 3;
+                else if (Hash(hidx * 7 + sideIdx * 13) < 0.10f) kind = 4;
                 sd.wantProp = kind != 0;
                 sd.prop.flipX = sideIdx == 0;   // 가로등 머리가 도로 쪽을 향하게
                 switch (kind)
                 {
                     case 1: sd.prop.sprite = lampSprite; sd.propScale = 2f; break;
-                    case 2: sd.prop.sprite = Hash(idx * 23 + sideIdx) < 0.5f ? lightRedSprite : lightGreenSprite; sd.propScale = 1.6f; break;
+                    case 2: sd.prop.sprite = Hash(hidx * 23 + sideIdx) < 0.5f ? lightRedSprite : lightGreenSprite; sd.propScale = 1.6f; break;
                     case 3: sd.prop.sprite = trashSprite; sd.propScale = 1.2f; break;
                     case 4: sd.prop.sprite = mailSprite; sd.propScale = 1.2f; break;
                 }
@@ -1606,6 +1765,26 @@ public class ProtoDrive : MonoBehaviour
             Label(new Rect(0, H * 0.20f, W, 28 * u), hint, 18, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
         }
 
+        // 깜빡이와 교차로 안내
+        bool blinkOn = Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.35f;
+        if (blinker != 0 && blinkOn)
+            Label(new Rect(blinker < 0 ? W * 0.5f - 230 * u : W * 0.5f + 90 * u, H * 0.145f, 140 * u, 40 * u),
+                  blinker < 0 ? "< 좌" : "우 >", 30, new Color(0.4f, 1f, 0.4f), blinker < 0 ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft);
+
+        int dm = Mathf.RoundToInt(nextInterDist);
+        if (dm != hudInterDist || blinker != hudInterBlinker || heading != hudInterHeading || gx != hudInterGx || gy != hudInterGy)
+        {
+            hudInterGx = gx;
+            hudInterGy = gy;
+            hudInterDist = dm;
+            hudInterBlinker = blinker;
+            hudInterHeading = heading;
+            string bl = blinker < 0 ? "좌회전 예약" : (blinker > 0 ? "우회전 예약" : "직진 (Q 좌 / E 우 깜빡이)");
+            hudInterText = "방향 " + HeadNames[heading] + " (" + gx + "," + gy + ")   다음 교차로 " + dm + " m   " + bl
+                         + (blinker != 0 ? "   — " + Mathf.RoundToInt(turnSpeed * 3.6f) + " km/h 이하로" : "");
+        }
+        Label(new Rect(0, H * 0.34f, W, 26 * u), hudInterText, 16, new Color(0.8f, 0.95f, 1f, 0.9f), TextAnchor.MiddleCenter);
+
         // 누적 요금 (좌측 상단 아래)
         Label(new Rect(20 * u, 84 * u, 500 * u, 30 * u), "요금 " + fareTotal + "원   (" + trips + "명)", 18, new Color(1f, 0.92f, 0.5f), TextAnchor.UpperLeft);
 
@@ -1668,12 +1847,15 @@ public class ProtoDrive : MonoBehaviour
         }
         Label(new Rect(W - 420 * u, 14 * u, 400 * u, 100 * u), hudStats, 18, new Color(1f, 1f, 1f, 0.9f), TextAnchor.UpperRight);
 
-        Label(new Rect(0, H - 30 * u, W, 26 * u), "A/D 또는 ←/→ 조향   S/↓ 브레이크   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerCenter);
+        Label(new Rect(0, H - 30 * u, W, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerCenter);
 
         DrawTaxiGui(W, H, u);
 
         if (Time.unscaledTime < popupUntil)
             Label(new Rect(0, H * 0.28f, W, 50 * u), popupText, 34, popupColor, TextAnchor.MiddleCenter);
+
+        // 회전 페이드 컷
+        if (fade > 0f) Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, Mathf.Clamp01(fade)));
 
         if (gameOver)
         {
