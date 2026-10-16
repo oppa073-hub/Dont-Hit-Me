@@ -16,8 +16,12 @@ public partial class TrafficManager
     /// <summary>구급차가 뒤에서 접근 중이면 뒤쪽 거리(m), 아니면 -1.</summary>
     public float AmbulanceDist { get { return ambulance != null && ambulance.z < 0f ? -ambulance.z : -1f; } }
 
-    /// <summary>라이벌 택시가 손님 앞에 도착했다 (손님을 가로챈다).</summary>
+    /// <summary>라이벌 택시가 손님을 태웠다 (손님을 가로챈다).</summary>
     public event System.Action<PedestrianManager.Ped> RivalArrived;
+    /// <summary>플레이어가 라이벌 택시에 박치기했다 (남은 체력, 라이벌이 있는 쪽 -1/+1).</summary>
+    public event System.Action<int, float> RivalHit;
+    /// <summary>라이벌 택시를 격파했다 (보상).</summary>
+    public event System.Action RivalDestroyed;
 
     /// <summary>레이저 상태: 0 없음, 1 경고, 2 쓸어 오는 중.</summary>
     public int StrikeState;
@@ -109,8 +113,23 @@ public partial class TrafficManager
         o.body.flipX = o.dir < 0f;                           // 그림은 오른쪽을 본다
     }
 
-    /// <summary>라이벌 택시: 멀리서 달려와 target(길가의 손님) 앞에 서서 손님을 가로채려 한다.</summary>
-    public void SpawnRival(PedestrianManager.Ped target, float spawnZ, float playerSpeed)
+    void SetRivalAlpha(Obj o, float a)
+    {
+        var c = o.baseColor;
+        c.a = a;
+        o.body.color = c;
+        if (o.detail != null) o.detail.color = new Color(1f, 1f, 1f, a);
+        if (o.lamps != null)
+            for (int k = 0; k < o.lamps.Length; k++)
+            {
+                var lc = o.lamps[k].color;
+                lc.a = a;
+                o.lamps[k].color = lc;
+            }
+    }
+
+    /// <summary>라이벌 택시: 길가의 손님(target) 바로 앞에 갑자기 소환되어 손님을 가로채고 도망친다.</summary>
+    public void SpawnRival(PedestrianManager.Ped target)
     {
         if (target == null) return;
         rivalTarget = target;
@@ -118,12 +137,14 @@ public partial class TrafficManager
         bool useCustom = cfg.carSprite != null;
         var o = MakeSpriteObj("RivalTaxi", Rival, useCustom ? cfg.carSprite : sprites.carBody);
         o.x = side * 2.6f;
-        o.z = Mathf.Min(spawnZ - 3f, target.z + 45f);
-        // 플레이어가 지금 속도로 손님에게 가는 시간보다 3초 늦게 도착하도록 속도를 맞춘다 (바로 서면 이길 수 있다)
-        float tPlayer = target.z / Mathf.Max(6f, playerSpeed);
-        float dist = Mathf.Max(5f, o.z - target.z);
-        o.speed = -Mathf.Clamp(dist / (tPlayer + 3f), 3f, Mathf.Max(5f, cfg.rivalSpeed) * 1.5f);       // 손님 쪽으로 다가온다 (월드 기준 속도)
-        o.body.color = useCustom ? Color.white : new Color(1f, 0.82f, 0.1f);
+        o.z = Mathf.Clamp(target.z - 2f, 10f, 38f);           // 손님 바로 앞(플레이어 쪽)에 나타난다
+        o.halfW = useCustom ? Mathf.Max(0.5f, cfg.carSprite.bounds.extents.x * 0.85f) : 1.0f;
+        o.hp = 2;
+        o.stage = 0;
+        o.speed = 0f;
+        o.baseColor = useCustom ? Color.white : new Color(1f, 0.82f, 0.1f);
+        o.body.color = new Color(o.baseColor.r, o.baseColor.g, o.baseColor.b, 0f);
+        SpawnBoom(o.x, o.z);                                  // 소환 연기
         if (!useCustom)
         {
             var dgo = new GameObject("Detail");
@@ -138,7 +159,9 @@ public partial class TrafficManager
         lgo.transform.localScale = Vector3.one * 1.6f;
         var lsr = lgo.AddComponent<SpriteRenderer>();
         lsr.sprite = sprites.lamp;
-        lsr.color = new Color(1f, 1f, 0.8f);
+        lsr.color = new Color(1f, 1f, 0.8f, 0f);
+        o.lamps = new[] { lsr };
+        SetRivalAlpha(o, 0f);
     }
 
     // ---- 경찰 바리케이드 (은행 강도 손님을 태우고 도망칠 때) ----

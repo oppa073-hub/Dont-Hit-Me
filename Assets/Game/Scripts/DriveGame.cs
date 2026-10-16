@@ -472,6 +472,7 @@ public partial class DriveGame : MonoBehaviour
 
     // 시점: 손님과 대화할 때 옆으로 돌린다 (camYawTarget 은 목표, camYaw 는 현재)
     float camYaw, camYawTarget;
+    float camPitch, camPitchTarget;      // 대화 때 손님을 화면 위쪽 가운데에 두려고 살짝 내려다본다
 
     Transform destMarker;                // 목적지 표지 기둥 (손님을 태운 동안만 보인다)
 
@@ -604,6 +605,7 @@ public partial class DriveGame : MonoBehaviour
         ResetShift();
         goals.Reset();
         camYaw = camYawTarget = 0f;
+        camPitch = camPitchTarget = 0f;
         hudTimeLeft = int.MinValue;
         road.Reset();
         hintF = int.MinValue;
@@ -766,8 +768,11 @@ public partial class DriveGame : MonoBehaviour
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;
         camYaw = Mathf.MoveTowardsAngle(camYaw, camYawTarget, yawSpeed * Time.unscaledDeltaTime);
-        cam.transform.rotation = Quaternion.Euler(0f, camYaw, roll);
-        float fovTarget = taxi.State == TaxiState.Talking ? sideFov : 70f;
+        camPitch = Mathf.MoveTowards(camPitch, camPitchTarget, 120f * Time.unscaledDeltaTime);
+        cam.transform.rotation = Quaternion.Euler(camPitch, camYaw, roll);
+        // 대화 중에는 손님이 멀수록 더 확대해서, 떨어진 곳에 태워도 손님이 화면에 크게 보인다
+        float talkFov = Mathf.Clamp(2f * Mathf.Atan(2.25f / Mathf.Max(2f, taxi.TalkDist)) * Mathf.Rad2Deg, 24f, sideFov);
+        float fovTarget = taxi.State == TaxiState.Talking ? talkFov : 70f;
         cam.fieldOfView = Mathf.MoveTowards(cam.fieldOfView, fovTarget, 120f * Time.unscaledDeltaTime);
 
         // 옆 시점(손님 대화) 중에는 손/핸들/대시보드를 숨긴다

@@ -33,6 +33,9 @@ public partial class TrafficManager
         public float dir, rollSpeed, side;  // 공: 굴러가는 방향/속도, 출발한 인도 쪽
         public float childAt = -1f;         // 공: 이 시각(elapsed)에 아이가 튀어나온다
         public float life = -1f;            // 불길/연기: 남은 시간(초)
+        public int hp, stage;               // 라이벌 택시: 체력(2), 단계(0 손님을 태우는 중, 1 도망 중, 2 격파됨)
+        public float age, hitCool;          // 라이벌 택시: 나타난 뒤 시간, 박치기 재사용 대기
+        public Color baseColor = Color.white;
         public float phase;                 // 흔들림/깜빡임이 물체마다 다르게 보이게 하는 값
     }
 
@@ -195,16 +198,64 @@ public partial class TrafficManager
 
             if (o.kind == Rival)
             {
-                // 라이벌 택시: 충돌하지 않는다. 손님 앞에 서서 가로채고 유유히 떠난다.
-                if (rivalTarget != null && !peds.Contains(rivalTarget)) rivalTarget = null;
-                if (rivalTarget != null && o.speed < 0f && o.z <= rivalTarget.z + 1.5f)
+                // 라이벌 택시: 손님 앞에 갑자기 나타나 손님을 가로채고 도망친다. 플레이어가 박치기로 체력 2를 깎으면 격파(보상).
+                // 박치기를 해도 플레이어는 다치지 않는다. 도망쳐서 멀어지면 흐려지며 사라진다.
+                o.age += dt;
+                if (o.stage == 2)
                 {
-                    o.speed = 9f;
-                    var tgt = rivalTarget;
-                    rivalTarget = null;
-                    if (RivalArrived != null) RivalArrived(tgt);
+                    o.fallT += dt;
+                    o.x += o.kickDir * 5f * dt;                                 // 격파되어 옆으로 날아간다
+                    SetRivalAlpha(o, Mathf.Clamp01(1f - o.fallT));
+                    if (o.fallT > 1f || o.z < -6f) RemoveAt(i);
+                    continue;
                 }
-                if (o.z < -6f || o.z > spawnZ + 40f) RemoveAt(i);
+                if (o.hitCool > 0f) o.hitCool -= dt;
+                float pv = dt > 0.0001f ? advance / dt : 0f;                    // 플레이어(월드)가 다가오는 속도
+                float alpha = Mathf.Clamp01(o.age / 0.25f);                     // 소환될 때 순식간에 나타난다
+                if (o.stage == 0)
+                {
+                    o.speed = 0f;                                               // 연석에 서서 손님을 태운다
+                    if (o.age >= 0.9f || o.z < -3f)                             // 0.9초가 지났거나 플레이어가 지나쳐 버렸다
+                    {
+                        o.stage = 1;
+                        if (rivalTarget != null && peds.Contains(rivalTarget))
+                        {
+                            var tgt = rivalTarget;
+                            rivalTarget = null;
+                            if (RivalArrived != null) RivalArrived(tgt);
+                        }
+                        rivalTarget = null;
+                        o.speed = 5f;
+                    }
+                }
+                else
+                {
+                    // 라이벌 택시는 아주 느리게 도망친다 (플레이어 속도와 상관없이 5 -> 12 m/s). 박치기할 시간이 충분하다.
+                    o.speed = Mathf.Lerp(5f, 12f, Mathf.Clamp01((o.age - 0.9f) / 10f));
+                    float far = Mathf.Clamp01((spawnZ + 5f - o.z) / 25f);       // 멀어지면 자연스럽게 흐려져 사라진다
+                    alpha = Mathf.Min(alpha, far);
+                    if (far <= 0.02f) { RemoveAt(i); continue; }
+                }
+                SetRivalAlpha(o, alpha);
+
+                if (!turning && o.hitCool <= 0f && o.z > -4f && o.z < 5f && Mathf.Abs(o.x - carX) < DriveGame.CarHalfWidth + o.halfW)
+                {
+                    o.hitCool = 0.35f;
+                    o.hp--;
+                    o.z += 4f;                                                  // 맞고 앞으로 튕겨 나간다 (플레이어도 넉백으로 느려져서 두 번째 박치기를 노릴 수 있다)
+                    float knockDir = o.x >= carX ? 1f : -1f;
+                    if (o.hp <= 0)
+                    {
+                        o.stage = 2;
+                        o.fallT = 0f;
+                        o.kickDir = o.x >= carX ? 1f : -1f;
+                        SpawnBoom(o.x, o.z);
+                        if (RivalDestroyed != null) RivalDestroyed();
+                    }
+                    else if (RivalHit != null) RivalHit(o.hp, knockDir);
+                    continue;
+                }
+                if (o.z < -6f) RemoveAt(i);
                 continue;
             }
 

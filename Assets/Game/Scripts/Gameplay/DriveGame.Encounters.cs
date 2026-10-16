@@ -16,6 +16,8 @@ public partial class DriveGame
         enc.Started += OnEncounterStarted;
         traffic.RivalArrived += OnRivalArrived;
         traffic.AmbulancePassed += OnAmbulancePassed;
+        traffic.RivalHit += OnRivalHit;
+        traffic.RivalDestroyed += OnRivalDestroyed;
     }
 
     void ResetEncounters()
@@ -31,7 +33,7 @@ public partial class DriveGame
         // 괴수/히어로 사건, 경찰 추격, 은행 대기, 영업이 끝나 가는 때에는 새 사건을 시작하지 않는다
         bool allow = level >= 2 && !turning && flow == GameFlow.Playing && !dayEvents.Active && !taxi.HeistFlee
                      && taxi.State != TaxiState.Waiting && !(shiftMode && shiftLeft < 25f);
-        bool rivalOk = taxi.State == TaxiState.Cruise && taxi.Caller != null && taxi.Caller.z > 20f && taxi.Caller.z < SpawnZ - 6f;
+        bool rivalOk = taxi.State == TaxiState.Cruise && taxi.Caller != null && taxi.Caller.z > 20f && taxi.Caller.z < 40f;       // 손님이 가까이 있을 때만 (눈앞에 소환되니까)
         enc.Tick(dt, elapsed, allow, rivalOk);
         peds.FanRush = enc.Active == EncounterType.Fans;
         traffic.TickPigs(elapsed, enc.Active == EncounterType.Pigs, turning, SpawnZ);
@@ -85,14 +87,39 @@ public partial class DriveGame
                 sirenWailT = 0f;
                 break;
             case EncounterType.Rival:
-                dayEvents.RaiseAlert("라이벌 택시 접근! 먼저 손님을 태우세요!", 5f);
-                traffic.SpawnRival(taxi.Caller, SpawnZ, speed);
+                dayEvents.RaiseAlert("라이벌 택시 출현! 손님을 뺏긴다 — 박치기로 때려서 쫓아내세요!", 5f);
+                traffic.SpawnRival(taxi.Caller);
                 sound.PlayAlarm();
                 break;
         }
     }
 
-    // 라이벌 택시가 손님 앞에 먼저 도착했다
+    // 라이벌 택시에 박치기했다: 플레이어는 멀쩡하고 라이벌의 체력만 줄어든다
+    void OnRivalHit(int hpLeft, float dir)
+    {
+        speed *= 0.45f;                                       // 넉백: 크게 느려지고 라이벌 반대쪽으로 튕긴다
+        lateralVel -= dir * 3f;
+        session.ExtendInvuln(0.9f);                           // 넉백 동안 잠깐 무적
+        shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.3f);
+        sound.PlayBonk();
+        Popup("박치기!  라이벌 체력 " + hpLeft, UiGold);
+    }
+
+    // 라이벌 택시를 격파했다: 정상 손님 요금의 절반쯤을 받는다
+    void OnRivalDestroyed()
+    {
+        float avgBlocks = 0.5f * (tripMinBlocks + tripMaxBlocks);
+        int reward = Mathf.RoundToInt((baseFare + farePerMeter * avgBlocks * Period) * 0.5f / 10f) * 10;
+        taxi.AddBonusFare(reward);
+        session.AddScore(reward / 100);
+        speed *= 0.45f;                                       // 마지막 일격도 넉백 + 잠깐 무적
+        session.ExtendInvuln(0.9f);
+        shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.3f);
+        sound.PlayArrive();
+        Popup("라이벌 택시 격파!  +" + reward + "원", UiGold);
+    }
+
+    // 라이벌 택시가 손님을 태웠다
     void OnRivalArrived(PedestrianManager.Ped p)
     {
         if (!taxi.StealCaller(p)) return;

@@ -62,6 +62,7 @@ public class TaxiManager
     // ---- 은행 강도 인카운트: 1 은행으로 가는 중, 2 은행 앞에서 손님을 기다리는 중(떠나면 실패), 3 손님을 태우고 경찰에게서 도망치는 중 ----
     public int HeistStage { get; private set; }
     public float WaitT { get; private set; }
+    public float TalkDist { get; private set; }            // 대화를 시작할 때 손님까지의 거리 (카메라 확대/기울기에 쓴다)
     float awayT;                            // 은행 자리를 벗어나 있던 시간 (잠깐은 봐준다)
     public bool HeistAllowed;               // DriveGame 이 정한다 (영업 시간이 모자라면 안 나온다)
     public bool ForceHeistNext;             // 시험용: 다음 손님을 은행 강도로
@@ -333,7 +334,14 @@ public class TaxiManager
         }
     }
 
+    /// <summary>보너스 요금(라이벌 택시 격파 등)을 받는다.</summary>
+    public void AddBonusFare(int amount)
+    {
+        FareTotal += Mathf.Max(0, amount);
+    }
+
     /// <summary>라이벌 택시가 이 손님을 가로챘다. 아직 태우기 전이면 손님이 사라지고 true.</summary>
+
     public bool StealCaller(PedestrianManager.Ped p)
     {
         if (State != TaxiState.Cruise || Caller == null || Caller != p) return false;
@@ -376,8 +384,10 @@ public class TaxiManager
     // 손님 쪽(왼쪽/오른쪽)으로 시점을 돌린다
     void FaceCaller()
     {
+        // 손님이 정확히 시야 가운데 오도록: 차보다 뒤에 있어도(z < 0) 그쪽으로 몸을 돌린다. 거리는 확대 정도를 정하는 데 쓴다.
         float dx = Caller.x - (carX - 0.4f);
-        float yaw = Mathf.Atan2(dx, Mathf.Max(0.5f, Caller.z)) * Mathf.Rad2Deg;
+        float yaw = Mathf.Atan2(dx, Caller.z) * Mathf.Rad2Deg;
+        TalkDist = Mathf.Sqrt(dx * dx + Caller.z * Caller.z);
         if (TalkStarted != null) TalkStarted(yaw);
     }
 

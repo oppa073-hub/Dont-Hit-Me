@@ -32,6 +32,7 @@ public partial class DriveGame
     {
         speed = 0f;
         camYawTarget = yaw;
+        camPitchTarget = Mathf.Atan2(1.0f, Mathf.Max(2f, taxi.TalkDist)) * Mathf.Rad2Deg;       // 유니티에서 x 회전이 양수면 아래를 본다: 눈높이보다 낮은 곳을 보면 손님이 화면 위쪽(대화 상자 위)에 온다
     }
 
     void AcceptPassenger()
@@ -41,12 +42,14 @@ public partial class DriveGame
         EndNews();                                           // 손님을 태웠으니 내비는 지도로
         hintF = int.MinValue;                                // 안내 글자를 새 목적지로 다시 만든다
         camYawTarget = 0f;
+        camPitchTarget = 0f;
     }
 
     void DeclinePassenger()
     {
         taxi.Decline();
         camYawTarget = 0f;
+        camPitchTarget = 0f;
     }
 
     // 정산이 끝났다: 받은 돈의 일부를 점수에 더한다
