@@ -11,7 +11,7 @@ public partial class DriveGame
     struct Splat
     {
         public float x, y, size, born, life, seed;
-        public int type;                                // 0 피, 1 부케      // 위치/크기는 화면에 대한 비율 (x 는 폭, y/size 는 높이 기준)
+        public int type;                                // 0 피, 1 부케, 2 돼지 얼룩      // 위치/크기는 화면에 대한 비율 (x 는 폭, y/size 는 높이 기준)
     }
 
     const int MaxSplats = 48;
@@ -22,6 +22,7 @@ public partial class DriveGame
     float lastBloodT = -100f;
 
     static readonly Color BloodDark = new Color(0.50f, 0.02f, 0.03f), BloodLight = new Color(0.82f, 0.1f, 0.1f);
+    static readonly Color MudDark = new Color(0.82f, 0.38f, 0.5f), MudLight = new Color(1f, 0.76f, 0.82f);
 
     void ClearBlood()
     {
@@ -52,6 +53,18 @@ public partial class DriveGame
                 life = 3.2f,
                 seed = Random.value * 10f
             };
+            if (splats.Count >= MaxSplats) splats.RemoveAt(0);
+            splats.Add(s);
+        }
+    }
+
+    // 돼지를 쳤다: 앞유리에 분홍 얼룩이 튄다 (피와 같은 방식, 색만 다르다)
+    void AddMud()
+    {
+        float now = Time.unscaledTime;
+        for (int i = 0; i < 3; i++)
+        {
+            var s = new Splat { x = i == 0 ? Random.Range(0.35f, 0.65f) : Random.Range(0.1f, 0.9f), y = Random.Range(0.2f, 0.6f), size = Random.Range(0.06f, 0.1f), born = now, life = 2.8f, seed = Random.value * 10f, type = 2 };
             if (splats.Count >= MaxSplats) splats.RemoveAt(0);
             splats.Add(s);
         }
@@ -109,8 +122,9 @@ public partial class DriveGame
                 Fill(new Rect(cx - r * 0.06f, cy + r * 0.4f, r * 0.12f, r * 0.9f), new Color(0.3f, 0.75f, 0.35f, a));
                 continue;
             }
-            Color dark = new Color(BloodDark.r, BloodDark.g, BloodDark.b, a);
-            Color light = new Color(BloodLight.r, BloodLight.g, BloodLight.b, a * 0.85f);
+            Color bd = s.type == 2 ? MudDark : BloodDark, bl = s.type == 2 ? MudLight : BloodLight;
+            Color dark = new Color(bd.r, bd.g, bd.b, a);
+            Color light = new Color(bl.r, bl.g, bl.b, a * 0.85f);
 
             // 중심 얼룩과 튄 방울들
             Dot(new Vector2(cx, cy), r, dark);

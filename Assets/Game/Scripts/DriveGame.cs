@@ -151,6 +151,8 @@ public partial class DriveGame : MonoBehaviour
 
     [Tooltip("목적지는 진행 방향 좌/우로 최대 몇 칸까지 뽑을지")]
     public int destMaxSide = 2;
+    [Tooltip("목적지는 방금 지난 교차로에서 최소 이만큼(칸, 1칸 = 80m)은 떨어져 있다. 바로 앞 교차로가 목적지가 되는 것을 막는다")]
+    public int destMinBlocks = 3;
 
     [Tooltip("목적지 교차로 중심에서 이 거리(m) 안에서 정차하면 도착. 이만큼 지나치면 '지나쳤어요'")]
     public float arriveRadius = 9f;

@@ -435,6 +435,16 @@ public class TaxiManager
         int r = Random.Range(-Mathf.Max(0, cfg.destMaxSide), Mathf.Max(0, cfg.destMaxSide) + 1);
         if (Pax != null && Pax.quirk == Quirk.Alien) r = 0;                          // 외계인 손님: UFO 빛줄기가 지금 달리는 길 위에서 보이게
         if (f == 0 && r == 0) f = 1;
+        // 너무 가까운 목적지는 피한다: 방금 지난 교차로에서 최소 destMinBlocks 칸은 떨어지게 다시 뽑는다
+        bool alienTrip = Pax != null && Pax.quirk == Quirk.Alien;
+        int minBlocks = Mathf.Max(2, cfg.destMinBlocks);
+        for (int tries = 0; tries < 30 && 1 + f + Mathf.Abs(r) < minBlocks; tries++)
+        {
+            f = Random.Range(0, Mathf.Max(0, cfg.destMaxAhead) + 1);
+            r = alienTrip ? 0 : Random.Range(-Mathf.Max(0, cfg.destMaxSide), Mathf.Max(0, cfg.destMaxSide) + 1);
+            if (f == 0 && r == 0) f = 1;
+        }
+        if (1 + f + Mathf.Abs(r) < minBlocks) f = minBlocks - 1 - Mathf.Abs(r);          // 그래도 모자라면 앞으로 늘린다
         DestX = gx + DriveGame.HeadX[h] + f * DriveGame.HeadX[h] + r * DriveGame.HeadX[rh];
         DestY = gy + DriveGame.HeadY[h] + f * DriveGame.HeadY[h] + r * DriveGame.HeadY[rh];
         TripMeters = (Mathf.Abs(DestX - gx) + Mathf.Abs(DestY - gy)) * period;   // 맨해튼 칸수 × 80m. 요금/남은 거리 모두 이 기준

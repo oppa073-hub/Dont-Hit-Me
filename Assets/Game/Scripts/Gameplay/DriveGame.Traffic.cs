@@ -70,10 +70,13 @@ public partial class DriveGame
         }
         if (o.kind == TrafficManager.Pig)
         {
-            // 돼지는 목숨은 안 깎고 속도만 잃는다
-            speed *= 0.75f;
-            shakeUntil = Time.unscaledTime + 0.15f;
+            // 돼지는 목숨은 안 깎지만 확실히 느껴지게: 속도가 크게 줄고, 흔들리고, 앞유리에 분홍 얼룩이 튀고, 손님이 놀란다
+            speed *= 0.55f;
+            hitStopUntil = Time.unscaledTime + hitStop;
+            shakeUntil = Time.unscaledTime + 0.3f;
             sound.PlayOink();
+            AddMud();
+            taxi.OnPedHit();
             Popup("꿀꿀!  돼지를 쳤다", new Color(1f, 0.65f, 0.75f));
             return;
         }
