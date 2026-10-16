@@ -53,6 +53,11 @@ public partial class DriveGame
     // 차나 장애물에 부딪혔다
     void OnTrafficHit(TrafficManager.Obj o)
     {
+        if (rage.Active)
+        {
+            if (o.kind != TrafficManager.Flame) RageSmash();       // 불길은 연달아 있어서 점수/소리를 반복하지 않는다
+            return;
+        }
         if (o.kind == TrafficManager.Flame && invuln > 0f) return;      // 불길 차선을 달릴 때 불길마다 사고가 겹쳐 쌓이지 않게
         sound.PlayBonk();
         if (o.kind == TrafficManager.Cones)
@@ -78,6 +83,7 @@ public partial class DriveGame
         session.RegisterNearMiss(vehicleNearMissBonus);
         sound.PlayNearMiss();
         Popup("CLOSE PASS +" + vehicleNearMissBonus, new Color(0.4f, 1f, 0.6f));
-        shakeUntil = Time.unscaledTime + 0.06f;
+        shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.06f);
+        rage.AddNearMiss();
     }
 }

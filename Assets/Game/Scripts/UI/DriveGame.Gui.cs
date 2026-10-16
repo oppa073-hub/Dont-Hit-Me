@@ -286,6 +286,7 @@ public partial class DriveGame
 
         DrawCabin();
         DrawWeatherOverlay(W, H, u);
+        DrawRageOverlay(W, H);
 
         if (flow == GameFlow.Title)
         {

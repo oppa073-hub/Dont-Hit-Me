@@ -269,6 +269,20 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("손가락 두께 여유(m). 손가락이 림을 파고들면 키우고, 림에서 뜨면 줄인다")]
     public float fingerPad = 0.008f;
 
+    [Header("Rage (분노: 손님을 태웠을 때 게이지가 차 있으면 자동 발동. 무적 + 가속. 니어미스로 더 빨리 찬다. 팔이 붉어져서 알려 준다)")]
+    public bool rageOn = true;
+    [Tooltip("분노 게이지가 처음부터 가득 차는 데 걸리는 시간(초)")]
+    public float rageFillSeconds = 60f;
+    [Tooltip("분노가 이어지는 시간(초)")]
+    public float rageDuration = 8f;
+    [Tooltip("분노 중 목표 속도 배율 (최고 속도를 넘을 수 있다)")]
+    public float rageSpeedMul = 1.35f;
+    [Range(0f, 1f)]
+    [Tooltip("아슬아슬하게 피할 때마다 차는 게이지 (1 = 한 번에 가득)")]
+    public float rageNearMissGain = 0.15f;
+    [Tooltip("분노 중 부딪혔을 때 얻는 점수")]
+    public int rageSmashScore = 30;
+
     [Header("Events (날짜와 돌발 사건: 평범한 날 / 사람 많은 날 / 괴수 침공 / 히어로와 빌런)")]
     [Tooltip("시험용. -1 = 무작위, 0 평범, 1 사람 많은 날, 2 괴수 침공, 3 히어로와 빌런. 플레이 중 F2 = 괴수, F3 = 히어로를 바로 시작")]
     public int forceDayType = -1;
@@ -401,6 +415,7 @@ public partial class DriveGame : MonoBehaviour
         peds.NearMiss += OnPedNearMiss;
         CreateTraffic();
         CreateEvents();
+        CreateRage();
         CreateMeta();
         CreateAmbience();
         LoadBest();
@@ -495,6 +510,7 @@ public partial class DriveGame : MonoBehaviour
 
     void ResetGame()
     {
+        rage.Reset();
         ResetEvents();                       // 오늘이 어떤 날인지 먼저 정한다 (사람 많은 날은 시작 인원이 달라진다)
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
         ResetTraffic();
@@ -615,11 +631,12 @@ public partial class DriveGame : MonoBehaviour
         // 속도
         bool brake = kb.sKey.isPressed || kb.downArrowKey.isPressed;
         float target = Mathf.Min(maxSpeed, baseSpeed + elapsed * speedRamp) * (brake ? brakeFactor : 1f);
+        target *= rage.SpeedMul;                              // 분노 중에는 더 빨리 달린다
         if (turning) target = turnCruiseSpeed;                // 회전 중에는 자동으로 감속/가속해서 같은 속도로 돈다
         else if (blinker != 0 && nextInterDist > 0f && nextInterDist < turnSlowDistance)
             target = Mathf.Min(target, turnCruiseSpeed);      // 깜빡이를 켠 채 교차로에 다가가면 미리 감속
         if (traffic.HasKaiju) target = Mathf.Min(target, kaijuSpeedCap);       // 괴수가 길을 막고 있으면 차들이 속도를 줄인다
-        speed = Mathf.MoveTowards(speed, target, 20f * dt);
+        speed = Mathf.MoveTowards(speed, target, (rage.Active && speed > target ? 40f : 20f) * dt);     // 분노 중에는 빨라진 만큼 브레이크도 강하게
         float prevDist = dist;
         dist += speed * dt;
         if (turning) dist = Mathf.Min(dist, turnCenterRoad - 8f);   // 회전 중에는 교차로 중심을 넘어가지 않는다 (중심에서 제자리 회전)
@@ -639,6 +656,7 @@ public partial class DriveGame : MonoBehaviour
         UpdateAmbience(dt);
         UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
         UpdateEvents(dt, turning ? worldMove : speed * dt);
+        UpdateRage(dt);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();
@@ -665,6 +683,8 @@ public partial class DriveGame : MonoBehaviour
             LayoutCabin();
             UpdateNav();
         }
+
+        UpdateRageTint();
 
         // 핸들 회전 → 손 위치가 따라 움직이므로 IK 는 그 뒤에 푼다
         if (wheelSpin != null) wheelSpin.localRotation = Quaternion.Euler(0f, 0f, -steerAngle);

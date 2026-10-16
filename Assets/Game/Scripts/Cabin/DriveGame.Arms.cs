@@ -73,6 +73,7 @@ public partial class DriveGame
         // 재질: URP 에서 분홍색으로 깨지는 것을 막기 위해 직접 만든 Lit 재질로 교체
         var mat = new Material(litShader);
         mat.SetColor("_BaseColor", Color.white);
+        armMaterial = mat;                                   // 분노 게이지에 따라 붉게 칠한다 (DriveGame.Rage.cs)
         if (armAlbedo != null)
         {
             mat.SetTexture("_BaseMap", armAlbedo);

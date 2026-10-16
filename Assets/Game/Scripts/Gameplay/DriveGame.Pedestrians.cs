@@ -11,6 +11,7 @@ public partial class DriveGame
     // 차에 치였다: 속도 감소, 히트스톱, 흔들림, 손님 리액션/요금 감액, 목숨. (쓰러지는 연출은 매니저가 한다)
     void OnPedHit(PedestrianManager.Ped p)
     {
+        if (rage.Active) { RageSmash(); return; }          // 분노 중에는 목숨/요금이 그대로
         speed *= hitSpeedFactor;
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + 0.3f;
@@ -27,6 +28,7 @@ public partial class DriveGame
         session.RegisterNearMiss(nearMissBonus);
         sound.PlayNearMiss();
         Popup("NEAR MISS +" + nearMissBonus, new Color(0.4f, 1f, 0.6f));
-        shakeUntil = Time.unscaledTime + 0.08f;
+        shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.08f);
+        rage.AddNearMiss();                   // 팝업 뒤에 불러야 분노가 발동할 때 RAGE 글자가 가려지지 않는다
     }
 }
