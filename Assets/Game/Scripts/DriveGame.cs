@@ -269,6 +269,26 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("손가락 두께 여유(m). 손가락이 림을 파고들면 키우고, 림에서 뜨면 줄인다")]
     public float fingerPad = 0.008f;
 
+    [Header("Events (날짜와 돌발 사건: 평범한 날 / 사람 많은 날 / 괴수 침공 / 히어로와 빌런)")]
+    [Tooltip("시험용. -1 = 무작위, 0 평범, 1 사람 많은 날, 2 괴수 침공, 3 히어로와 빌런. 플레이 중 F2 = 괴수, F3 = 히어로를 바로 시작")]
+    public int forceDayType = -1;
+    [Tooltip("괴수 사건이 이어지는 시간(초). 이 동안 괴수가 계속 나타난다")]
+    public float kaijuDuration = 50f;
+    [Tooltip("괴수가 있는 동안 차가 낼 수 있는 최고 속도(m/s). 교차로에서 돌 시간을 준다")]
+    public float kaijuSpeedCap = 12f;
+    [Tooltip("히어로와 빌런 전투가 이어지는 시간(초)")]
+    public float heroDuration = 45f;
+    [Tooltip("히어로 레이저가 나오는 간격(초, 이 값부터 +3초 사이)")]
+    public float laserInterval = 4.5f;
+    [Tooltip("레이저가 남긴 불길이 타오르는 시간(초)")]
+    public float laserFlameLife = 7f;
+    [Tooltip("비워 두면 코드로 그린 임시 그림을 쓴다. 괴수/히어로/빌런은 정면 그림, 불길과 연기는 바닥이 아래")]
+    public Sprite kaijuSprite;
+    public Sprite heroSprite;
+    public Sprite villainSprite;
+    public Sprite flameSprite;
+    public Sprite smokeSprite;
+
     [Header("Shift (하루 영업 모드. 타이틀에서 Tab 으로 무한 모드와 바꾼다)")]
     [Tooltip("영업 시간(초). 이 시간이 지나면 새 손님을 받지 않고 결산한다")]
     public float shiftSeconds = 180f;
@@ -380,6 +400,7 @@ public partial class DriveGame : MonoBehaviour
         peds.Hit += OnPedHit;
         peds.NearMiss += OnPedNearMiss;
         CreateTraffic();
+        CreateEvents();
         CreateMeta();
         CreateAmbience();
         LoadBest();
@@ -459,6 +480,7 @@ public partial class DriveGame : MonoBehaviour
 
         BuildBackdrop();
         BuildCabin();
+        BuildBattle();
         CreateSound();
 
         // 목적지 표지 기둥 (손님을 태운 동안만 보인다)
@@ -473,6 +495,7 @@ public partial class DriveGame : MonoBehaviour
 
     void ResetGame()
     {
+        ResetEvents();                       // 오늘이 어떤 날인지 먼저 정한다 (사람 많은 날은 시작 인원이 달라진다)
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
         ResetTraffic();
         carX = lateralVel = steerAngle = 0f;
@@ -501,6 +524,7 @@ public partial class DriveGame : MonoBehaviour
         Time.timeScale = (!gameOver && flow == GameFlow.Playing && Time.unscaledTime < hitStopUntil) ? 0f : 1f;
         var kb = Keyboard.current;
         if (kb == null) return;
+        HandleDebugKeys(kb);
 
         // 설정: 월드는 멈춰 있고 W/S 로 고르고 A/D 로 바꾼다
         if (flow == GameFlow.Settings)
@@ -594,6 +618,7 @@ public partial class DriveGame : MonoBehaviour
         if (turning) target = turnCruiseSpeed;                // 회전 중에는 자동으로 감속/가속해서 같은 속도로 돈다
         else if (blinker != 0 && nextInterDist > 0f && nextInterDist < turnSlowDistance)
             target = Mathf.Min(target, turnCruiseSpeed);      // 깜빡이를 켠 채 교차로에 다가가면 미리 감속
+        if (traffic.HasKaiju) target = Mathf.Min(target, kaijuSpeedCap);       // 괴수가 길을 막고 있으면 차들이 속도를 줄인다
         speed = Mathf.MoveTowards(speed, target, 20f * dt);
         float prevDist = dist;
         dist += speed * dt;
@@ -613,6 +638,7 @@ public partial class DriveGame : MonoBehaviour
         UpdateGoals();
         UpdateAmbience(dt);
         UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
+        UpdateEvents(dt, turning ? worldMove : speed * dt);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();

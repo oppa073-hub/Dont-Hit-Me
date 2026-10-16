@@ -61,6 +61,21 @@ public class WeatherManager
         Recalc();
     }
 
+    /// <summary>시험용: 비를 바로 내리거나 그친다.</summary>
+    public void DebugRain(bool on)
+    {
+        rainTarget = on ? 1f : 0f;
+        nextChange = 120f;
+        if (!on) Rain = Mathf.Min(Rain, 0.5f);
+    }
+
+    /// <summary>시험용: 시각을 앞으로 돌린다.</summary>
+    public void DebugAddHours(float hours)
+    {
+        DayT = Mathf.Repeat(DayT + hours / 24f, 1f);
+        Recalc();
+    }
+
     /// <summary>화면에 보일 시계 글자 만들기용: 하루를 10분 단위로 센 번호 (바뀔 때만 글자를 새로 만들면 된다).</summary>
     public int ClockStep { get { return Mathf.FloorToInt(DayT * 144f) % 144; } }
 

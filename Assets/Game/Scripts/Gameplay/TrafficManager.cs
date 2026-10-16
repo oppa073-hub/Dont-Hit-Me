@@ -8,11 +8,12 @@ using UnityEngine;
 public class TrafficSprites
 {
     public Sprite carBody, carDetail, cone, ball, lamp;
+    public Sprite kaiju, flame, smoke, hero, villain;       // 날짜 사건용 (괴수, 불길, 연기 기둥, 히어로, 빌런)
 }
 
-public class TrafficManager
+public partial class TrafficManager
 {
-    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4;
+    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7;
 
     public class Obj
     {
@@ -30,6 +31,8 @@ public class TrafficManager
         public float angle;                 // 공이 구르는 각도
         public float dir, rollSpeed, side;  // 공: 굴러가는 방향/속도, 출발한 인도 쪽
         public float childAt = -1f;         // 공: 이 시각(elapsed)에 아이가 튀어나온다
+        public float life = -1f;            // 불길/연기: 남은 시간(초)
+        public float phase;                 // 흔들림/깜빡임이 물체마다 다르게 보이게 하는 값
     }
 
     readonly DriveGame cfg;
@@ -64,12 +67,17 @@ public class TrafficManager
         lastElapsed = 0f;
         nextVehicle = 4f;
         nextHazard = 6f;
+        nextKaiju = 0f;
+        nextStrike = 3f;
     }
 
     public void Clear()
     {
         foreach (var o in objs) if (o.t != null) Object.Destroy(o.t.gameObject);
         objs.Clear();
+        StrikeState = 0;
+        nextKaiju = Mathf.Max(nextKaiju, lastElapsed + 6f);
+        nextStrike = Mathf.Max(nextStrike, lastElapsed + 3f);
         nextVehicle = Mathf.Max(nextVehicle, lastElapsed + 3f);       // 회전 직후에는 잠깐 비워 둔다
         nextHazard = Mathf.Max(nextHazard, lastElapsed + 4f);
     }
@@ -91,7 +99,7 @@ public class TrafficManager
         int blockers = 0;
         for (int i = 0; i < objs.Count; i++)
         {
-            if (objs[i].kind == Ball) continue;
+            if (objs[i].kind == Ball || objs[i].kind == Smoke) continue;
             blockers++;
             if (objs[i].z > spawnZ - 35f) return false;
         }
@@ -131,6 +139,27 @@ public class TrafficManager
             if (o.kind == Broken && o.lamps != null)
                 for (int k = 0; k < o.lamps.Length; k++) o.lamps[k].enabled = lampOn;
 
+            if (o.kind == Kaiju)
+            {
+                o.x = Mathf.Sin(elapsed * 0.7f + o.phase) * 1.2f;            // 괴수가 좌우로 느릿하게 움직인다
+                if (o.lamps != null && o.lamps.Length > 0)
+                {
+                    float fk = 2.6f + 0.6f * Mathf.Sin(elapsed * 11f);       // 입에서 나오는 불이 일렁인다
+                    o.lamps[0].transform.localScale = new Vector3(fk, fk * 1.2f, 1f);
+                }
+            }
+            else if (o.kind == Smoke)
+            {
+                o.life -= dt;
+                if (o.life <= 0f || o.z < -6f) RemoveAt(i);
+                continue;
+            }
+            else if (o.kind == Flame)
+            {
+                o.life -= dt;
+                if (o.life <= 0f) { RemoveAt(i); continue; }
+            }
+
             if (o.fallT >= 0f)
             {
                 o.fallT += dt;
@@ -168,6 +197,7 @@ public class TrafficManager
                         o.fallT = 0f;
                         o.kickDir = o.x >= carX ? 1f : -1f;
                         if (Hit != null) Hit(o);
+                        if (o.kind == Kaiju || o.kind == Flame) RemoveAt(i);       // 괴수는 물러나고 불길은 꺼진다
                         continue;
                     }
                 }

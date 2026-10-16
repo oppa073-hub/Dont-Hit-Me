@@ -211,11 +211,31 @@ public partial class DriveGame
                 ox = nx;
                 oz = pivotZ + nz;
             }
-            o.t.position = new Vector3(ox, Drop(oz) + o.centerY, oz);
+            float sy = 1f;
+            if (o.kind == TrafficManager.Kaiju)
+            {
+                // 괴수는 숨 쉬듯 크기가 조금씩 변한다
+                sy = 1f + 0.04f * Mathf.Sin(elapsed * 4f + o.phase);
+                o.t.localScale = new Vector3(1f + 0.03f * Mathf.Sin(elapsed * 3f + o.phase), sy, 1f);
+            }
+            else if (o.kind == TrafficManager.Flame)
+            {
+                // 불길은 일렁이고 꺼지기 직전에 작아진다
+                sy = (1f + 0.2f * Mathf.Sin(elapsed * 17f + o.phase)) * Mathf.Min(1f, o.life);
+                o.t.localScale = new Vector3(0.9f + 0.15f * Mathf.Sin(elapsed * 13f + o.phase), sy, 1f);
+            }
+            else if (o.kind == TrafficManager.Smoke)
+            {
+                sy = 1f + 0.05f * Mathf.Sin(elapsed * 3f + o.phase);
+                o.t.localScale = new Vector3(1f, sy, 1f);
+            }
+            o.t.position = new Vector3(ox, Drop(oz) + o.centerY * sy, oz);
             float tilt = o.angle;                                           // 공: 구르는 각도
             if (o.fallT >= 0f) tilt = -o.kickDir * Mathf.Min(o.fallT * 4f, 1f) * 35f;   // 부딪힌 차/콘: 옆으로 기울며 밀려난다
             o.t.rotation = Quaternion.Euler(0f, 0f, tilt);
         }
+
+        UpdateBattleVisuals();
     }
 
     // 건물 = 상자 몸통 + 각 면에 붙인 스프라이트. 도로 쪽 정면과 다가오는 쪽(-z) 면은 월드에 고정(카메라를 쳐다보지 않음).

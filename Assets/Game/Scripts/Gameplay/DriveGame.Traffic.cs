@@ -15,7 +15,8 @@ public partial class DriveGame
     {
         difficulty = new DifficultyManager(this);
         difficulty.LevelChanged += OnLevelChanged;
-        traffic = new TrafficManager(this, transform, peds, MakeTrafficSprites());
+        trafficSprites = MakeTrafficSprites();
+        traffic = new TrafficManager(this, transform, peds, trafficSprites);
         traffic.Hit += OnTrafficHit;
         traffic.NearMiss += OnTrafficNearMiss;
     }
@@ -23,7 +24,7 @@ public partial class DriveGame
     // 레벨에 맞게 보행자/교통의 세기를 정한다 (판 시작과 레벨이 바뀔 때)
     void ApplyDifficulty()
     {
-        peds.IntervalMul = difficulty.PedIntervalMul;
+        peds.IntervalMul = difficulty.PedIntervalMul * dayEvents.PedIntervalMul;
         peds.DartBonus = difficulty.DartBonus;
         peds.DartSpeedMul = difficulty.DartSpeedMul;
         traffic.Level = difficulty.Level;
@@ -52,6 +53,7 @@ public partial class DriveGame
     // 차나 장애물에 부딪혔다
     void OnTrafficHit(TrafficManager.Obj o)
     {
+        if (o.kind == TrafficManager.Flame && invuln > 0f) return;      // 불길 차선을 달릴 때 불길마다 사고가 겹쳐 쌓이지 않게
         sound.PlayBonk();
         if (o.kind == TrafficManager.Cones)
         {
@@ -61,12 +63,13 @@ public partial class DriveGame
             Popup("BUMP!", new Color(1f, 0.7f, 0.3f));
             return;
         }
-        speed *= hitSpeedFactor;
+        speed *= o.kind == TrafficManager.Kaiju ? 0.2f : (o.kind == TrafficManager.Flame ? 0.5f : hitSpeedFactor);
         hitStopUntil = Time.unscaledTime + hitStop;
-        shakeUntil = Time.unscaledTime + 0.3f;
+        shakeUntil = Time.unscaledTime + (o.kind == TrafficManager.Kaiju ? 0.6f : 0.3f);
         taxi.OnPedHit();                      // 손님을 태운 채 사고가 나면 손님이 반응하고 요금이 깎인다
+        string what = o.kind == TrafficManager.Kaiju ? "괴수의 불길!" : (o.kind == TrafficManager.Flame ? "레이저 불길!" : "CRASH!");
         if (session.RegisterHit())
-            Popup("CRASH!", new Color(1f, 0.4f, 0.4f));
+            Popup(what, new Color(1f, 0.4f, 0.4f));
     }
 
     // 다른 차 옆을 아슬아슬하게 지나갔다

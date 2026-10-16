@@ -290,16 +290,19 @@ public partial class DriveGame
         if (flow == GameFlow.Title)
         {
             DrawTitle(W, H, u);                       // 타이틀 화면에서는 HUD 를 그리지 않는다
+            DrawDebug(W, H, u);
             return;
         }
         if (flow == GameFlow.Shop)
         {
             DrawShop(W, H, u);
+            DrawDebug(W, H, u);
             return;
         }
         if (flow == GameFlow.Settings)
         {
             DrawSettings(W, H, u);
+            DrawDebug(W, H, u);
             return;
         }
 
@@ -321,6 +324,16 @@ public partial class DriveGame
         DrawGoals(20 * u, 116 * u, 520 * u, u, 15, TextAnchor.UpperLeft);
         if (!gameOver && flow == GameFlow.Playing) DrawTutorial(W, H, u);
         if (shiftMode) Label(new Rect(W - 420 * u, 114 * u, 400 * u, 40 * u), ShiftHudText(), 26, shiftLeft <= 30f ? new Color(1f, 0.45f, 0.4f) : new Color(1f, 0.92f, 0.5f), TextAnchor.UpperRight);
+        Label(new Rect(W - 420 * u, 150 * u, 400 * u, 28 * u), dayEvents.DayLabel, 18, dayEvents.Active ? new Color(1f, 0.55f, 0.45f) : new Color(1f, 1f, 1f, 0.85f), TextAnchor.UpperRight);
+        if (!gameOver && Time.unscaledTime < dayEvents.AlertUntil)
+        {
+            // 긴급 속보: 붉게 깜빡이는 띠
+            float pulse = 0.7f + 0.25f * Mathf.Sin(Time.unscaledTime * 10f);
+            Fill(new Rect(W * 0.5f - 320 * u, 8 * u, 640 * u, 56 * u), new Color(0.6f, 0.05f, 0.05f, pulse));
+            style.wordWrap = true;
+            Label(new Rect(W * 0.5f - 310 * u, 8 * u, 620 * u, 56 * u), dayEvents.AlertText, 19, Color.white, TextAnchor.MiddleCenter);
+            style.wordWrap = false;
+        }
 
         int kmh = Mathf.RoundToInt(speed * 3.6f), sec = Mathf.RoundToInt(elapsed);
         if (kmh != hudKmh || nearMisses != hudNear || hits != hudHits || peds.Count != hudPeds || sec != hudSec || level != hudLevel || weather.ClockStep != hudClock || (weather.Rain > 0.3f) != hudRain)
@@ -347,5 +360,6 @@ public partial class DriveGame
 
         if (gameOver) DrawGameOver(W, H, u);
         else if (flow == GameFlow.Paused) DrawPause(W, H, u);
+        DrawDebug(W, H, u);
     }
 }

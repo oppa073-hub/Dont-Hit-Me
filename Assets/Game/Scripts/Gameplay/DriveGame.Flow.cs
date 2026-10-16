@@ -32,7 +32,7 @@ public partial class DriveGame
     void RefreshModeText()
     {
         int b = shiftMode ? bestShift : best;
-        modeText = (shiftMode ? "하루 영업 모드 (" + Mathf.RoundToInt(shiftSeconds) + "초)" : "무한 모드")
+        modeText = "Day " + dayEvents.Day + "      " + (shiftMode ? "하루 영업 모드 (" + Mathf.RoundToInt(shiftSeconds) + "초)" : "무한 모드")
                  + (b > 0 ? "   최고 점수 " + b : "")
                  + "      Tab  모드 변경";
     }
@@ -42,6 +42,7 @@ public partial class DriveGame
     {
         flow = GameFlow.Playing;
         ResetGame();
+        dayEvents.Announce();
     }
 
     void ResetFlowState()
@@ -66,7 +67,7 @@ public partial class DriveGame
         }
         RefreshModeText();
 
-        string head = "점수 " + total + (newBest ? "   NEW BEST!" : "") + NL;
+        string head = "Day " + dayEvents.Day + "   점수 " + total + (newBest ? "   NEW BEST!" : "") + NL;
         string tail = "니어미스 " + nearMisses + "   플레이 시간 " + Mathf.RoundToInt(elapsed) + "초   레벨 " + difficulty.MaxLevelReached + NL;
         if (shiftMode)
         {
@@ -85,5 +86,7 @@ public partial class DriveGame
                        + "충돌 " + hits + "   " + tail
                        + GrantRunCoins();
         }
+        dayEvents.CompleteDay();          // 하루가 끝났다: 다음 날 번호로
+        RefreshModeText();
     }
 }

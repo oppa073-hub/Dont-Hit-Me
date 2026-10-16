@@ -12,7 +12,7 @@ public class AudioManager
     readonly AudioSource sfx;
     readonly AudioSource bgm;
     readonly AudioSource rainSrc;
-    readonly AudioClip tick, tock, bonk, whoosh, ding, chime;
+    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser;
     bool lastBlinkOn;
 
     public AudioManager(DriveGame cfg, GameObject host, Camera cam)
@@ -48,6 +48,9 @@ public class AudioManager
         whoosh = MakeWhoosh();
         ding = MakeBell(new[] { 880f, 1320f }, 0.7f);
         chime = MakeBell(new[] { 660f }, 0.25f);
+        alarm = MakeAlarm();
+        roar = MakeRoar();
+        laser = MakeLaser();
     }
 
     // ---- 사건 효과음 ----
@@ -55,6 +58,9 @@ public class AudioManager
     public void PlayNearMiss() { Play(whoosh, 0.7f); }
     public void PlayArrive() { Play(ding, 0.8f); }
     public void PlayChime() { Play(chime, 0.6f); }
+    public void PlayAlarm() { Play(alarm, 0.7f); }       // 긴급 속보 사이렌
+    public void PlayRoar() { Play(roar, 1f); }           // 괴수 울음
+    public void PlayLaser() { Play(laser, 0.8f); }       // 히어로의 눈 레이저
 
     void Play(AudioClip clip, float volume)
     {
@@ -114,6 +120,60 @@ public class AudioManager
     }
 
     // ---- 소리 만들기 (모두 코드로 합성) ----
+
+    // 사이렌: 두 음을 번갈아
+    static AudioClip MakeAlarm()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 1.4f)];
+        float phase = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float tt = (float)i / Rate;
+            float f = ((int)(tt / 0.35f) & 1) == 0 ? 760f : 980f;
+            phase += f / Rate * Mathf.PI * 2f;
+            float sq = Mathf.Sin(phase) + 0.35f * Mathf.Sin(phase * 3f);
+            float env = Mathf.Min(1f, tt * 40f) * Mathf.Min(1f, (1.4f - tt) * 12f);
+            d[i] = sq * env * 0.35f;
+        }
+        return Make("alarm", d);
+    }
+
+    // 괴수 울음: 낮은 톱니파가 떨어지며 떨리고 거친 숨소리가 섞인다
+    static AudioClip MakeRoar()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 1.4f)];
+        var rnd = new System.Random(31);
+        float phase = 0f, lp = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            float f = Mathf.Lerp(120f, 42f, t);
+            phase += f / Rate;
+            float saw = Mathf.Repeat(phase, 1f) * 2f - 1f;
+            float noise = (float)rnd.NextDouble() * 2f - 1f;
+            float v = (saw * 0.8f + noise * 0.4f) * (1f + 0.4f * Mathf.Sin(t * 60f));
+            lp += (v - lp) * 0.18f;
+            float env = Mathf.Min(1f, t * 10f) * Mathf.Pow(1f - t, 1.2f);
+            d[i] = lp * env * 0.9f;
+        }
+        return Make("roar", d);
+    }
+
+    // 레이저: 높은 음이 쭉 떨어지는 찌잉
+    static AudioClip MakeLaser()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 0.55f)];
+        float phase = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            float f = Mathf.Lerp(2200f, 260f, Mathf.Sqrt(t));
+            phase += f / Rate * Mathf.PI * 2f;
+            float env = Mathf.Min(1f, t * 30f) * Mathf.Pow(1f - t, 1.5f);
+            d[i] = (Mathf.Sin(phase) + 0.3f * Mathf.Sin(phase * 2f)) * env * 0.45f;
+        }
+        return Make("laser", d);
+    }
 
     // 임시 배경음악 16초: Am - F - C - G 코드를 부드러운 패드와 짧은 아르페지오로. 끝과 처음이 이어지도록 소리가 넘치면 앞으로 감아 넣는다.
     // 진짜 곡을 넣으려면 DriveGame 인스펙터의 Bgm Clip 에 AudioClip 을 끌어다 놓으면 이 곡 대신 재생된다.

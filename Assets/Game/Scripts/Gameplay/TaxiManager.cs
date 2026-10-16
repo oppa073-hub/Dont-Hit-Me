@@ -21,6 +21,7 @@ public class TaxiManager
     public float FareBonusMul = 1f;       // 요금에 곱함
     public float TipBonusMul = 1f;        // 팁에 곱함
     public float TimeBonus = 0f;          // 제한 시간에 더함(초)
+    public float CallerDelayMul = 1f;     // 손님이 나타나는 간격 배율 (사람 많은 날은 짧게)
     public bool AcceptCallers = true;     // false 면 새 손님이 길가에 나타나지 않는다 (영업 시간이 끝났을 때)
 
     // ---- 상태 (읽기는 누구나, 쓰기는 이 클래스만) ----
@@ -72,7 +73,7 @@ public class TaxiManager
 
     void ResetCallerTimer()
     {
-        callerTimer = Random.Range(cfg.callerDelay.x, cfg.callerDelay.y);
+        callerTimer = Random.Range(cfg.callerDelay.x, cfg.callerDelay.y) * CallerDelayMul;
     }
 
     /// <summary>판을 새로 시작.</summary>

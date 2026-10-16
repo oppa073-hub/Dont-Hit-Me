@@ -51,6 +51,9 @@
   - Gameplay/GoalManager.cs : 오늘의 목표 3개(날짜 시드라 하루 동안 고정, 달성 기록은 PlayerPrefs). 달성하면 이벤트 Completed 로 보상 코인을 알림
   - Gameplay/WeatherManager.cs : 하루 시계(dayLength 초에 24시간)와 비. 하늘색/조명/밤 막 색을 계산만 하고 칠하지는 않음. weatherOn 으로 끔
   - Gameplay/TutorialManager.cs : 처음 한 판 동안 단계별 안내(조향 → 손님 → 내비/깜빡이 → 정산). 끝나면 PlayerPrefs 에 기록, 설정에서 다시 켬
+  - Gameplay/EventManager.cs : 날짜 시스템. 판(하루)마다 날 종류를 뽑음: 평범(첫날은 항상) / 사람 많은 날(보행자·손님 증가) / 괴수 침공 / 히어로와 빌런 전투. 괴수·히어로 날은 하루 중 무작위 시각에 "긴급 속보"와 함께 갑자기 시작. Day 번호는 PlayerPrefs 저장. 인스펙터 forceDayType 으로 날 고정, 플레이 중 F2=괴수, F3=히어로 즉시 시작
+  - Gameplay/TrafficManager.Events.cs : 괴수(다음 교차로 뒤에서 도로 전체를 막음, 연기 기둥, 부딪히면 목숨 -1)와 히어로 레이저(경고 뒤 한쪽 차선을 쓸며 불길을 남김, 반대 차선으로 피함). 월드 연출은 World/DriveGame.Battle.cs, 연결은 Gameplay/DriveGame.Events.cs
+  - Gameplay/DriveGame.Debug.cs : 디버그 패널(에디터/개발 빌드만). F1 로 열고 1 괴수 2 히어로 3 사람 많은 날 4 평범한 날 5 무작위 6 비 7 시각+3h 8 레벨+1 G 무적. 1~4 는 다음 판의 날 종류(forceDayType)도 고정
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

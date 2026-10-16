@@ -33,6 +33,8 @@ public class PedestrianManager
     public float IntervalMul = 1f;       // 생성 간격에 곱함 (작을수록 사람이 자주 나옴)
     public float DartBonus = 0f;         // 갑자기 튀어나오는 사람 비율을 이만큼 늘림
     public float DartSpeedMul = 1f;      // 튀어나오는 속도 배율
+    public float CrowdMul = 1f;          // 시작할 때 깔아 두는 사람 수 배율 (사람 많은 날)
+    public float MaxMul = 1f;            // 동시에 있을 수 있는 사람 수 배율 (사람 많은 날)
 
     /// <summary>차에 치였다. 쓰러지는 연출은 매니저가 하고, 점수/목숨/요금은 받는 쪽이 처리한다.</summary>
     public event System.Action<Ped> Hit;
@@ -54,7 +56,7 @@ public class PedestrianManager
     public void Reset(float spawnZ)
     {
         Clear();
-        for (int i = 0; i < cfg.initialCrowd; i++) Spawn(spawnZ, 0, Random.Range(6f, spawnZ));
+        for (int i = 0, n = Mathf.RoundToInt(cfg.initialCrowd * CrowdMul); i < n; i++) Spawn(spawnZ, 0, Random.Range(6f, spawnZ));
         nextSpawn = 1.2f;
     }
 
@@ -62,7 +64,7 @@ public class PedestrianManager
     public void Respawn(float spawnZ)
     {
         Clear();
-        for (int i = 0; i < cfg.initialCrowd; i++) Spawn(spawnZ, 0, Random.Range(20f, Mathf.Max(30f, spawnZ)));
+        for (int i = 0, n = Mathf.RoundToInt(cfg.initialCrowd * CrowdMul); i < n; i++) Spawn(spawnZ, 0, Random.Range(20f, Mathf.Max(30f, spawnZ)));
     }
 
     public void Clear()
@@ -133,7 +135,7 @@ public class PedestrianManager
     public void Tick(float dt, float elapsed, float advance, float carX, bool turning, float spawnZ)
     {
         // 스폰
-        if (elapsed >= nextSpawn && peds.Count < cfg.maxPeds)
+        if (elapsed >= nextSpawn && peds.Count < Mathf.RoundToInt(cfg.maxPeds * MaxMul))
         {
             Spawn(spawnZ);
             float interval = Mathf.Max(cfg.minSpawnInterval, cfg.spawnInterval - elapsed * cfg.intervalRamp) * IntervalMul;
