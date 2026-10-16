@@ -11,7 +11,7 @@ public partial class DriveGame
     // 택시 상태
     TaxiState taxi;
 
-    Ped caller;
+    PedestrianManager.Ped caller;
 
     float callerTimer, camYaw, camYawTarget, tripMeters, fareMul = 1f, reactUntil;
 
@@ -172,7 +172,7 @@ public partial class DriveGame
 
     void MakeCaller()
     {
-        var p = SpawnPed(0, callerDistance);
+        var p = peds.Spawn(SpawnZ, 0, callerDistance);
         p.caller = true;
         p.walkZ = 0f;                                        // 연석에서 제자리
         p.x = p.side * (roadHalfWidth + 1.2f);
@@ -263,8 +263,7 @@ public partial class DriveGame
         tripT = 0f;
         lateWarned = false;
 
-        int idx = peds.IndexOf(caller);
-        if (idx >= 0) Remove(idx);                           // 손님은 차 안으로
+        peds.Remove(caller);                                 // 손님은 차 안으로
         caller = null;
         camYawTarget = 0f;
         Popup("출발!", new Color(1f, 0.9f, 0.4f));

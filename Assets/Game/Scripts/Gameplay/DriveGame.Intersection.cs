@@ -151,8 +151,6 @@ public partial class DriveGame
         // 사람들은 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게)
         caller = null;
         callerTimer = Random.Range(callerDelay.x, callerDelay.y);
-        foreach (var pd in peds) if (pd.t != null) Destroy(pd.t.gameObject);
-        peds.Clear();
-        for (int i = 0; i < initialCrowd; i++) SpawnPed(0, Random.Range(20f, Mathf.Max(30f, SpawnZ)));
+        peds.Respawn(SpawnZ);
     }
 }

@@ -167,8 +167,9 @@ public partial class DriveGame
             if (show) Place(destMarker, new Vector3(roadHalfWidth + 0.8f, Drop(mz) + 3f, mz), Quaternion.identity, new Vector3(0.4f, 6f, 0.4f));
         }
 
-        foreach (var p in peds)
+        for (int pi = 0; pi < peds.Count; pi++)
         {
+            var p = peds[pi];
             bool fallen = p.fallT >= 0f;
             float bob = (!fallen && p.pauseLeft <= 0f) ? Mathf.Sin((elapsed + p.phase) * 10f) * 0.05f : 0f;
             float h = fallen ? 0.35f : 0.875f + bob;

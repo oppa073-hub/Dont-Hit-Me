@@ -277,9 +277,7 @@ public partial class DriveGame : MonoBehaviour
 
     const int StripCount = 40;
 
-    const float CarHalfWidth = 1.0f;
-
-    const float PedHalfWidth = 0.3f;
+    public const float CarHalfWidth = 1.0f;       // 보행자 매니저도 충돌 판정에 쓴다
 
     const float TileW = 26f / 32f;           // 타일 좌우 3px 테두리를 잘라 낸 폭 (이음매의 검은 줄/간격 제거)
 
@@ -291,7 +289,7 @@ public partial class DriveGame : MonoBehaviour
 
     Shader litShader;
 
-    float carX, lateralVel, speed, dist, elapsed, nextSpawn, distScore;
+    float carX, lateralVel, speed, dist, elapsed, distScore;
 
     float steerAngle;
 
@@ -305,7 +303,9 @@ public partial class DriveGame : MonoBehaviour
     {
         whiteTex = MakeTexture(false);
         circleTex = MakeTexture(true);
-        pedSprite = MakePedSprite();
+        peds = new PedestrianManager(this, transform, MakePedSprite());
+        peds.Hit += OnPedHit;
+        peds.NearMiss += OnPedNearMiss;
         litShader = Shader.Find("Universal Render Pipeline/Lit");
         if (litShader == null) litShader = Shader.Find("Standard");
 
@@ -391,13 +391,10 @@ public partial class DriveGame : MonoBehaviour
 
     void ResetGame()
     {
-        foreach (var p in peds) if (p.t != null) Destroy(p.t.gameObject);
-        peds.Clear();
-        for (int i = 0; i < initialCrowd; i++) SpawnPed(0, Random.Range(6f, SpawnZ));   // 시작부터 인도에 사람이 있다
+        peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
         carX = lateralVel = steerAngle = 0f;
         speed = baseSpeed;
         dist = elapsed = 0f;
-        nextSpawn = 1.2f;
         lives = maxLives;
         score = nearMisses = hits = 0;
         distScore = 0f;
@@ -502,15 +499,8 @@ public partial class DriveGame : MonoBehaviour
         invuln = Mathf.Max(0f, invuln - dt);
         hurtFlash = Mathf.Max(0f, hurtFlash - dt);
 
-        // 스폰
-        if (elapsed >= nextSpawn && peds.Count < maxPeds)
-        {
-            SpawnPed();
-            float interval = Mathf.Max(minSpawnInterval, spawnInterval - elapsed * intervalRamp);
-            nextSpawn = elapsed + interval * Random.Range(0.6f, 1.4f);
-        }
-
-        UpdatePeds(dt);
+        // 보행자: 생성, 이동, 횡단, 충돌 판정 (회전 중에는 월드가 실제로 다가온 만큼만 움직인다)
+        peds.Tick(dt, elapsed, turning ? worldMove : speed * dt, carX, turning, SpawnZ);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();
