@@ -1,0 +1,226 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+// 보행자 매니저: 생성 시점, 인도 걷기, 도로 횡단, 충돌/니어미스 판정을 맡는다.
+// 점수, 목숨, 손님 리액션 같은 "게임 결과"는 모른다. 치였을 때(Hit)와 아슬아슬하게 피했을 때(NearMiss)를 이벤트로 알리고 DriveGame 이 처리한다.
+// 설정 값(생성 간격, 속도, 거리 등)은 씬에 저장된 DriveGame 의 public 필드를 그대로 읽는다.
+public class PedestrianManager
+{
+    public class Ped
+    {
+        public Transform t;
+        public SpriteRenderer sr;
+        public float x, z, dir, walkSpeed, pauseLeft = -1f, minLat = 999f, fallT = -1f, phase;
+        public bool scored, crossed;      // crossed: 도로에 나온 적이 있는 사람만 충돌/니어미스 점수 대상
+        public Color baseColor;
+        public int kind;                  // 0 인도 보행자, 1 멀리서 이미 건너는 사람, 2 가까이서 갑자기 튀어나오는 사람
+        public int st;                    // 0 인도 걷기, 1 연석으로 이동, 2 연석에서 멈칫, 3 도로 건너는 중
+        public float side;                // 인도 쪽 (-1 왼쪽, +1 오른쪽)
+        public float walkZ;               // 인도를 따라 걷는 속도(월드 기준, +는 멀어지는 쪽)
+        public float triggerZ, waitTime, curbX;
+        public bool caller;               // 택시를 부르는 손님 (머리 위에 !)
+    }
+
+    const float PedHalfWidth = 0.3f;
+
+    readonly DriveGame cfg;
+    readonly Transform parent;
+    readonly Sprite sprite;
+    readonly List<Ped> peds = new List<Ped>();
+    float nextSpawn;
+
+    /// <summary>차에 치였다. 쓰러지는 연출은 매니저가 하고, 점수/목숨/요금은 받는 쪽이 처리한다.</summary>
+    public event System.Action<Ped> Hit;
+    /// <summary>아슬아슬하게 피하고 지나갔다.</summary>
+    public event System.Action<Ped> NearMiss;
+
+    public PedestrianManager(DriveGame cfg, Transform parent, Sprite sprite)
+    {
+        this.cfg = cfg;
+        this.parent = parent;
+        this.sprite = sprite;
+    }
+
+    public Ped this[int i] { get { return peds[i]; } }      // 매 프레임 순회해도 메모리가 생기지 않게 인덱스로 읽는다
+    public int Count { get { return peds.Count; } }
+    public bool Contains(Ped p) { return peds.Contains(p); }
+
+    /// <summary>판을 새로 시작: 모두 치우고 인도에 사람을 깔아 둔다.</summary>
+    public void Reset(float spawnZ)
+    {
+        Clear();
+        for (int i = 0; i < cfg.initialCrowd; i++) Spawn(spawnZ, 0, Random.Range(6f, spawnZ));
+        nextSpawn = 1.2f;
+    }
+
+    /// <summary>회전이 끝난 뒤: 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게).</summary>
+    public void Respawn(float spawnZ)
+    {
+        Clear();
+        for (int i = 0; i < cfg.initialCrowd; i++) Spawn(spawnZ, 0, Random.Range(20f, Mathf.Max(30f, spawnZ)));
+    }
+
+    public void Clear()
+    {
+        foreach (var p in peds) if (p.t != null) Object.Destroy(p.t.gameObject);
+        peds.Clear();
+    }
+
+    public void Remove(Ped p)
+    {
+        int i = peds.IndexOf(p);
+        if (i >= 0) RemoveAt(i);
+    }
+
+    void RemoveAt(int i)
+    {
+        if (peds[i].t != null) Object.Destroy(peds[i].t.gameObject);
+        peds.RemoveAt(i);
+    }
+
+    // 새 사람 한 명을 인도에 만든다. kind 를 -1 로 주면 비율대로 무작위 종류를 고른다.
+    public Ped Spawn(float spawnZ, int kind = -1, float z = -1f)
+    {
+        if (kind < 0)
+        {
+            float r = Random.value;
+            kind = r < cfg.sidewalkerRatio ? 0 : (r < cfg.sidewalkerRatio + cfg.farCrossRatio ? 1 : 2);
+        }
+        if (z < 0f) z = spawnZ + Random.Range(0f, 10f);
+
+        float side = Random.value < 0.5f ? -1f : 1f;
+        var go = new GameObject("Ped");
+        go.transform.SetParent(parent, false);
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        Color c = Random.ColorHSV(0f, 1f, 0.5f, 0.7f, 0.8f, 1f);
+        sr.color = c;
+
+        float offMax = kind == 2 ? Mathf.Min(cfg.sidewalkOffset.y, 2f) : cfg.sidewalkOffset.y;   // 튀어나올 사람은 연석 가까이
+        float off = Random.Range(Mathf.Min(cfg.sidewalkOffset.x, offMax), offMax);
+        var p = new Ped
+        {
+            t = go.transform,
+            sr = sr,
+            kind = kind,
+            side = side,
+            dir = -side,
+            x = side * (cfg.roadHalfWidth + off),
+            z = z,
+            curbX = side * (cfg.roadHalfWidth + 0.35f),
+            walkZ = Random.Range(cfg.sidewalkWalkSpeed.x, cfg.sidewalkWalkSpeed.y) * (Random.value < 0.5f ? -1f : 1f),
+            walkSpeed = kind == 2 ? Random.Range(cfg.dartSpeed.x, cfg.dartSpeed.y) : Random.Range(cfg.crossSpeed.x, cfg.crossSpeed.y),
+            triggerZ = kind == 1 ? Random.Range(cfg.farTrigger.x, cfg.farTrigger.y) : Random.Range(cfg.dartTrigger.x, cfg.dartTrigger.y),
+            waitTime = kind == 2 ? Random.Range(cfg.curbWait.x, cfg.curbWait.y) : 0f,
+            baseColor = c,
+            phase = Random.value * 6f
+        };
+        peds.Add(p);
+        return p;
+    }
+
+    /// <summary>
+    /// 한 프레임 진행. advance = 이번 프레임에 월드가 차 쪽으로 다가온 거리(m), carX = 차의 좌우 위치,
+    /// turning = 교차로 회전 중(충돌/니어미스 판정을 끈다), spawnZ = 사람이 새로 나타나는 거리.
+    /// </summary>
+    public void Tick(float dt, float elapsed, float advance, float carX, bool turning, float spawnZ)
+    {
+        // 스폰
+        if (elapsed >= nextSpawn && peds.Count < cfg.maxPeds)
+        {
+            Spawn(spawnZ);
+            float interval = Mathf.Max(cfg.minSpawnInterval, cfg.spawnInterval - elapsed * cfg.intervalRamp);
+            nextSpawn = elapsed + interval * Random.Range(0.6f, 1.4f);
+        }
+
+        for (int i = peds.Count - 1; i >= 0; i--)
+        {
+            var p = peds[i];
+            p.z -= advance;      // 회전 중에는 도로가 멈춰 있으니 사람만 앞으로 미끄러지지 않게 DriveGame 이 월드가 실제로 다가온 만큼만 준다
+
+            if (p.fallT >= 0f)
+            {
+                p.fallT += dt;
+                p.x += p.dir * 3f * dt;
+                if (p.fallT > 1.2f || p.z < -6f)
+                {
+                    RemoveAt(i);
+                    continue;
+                }
+            }
+            else
+            {
+                UpdateBehavior(p, dt);
+
+                bool inZone = p.z > -0.6f && p.z < 2.4f;
+                float lat = Mathf.Abs(p.x - carX);
+                // 충돌과 니어미스는 도로를 건너는 중(st == 3)인 사람만. 인도를 걷는 사람은 가까이 지나가도 점수/충돌 없음
+                if (inZone)
+                {
+                    if (p.st == 3 && !turning)       // 회전 중에는 화면과 판정 좌표가 달라서 충돌/니어미스를 끈다
+                    {
+                        p.minLat = Mathf.Min(p.minLat, lat);
+                        if (lat < DriveGame.CarHalfWidth + PedHalfWidth)
+                        {
+                            p.fallT = 0f;
+                            p.sr.color = new Color(1f, 0.4f, 0.4f);
+                            if (Hit != null) Hit(p);
+                            continue;
+                        }
+                    }
+                }
+                else if (p.z <= -0.6f && !p.scored)
+                {
+                    p.scored = true;
+                    if (p.minLat < cfg.nearMissDist && NearMiss != null) NearMiss(p);
+                }
+            }
+
+            if (p.z < -6f || p.z > spawnZ + 40f) RemoveAt(i);
+        }
+    }
+
+    // 인도 걷기 → (트리거 거리 안이면) 연석으로 이동 → 멈칫 → 도로 건너기 → 건너편 인도에서 다시 걷기
+    void UpdateBehavior(Ped p, float dt)
+    {
+        switch (p.st)
+        {
+            case 0: // 인도를 따라 걷는다
+                p.z += p.walkZ * dt;
+                if (p.kind != 0 && p.z < p.triggerZ && p.z > 0f) p.st = 1;
+                break;
+
+            case 1: // 연석으로 다가간다 (튀어나올 사람은 빠르게)
+                p.x = Mathf.MoveTowards(p.x, p.curbX, (p.kind == 2 ? p.walkSpeed : 2.2f) * dt);
+                if (Mathf.Approximately(p.x, p.curbX))
+                {
+                    p.st = p.waitTime > 0f ? 2 : 3;
+                    p.pauseLeft = p.waitTime;
+                }
+                break;
+
+            case 2: // 연석에서 멈칫 (밝아져서 예고가 된다)
+                p.pauseLeft -= dt;
+                if (p.pauseLeft <= 0f)
+                {
+                    p.pauseLeft = -1f;
+                    p.st = 3;
+                }
+                break;
+
+            default: // 도로를 건넌다
+                p.crossed = true;
+                p.x += p.dir * p.walkSpeed * dt;
+                if (p.dir * p.x > cfg.roadHalfWidth + 0.6f)
+                {
+                    // 건너편 인도에 올라서면 그쪽 인도 보행자가 된다
+                    p.st = 0;
+                    p.kind = 0;
+                    p.side = p.dir;
+                    p.dir = -p.side;
+                    p.walkZ = Random.Range(cfg.sidewalkWalkSpeed.x, cfg.sidewalkWalkSpeed.y) * (Random.value < 0.5f ? -1f : 1f);
+                }
+                break;
+        }
+    }
+}
