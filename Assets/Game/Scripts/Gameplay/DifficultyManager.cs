@@ -35,11 +35,11 @@ public class DifficultyManager
     }
 
     // 레벨이 오를수록 보행자가 더 자주 나온다 (생성 간격에 곱함)
-    public float PedIntervalMul { get { return Mathf.Max(0.5f, 1f - 0.06f * (Level - 1)); } }
+    public float PedIntervalMul { get { return Mathf.Max(0.65f, 1f - 0.035f * (Level - 1)); } }
 
     // 가까이서 튀어나오는 사람의 비율이 늘어난다
-    public float DartBonus { get { return Mathf.Min(0.25f, 0.03f * (Level - 1)); } }
+    public float DartBonus { get { return Mathf.Min(0.12f, 0.015f * (Level - 1)); } }
 
     // 튀어나오는 속도도 빨라진다
-    public float DartSpeedMul { get { return 1f + 0.05f * (Level - 1); } }
+    public float DartSpeedMul { get { return 1f + 0.02f * (Level - 1); } }
 }

@@ -50,7 +50,7 @@ public partial class DriveGame
         }
 
         if (Time.unscaledTime < shopMsgUntil)
-            Label(new Rect(0, 530 * u, W, 40 * u), shopMsg, 26, UiGreen, TextAnchor.MiddleCenter);
+            Label(new Rect(0, 556 * u, W, 40 * u), shopMsg, 26, UiGreen, TextAnchor.MiddleCenter);
         Label(new Rect(0, 600 * u, W, 36 * u), "숫자키로 구매     Tab 쪽 넘기기     Esc 로 로비로 돌아가기", 21, UiCyan, TextAnchor.MiddleCenter);
     }
 

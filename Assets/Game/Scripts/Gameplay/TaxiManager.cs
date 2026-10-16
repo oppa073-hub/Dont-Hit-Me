@@ -428,23 +428,17 @@ public class TaxiManager
         State = TaxiState.Carrying;
         FareMul = 1f;
 
-        // 목적지: 다음 교차로 N 기준 앞 0..destMaxAhead칸, 옆 -destMaxSide..+destMaxSide칸 (N 자체는 제외)
+        // 목적지: 방금 지난 교차로에서 tripMinBlocks ~ tripMaxBlocks 칸(1칸 = 80m) 떨어진 곳. 앞으로 간 칸과 옆으로 간 칸으로 나눈다.
+        // (다음 교차로 N 이 이미 앞으로 1칸이라 앞 칸수 f = 전체 - 1 - 옆 칸수)
         int h = heading;                                     // 대화는 회전 중에 시작되지 않는다
         int rh = (h + 1) & 3;
-        int f = Random.Range(0, Mathf.Max(0, cfg.destMaxAhead) + 1);
-        int r = Random.Range(-Mathf.Max(0, cfg.destMaxSide), Mathf.Max(0, cfg.destMaxSide) + 1);
-        if (Pax != null && Pax.quirk == Quirk.Alien) r = 0;                          // 외계인 손님: UFO 빛줄기가 지금 달리는 길 위에서 보이게
-        if (f == 0 && r == 0) f = 1;
-        // 너무 가까운 목적지는 피한다: 방금 지난 교차로에서 최소 destMinBlocks 칸은 떨어지게 다시 뽑는다
         bool alienTrip = Pax != null && Pax.quirk == Quirk.Alien;
-        int minBlocks = Mathf.Max(2, cfg.destMinBlocks);
-        for (int tries = 0; tries < 30 && 1 + f + Mathf.Abs(r) < minBlocks; tries++)
-        {
-            f = Random.Range(0, Mathf.Max(0, cfg.destMaxAhead) + 1);
-            r = alienTrip ? 0 : Random.Range(-Mathf.Max(0, cfg.destMaxSide), Mathf.Max(0, cfg.destMaxSide) + 1);
-            if (f == 0 && r == 0) f = 1;
-        }
-        if (1 + f + Mathf.Abs(r) < minBlocks) f = minBlocks - 1 - Mathf.Abs(r);          // 그래도 모자라면 앞으로 늘린다
+        int minB = Mathf.Max(2, cfg.tripMinBlocks);
+        int maxB = Mathf.Max(minB, cfg.tripMaxBlocks);
+        int total = Random.Range(minB, maxB + 1);
+        int sideBlocks = alienTrip ? 0 : Random.Range(0, Mathf.Min(total - 1, Mathf.Max(0, cfg.tripSideBlocks)) + 1);
+        int f = total - 1 - sideBlocks;
+        int r = sideBlocks == 0 ? 0 : (Random.value < 0.5f ? -sideBlocks : sideBlocks);
         DestX = gx + DriveGame.HeadX[h] + f * DriveGame.HeadX[h] + r * DriveGame.HeadX[rh];
         DestY = gy + DriveGame.HeadY[h] + f * DriveGame.HeadY[h] + r * DriveGame.HeadY[rh];
         TripMeters = (Mathf.Abs(DestX - gx) + Mathf.Abs(DestY - gy)) * period;   // 맨해튼 칸수 × 80m. 요금/남은 거리 모두 이 기준

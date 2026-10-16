@@ -22,6 +22,7 @@ public partial class DriveGame
     {
         enc.Reset(0f);
         peds.FanRush = false;
+        peds.RageSurge = false;
     }
 
     // 메인 루프에서 매 프레임

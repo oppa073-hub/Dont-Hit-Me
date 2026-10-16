@@ -14,7 +14,17 @@ public class GameSession
     public float Invuln { get; private set; }            // 남은 무적 시간(초)
     public float HurtFlash { get; private set; }         // 피격 붉은 화면의 남은 세기(초)
     public bool GameOver { get; private set; }
-    public bool TimeUp { get; private set; }             // 목숨이 아니라 영업 시간이 끝나서 끝난 판
+    public bool TimeUp { get; private set; }
+
+    // 무사고로 달리면 하트가 하나씩 차오른다
+    public float SafeTime { get; private set; }          // 마지막 사고 뒤 지난 시간
+    public float HealTimeMul = 1f;                       // 회복 시간 배율 (업그레이드로 줄어든다)
+    public event System.Action Healed;
+
+    float HealNeeded { get { return Mathf.Max(10f, cfg.healSeconds * HealTimeMul); } }
+
+    /// <summary>다음 하트가 차기까지의 진행도 (0 ~ 1). 하트가 가득이면 0.</summary>
+    public float HealProgress { get { return Lives >= MaxLives || GameOver ? 0f : Mathf.Clamp01(SafeTime / HealNeeded); } }             // 목숨이 아니라 영업 시간이 끝나서 끝난 판
 
     /// <summary>화면에 보이는 총점.</summary>
     public int TotalScore { get { return Score + Mathf.FloorToInt(DistScore); } }
@@ -40,6 +50,20 @@ public class GameSession
         Invuln = HurtFlash = 0f;
         GameOver = false;
         TimeUp = false;
+        SafeTime = 0f;
+    }
+
+    /// <summary>플레이 중 매 프레임: 사고 없이 healSeconds 가 지나면 하트를 하나 채운다.</summary>
+    public void TickHeal(float dt)
+    {
+        if (GameOver || Lives >= MaxLives) { SafeTime = 0f; return; }
+        SafeTime += dt;
+        if (SafeTime >= HealNeeded)
+        {
+            SafeTime = 0f;
+            Lives++;
+            if (Healed != null) Healed();
+        }
     }
 
     /// <summary>영업 시간이 끝나 판을 마친다 (목숨은 그대로).</summary>
@@ -80,6 +104,7 @@ public class GameSession
     public bool RegisterHit()
     {
         Hits++;
+        SafeTime = 0f;                                    // 사고가 나면 회복 시간이 처음부터 다시
         if (Invuln > 0f) return false;
 
         Lives--;

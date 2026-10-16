@@ -17,6 +17,7 @@ public class UpgradeManager
         new UpgradeDef { name = "친절한 미소", desc = "팁 +25%",                   maxLevel = 4, baseCost = 500 },
         new UpgradeDef { name = "요금 협상",   desc = "요금 +8%",                  maxLevel = 5, baseCost = 600 },
         new UpgradeDef { name = "시간 여유",   desc = "손님 제한 시간 +3초",       maxLevel = 3, baseCost = 500 },
+        new UpgradeDef { name = "자가 수리",   desc = "체력 회복 15% 빨라짐",      maxLevel = 4, baseCost = 450 },
     };
 
     const string CoinsKey = "DontHitMe.Coins";
@@ -80,4 +81,5 @@ public class UpgradeManager
     public float TipMul { get { return 1f + 0.25f * levels[2]; } }
     public float FareMul { get { return 1f + 0.08f * levels[3]; } }
     public float TimeBonus { get { return 3f * levels[4]; } }
+    public float HealMul { get { return Mathf.Max(0.4f, 1f - 0.15f * levels[5]); } }
 }

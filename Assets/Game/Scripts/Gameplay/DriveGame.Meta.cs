@@ -18,7 +18,7 @@ public partial class DriveGame
     float shopMsgUntil;
     int shopPage;
 
-    static readonly Key[] ShopKeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5 };
+    static readonly Key[] ShopKeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6 };
 
     void CreateMeta()
     {
@@ -47,6 +47,7 @@ public partial class DriveGame
         taxi.FareBonusMul = upgrades.FareMul * projects.FareMul;
         taxi.TipBonusMul = upgrades.TipMul;
         taxi.TimeBonus = upgrades.TimeBonus;
+        session.HealTimeMul = upgrades.HealMul;
     }
 
     void UpdateGoals()

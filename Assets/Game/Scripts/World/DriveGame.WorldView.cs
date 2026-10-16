@@ -158,19 +158,29 @@ public partial class DriveGame
         {
             // 목적지가 지금 달리는 도로 위(r==0)에 있을 때만 보인다. 회전 중에는 옛 도로 위에 있는 경우(회전하는 교차로 자체)만, 장면 교체 전까지.
             DestRel(out int mf, out int mr, out float mz);
-            bool show = (taxi.State == TaxiState.Carrying || taxi.State == TaxiState.Waiting) && mr == 0 && mz > -25f && mz < SpawnZ
-                        && (!turning || (!retargeted && mf < 0));
+            bool ufo = taxi.AlienTrip;
+            // 외계인 손님의 UFO 빛줄기는 멀리서도 보여야 한다: 목적지까지의 앞쪽 거리(m)와 옆으로 떨어진 거리(m)를 칸 단위 좌표에서 계산한다
+            float ufoZ = nextInterDist + mf * Period;
+            bool show = ufo
+                ? (!turning && ufoZ > -25f && ufoZ < 700f)
+                : ((taxi.State == TaxiState.Carrying || taxi.State == TaxiState.Waiting) && mr == 0 && mz > -25f && mz < SpawnZ
+                   && (!turning || (!retargeted && mf < 0)));
             if (destMarker.gameObject.activeSelf != show) destMarker.gameObject.SetActive(show);
             rendRot = turning;
             rendTheta = thetaA;
             rendPivotZ = pivotZ;
             if (show)
             {
-                bool ufo = taxi.AlienTrip;                       // 외계인 손님: 길 한가운데에 높고 굵은 UFO 빛줄기
                 var want = ufo ? alienBeamMat : dashMat;
                 var mrd = destMarker.GetComponent<Renderer>();
                 if (mrd.sharedMaterial != want) mrd.sharedMaterial = want;
-                if (ufo) Place(destMarker, new Vector3(roadHalfWidth + 1.2f, Drop(mz) + 15f, mz), Quaternion.identity, new Vector3(2.2f, 30f, 2.2f));       // 길가에 높이 솟은 초록 빛줄기 (도로를 가리지 않게)
+                if (ufo)
+                {
+                    // 하늘로 솟은 아주 높은 초록 빛줄기: 멀수록 굵게 해서 멀리서도 보인다. 목적지가 옆 거리에 있으면 그쪽(r 칸)에 선다.
+                    float bx = mr == 0 ? roadHalfWidth + 1.2f : mr * Period;
+                    float bw = 2.5f + Mathf.Clamp(ufoZ, 0f, 700f) * 0.012f;
+                    Place(destMarker, new Vector3(bx, 100f, Mathf.Max(ufoZ, 3f)), Quaternion.identity, new Vector3(bw, 200f, bw));
+                }
                 else Place(destMarker, new Vector3(roadHalfWidth + 0.8f, Drop(mz) + 3f, mz), Quaternion.identity, new Vector3(0.4f, 6f, 0.4f));
             }
         }

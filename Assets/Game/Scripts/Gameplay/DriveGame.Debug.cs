@@ -13,20 +13,33 @@ public partial class DriveGame
     int debugQuirk;
     static readonly string[] DebugQuirkNames = { "무작위", "폭탄", "결혼식", "외계인", "레이서", "욱한" };
     string debugText = "";
+    float debugResetUntil;                                 // Del 을 한 번 눌렀다: 이 시각 안에 한 번 더 누르면 저장 데이터를 지운다
 
     static readonly string[] DebugDayNames = { "무작위", "평범한 날", "사람 많은 날", "괴수 침공", "히어로와 빌런" };
 
     static bool DebugAllowed { get { return Application.isEditor || Debug.isDebugBuild; } }
 
-    void HandleDebugKeys(Keyboard kb)
+    // 반환값 true = 저장 데이터를 지우고 장면을 다시 불러오는 중이라 이번 프레임은 더 진행하지 않는다
+    bool HandleDebugKeys(Keyboard kb)
     {
-        if (!DebugAllowed) return;
+        if (!DebugAllowed) return false;
         if (kb.f1Key.wasPressedThisFrame)
         {
             debugOpen = !debugOpen;
             RefreshDebug();
         }
-        if (!debugOpen || flow == GameFlow.Shop || flow == GameFlow.Settings) return;
+        if (!debugOpen || flow == GameFlow.Shop || flow == GameFlow.Settings) return false;
+
+        // Del 두 번(3초 안): 저장 데이터를 전부 지우고 처음 실행한 것처럼 다시 시작한다
+        if (kb.deleteKey.wasPressedThisFrame)
+        {
+            if (Time.unscaledTime < debugResetUntil)
+            {
+                DebugResetSave();
+                return true;
+            }
+            debugResetUntil = Time.unscaledTime + 3f;
+        }
 
         bool changed = true;
         if (kb.digit1Key.wasPressedThisFrame) DebugSetDay(DayType.Kaiju);
@@ -62,6 +75,16 @@ public partial class DriveGame
         else if (kb.gKey.wasPressedThisFrame) debugGod = !debugGod;
         else changed = false;
         if (changed) RefreshDebug();
+        return false;
+    }
+
+    // 최고 점수, 코인, 업그레이드, 택시 개조, 오늘의 목표, Day, 튜토리얼/인트로 기록, 설정을 전부 지우고 장면을 다시 불러온다
+    void DebugResetSave()
+    {
+        PlayerPrefs.DeleteAll();
+        PlayerPrefs.Save();
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
     }
 
     // 날 종류를 고정하고, 플레이 중이면 지금 바로 바꾼다
@@ -94,13 +117,16 @@ public partial class DriveGame
                   + "Y 정전   K 라이벌   L 팬   J 돼지   M 구급차" + NL
                   + "B  다음 손님: " + DebugQuirkNames[debugQuirk] + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
+                  + "Del 두 번  저장 데이터 전부 초기화" + NL
                   + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 4)];
     }
 
     void DrawDebug(float W, float H, float u)
     {
         if (!debugOpen) return;
-        Panel(new Rect(14 * u, 326 * u, 300 * u, 374 * u), 0.78f);
-        Label(new Rect(24 * u, 330 * u, 286 * u, 366 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        Panel(new Rect(14 * u, 316 * u, 320 * u, 398 * u), 0.78f);
+        Label(new Rect(24 * u, 320 * u, 306 * u, 390 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        if (Time.unscaledTime < debugResetUntil)
+            Label(new Rect(0, H * 0.6f, W, 36 * u), "한 번 더 Del 을 누르면 저장 데이터가 모두 지워집니다!", 24, UiRed, TextAnchor.MiddleCenter);
     }
 }

@@ -18,6 +18,8 @@ public class PedestrianManager
         public float side;                // 인도 쪽 (-1 왼쪽, +1 오른쪽)
         public float walkZ;               // 인도를 따라 걷는 속도(월드 기준, +는 멀어지는 쪽)
         public float triggerZ, waitTime, curbX;
+        public float triggerT;            // 건너기 시작하는 시점: 차가 도착하기 이만큼(초) 전에 (속도가 빨라도 같은 여유 시간). 0 이면 triggerZ(m) 를 쓴다
+        public bool bypassCap;            // 동시 횡단 인원 제한을 받지 않는다 (팬 습격, 분노 때 몰려든 사람)
         public bool caller;               // 택시를 부르는 손님 (머리 위에 !)
     }
 
@@ -37,6 +39,10 @@ public class PedestrianManager
     public float MaxMul = 1f;            // 동시에 있을 수 있는 사람 수 배율 (사람 많은 날)
     public bool FanRush;                 // 팬 습격 중: 차 앞으로 튀어나오는 사람이 빠르게 계속 생긴다
     float nextFan;
+    public bool RageSurge;               // 분노 폭발 중: 박살 낼 사람들이 더 많이 몰려든다 (분노는 보상이라서)
+    float nextSurge;
+    public float PlayerSpeed = 20f;      // 지금 차의 속도 (건너기 시작하는 거리를 속도에 맞추는 데 쓴다)
+    int crossersNow;                     // 지금 건너는 중이거나 건너려고 연석에 나온 사람 수
 
     /// <summary>차에 치였다. 쓰러지는 연출은 매니저가 하고, 점수/목숨/요금은 받는 쪽이 처리한다.</summary>
     public event System.Action<Ped> Hit;
@@ -132,6 +138,7 @@ public class PedestrianManager
             walkZ = Random.Range(cfg.sidewalkWalkSpeed.x, cfg.sidewalkWalkSpeed.y) * (Random.value < 0.5f ? -1f : 1f),
             walkSpeed = kind == 2 ? Random.Range(cfg.dartSpeed.x, cfg.dartSpeed.y) * DartSpeedMul : Random.Range(cfg.crossSpeed.x, cfg.crossSpeed.y),
             triggerZ = kind == 1 ? Random.Range(cfg.farTrigger.x, cfg.farTrigger.y) : Random.Range(cfg.dartTrigger.x, cfg.dartTrigger.y),
+            triggerT = kind == 1 ? Random.Range(cfg.farLeadTime.x, cfg.farLeadTime.y) : (kind == 2 ? Random.Range(cfg.dartLeadTime.x, cfg.dartLeadTime.y) : 0f),
             waitTime = kind == 2 ? Random.Range(cfg.curbWait.x, cfg.curbWait.y) : 0f,
             baseColor = c,
             phase = Random.value * 6f
@@ -146,11 +153,25 @@ public class PedestrianManager
     /// </summary>
     public void Tick(float dt, float elapsed, float advance, float carX, bool turning, float spawnZ)
     {
+        // 지금 건너는(또는 건너려고 나온) 사람 수. 너무 많이 한꺼번에 건너지 않게 새로 건너기 시작하는 사람을 제한한다.
+        crossersNow = 0;
+        for (int ci = 0; ci < peds.Count; ci++)
+            if (peds[ci].st >= 1 && peds[ci].st <= 3 && peds[ci].fallT < 0f) crossersNow++;
+
         // 팬 습격: 연예인을 보고 몰려드는 사람들
         if (FanRush && elapsed >= nextFan && peds.Count < Mathf.RoundToInt(cfg.maxPeds * MaxMul) + 25)
         {
-            Spawn(spawnZ, 2);
+            var fp = Spawn(spawnZ, 2);
+            fp.bypassCap = true;
             nextFan = elapsed + 0.45f;
+        }
+
+        // 분노 폭발 중: 박살 낼 사람들이 계속 몰려든다 (멀리서 건너는 사람과 튀어나오는 사람)
+        if (RageSurge && elapsed >= nextSurge && peds.Count < Mathf.RoundToInt(cfg.maxPeds * MaxMul) + 40)
+        {
+            var sp = Spawn(spawnZ, Random.value < 0.5f ? 1 : 2);
+            sp.bypassCap = true;
+            nextSurge = elapsed + Mathf.Max(0.08f, cfg.rageSurgeInterval);
         }
 
         // 스폰
@@ -215,7 +236,16 @@ public class PedestrianManager
         {
             case 0: // 인도를 따라 걷는다
                 p.z += p.walkZ * dt;
-                if (p.kind != 0 && p.z < p.triggerZ && p.z > 0f) p.st = 1;
+                if (p.kind != 0 && p.z > 0f)
+                {
+                    // 차가 도착하기 몇 초 전에 건너기 시작한다 (빠를수록 더 멀리서). 동시에 건너는 사람 수에는 상한이 있다.
+                    float trig = p.triggerT > 0f ? p.triggerT * Mathf.Max(PlayerSpeed, 12f) : p.triggerZ;
+                    if (p.z < trig && (p.bypassCap || crossersNow < cfg.maxCrossers))
+                    {
+                        p.st = 1;
+                        crossersNow++;
+                    }
+                }
                 break;
 
             case 1: // 연석으로 다가간다 (튀어나올 사람은 빠르게)

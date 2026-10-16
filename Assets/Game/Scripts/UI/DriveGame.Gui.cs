@@ -261,7 +261,7 @@ public partial class DriveGame
             Panel(new Rect(W * 0.5f - 285 * u, H * 0.20f - 6 * u, 570 * u, 100 * u), 0.55f);
             Label(new Rect(W * 0.5f - 277 * u, H * 0.20f - 2 * u, 554 * u, 32 * u), hudTripText, 20, Color.white, TextAnchor.MiddleCenter);
             Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 30 * u, 524 * u, 28 * u), hudTripText2, 18, late ? UiRed : UiGold, TextAnchor.MiddleCenter);
-            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 62 * u, 524 * u, 28 * u), taxi.AlienTrip ? "UFO 빛줄기를 찾아 그 안에서 멈추세요!" : hintText, 17, UiGreen, TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 62 * u, 524 * u, 28 * u), taxi.AlienTrip ? (nf < 0 ? "신호가 뒤쪽이에요! 다음 교차로에서 돌아가세요" : (nr > 0 ? "초록 빛줄기가 오른쪽에 보여요  (멈추면 도착)" : (nr < 0 ? "초록 빛줄기가 왼쪽에 보여요  (멈추면 도착)" : "초록 빛줄기를 향해 곧장 가세요  (멈추면 도착)"))) : hintText, 17, UiGreen, TextAnchor.MiddleCenter);
         }
         else if (taxi.State == TaxiState.Waiting)
         {
@@ -405,6 +405,12 @@ public partial class DriveGame
         // 왼쪽 위 패널: 목숨, 점수, 누적 요금(DrawTaxiGui), 오늘의 목표
         Panel(new Rect(14 * u, 10 * u, 340 * u, 180 * u), 0.5f);
         Label(new Rect(26 * u, 12 * u, 320 * u, 36 * u), hudHearts, 28, new Color(1f, 0.4f, 0.5f), TextAnchor.UpperLeft);
+        if (lives < maxLivesNow && lives > 0)
+        {
+            // 하트가 비어 있으면 무사고로 달린 진행도가 하트 아래에 차오른다
+            Fill(new Rect(26 * u, 46 * u, 120 * u, 3 * u), new Color(1f, 1f, 1f, 0.18f));
+            Fill(new Rect(26 * u, 46 * u, 120 * u * session.HealProgress, 3 * u), UiGreen);
+        }
         Label(new Rect(26 * u, 48 * u, 320 * u, 30 * u), hudScore, 22, Color.white, TextAnchor.UpperLeft);
         if (taxi.FareTotal != hudFareTotal || taxi.Trips != hudTrips)
         {

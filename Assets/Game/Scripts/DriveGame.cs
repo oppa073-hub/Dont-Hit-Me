@@ -118,7 +118,7 @@ public partial class DriveGame : MonoBehaviour
     public Vector2 dartTrigger = new Vector2(16f, 30f);
 
     [Tooltip("튀어나오기 전 연석에서 멈칫하는 시간(초). 0이면 예고 없이 바로")]
-    public Vector2 curbWait = new Vector2(0.3f, 0.6f);
+    public Vector2 curbWait = new Vector2(0.5f, 0.9f);
 
     [Tooltip("튀어나오는 사람의 달리기 속도(m/s)")]
     public Vector2 dartSpeed = new Vector2(4f, 6f);
@@ -151,8 +151,11 @@ public partial class DriveGame : MonoBehaviour
 
     [Tooltip("목적지는 진행 방향 좌/우로 최대 몇 칸까지 뽑을지")]
     public int destMaxSide = 2;
-    [Tooltip("목적지는 방금 지난 교차로에서 최소 이만큼(칸, 1칸 = 80m)은 떨어져 있다. 바로 앞 교차로가 목적지가 되는 것을 막는다")]
-    public int destMinBlocks = 3;
+    [Tooltip("손님을 태운 곳(방금 지난 교차로)에서 목적지까지의 거리 범위(칸, 1칸 = 80m). 길수록 요금과 제한 시간도 늘어난다")]
+    public int tripMinBlocks = 6;
+    public int tripMaxBlocks = 11;
+    [Tooltip("목적지가 옆길 쪽으로 최대 몇 칸까지 벗어날 수 있는가")]
+    public int tripSideBlocks = 4;
 
     [Tooltip("목적지 교차로 중심에서 이 거리(m) 안에서 정차하면 도착. 이만큼 지나치면 '지나쳤어요'")]
     public float arriveRadius = 9f;
@@ -193,6 +196,9 @@ public partial class DriveGame : MonoBehaviour
     public int maxLives = 3;
 
     public float invulnTime = 1.0f;
+
+    [Tooltip("사고 없이 이만큼(초) 달리면 하트가 하나 회복된다. 사고가 나면 처음부터 다시 센다")]
+    public float healSeconds = 50f;
 
     public float hitSpeedFactor = 0.4f;
 
@@ -321,6 +327,18 @@ public partial class DriveGame : MonoBehaviour
     public float heistFareMul = 3f;
     [Tooltip("경찰 바리케이드가 나오는 간격(초)")]
     public float roadblockInterval = 6f;
+
+    [Header("Balance (난이도 완화. 씬에 저장된 Max Speed 가 커도 이 상한이 먼저 적용된다)")]
+    [Tooltip("순항 속도의 상한(m/s). 이보다 빨라지지 않는다 (분노 가속은 별도)")]
+    public float cruiseCap = 28f;
+    [Tooltip("한꺼번에 도로를 건너거나 건너려고 나와 있는 사람의 최대 수 (팬 습격/분노 때 몰려든 사람은 예외)")]
+    public int maxCrossers = 4;
+    [Tooltip("갑자기 튀어나오는 사람이 차가 도착하기 이만큼(초) 전에 건너기 시작한다 (범위). 클수록 일찍 보여서 쉽다")]
+    public Vector2 dartLeadTime = new Vector2(2.0f, 3.0f);
+    [Tooltip("멀리서 이미 건너는 사람: 차가 도착하기 이만큼(초) 전에 건너기 시작한다")]
+    public Vector2 farLeadTime = new Vector2(3.5f, 5.0f);
+    [Tooltip("분노 폭발 중 몰려드는 사람이 생기는 간격(초). 작을수록 많이 몰려든다")]
+    public float rageSurgeInterval = 0.22f;
 
     [Header("Minigun (분노 폭발 때 양옆에서 튀어나와 앞을 쓸어버림. 택시 개조 3단계를 사면 켜짐)")]
     [Tooltip("1초에 몇 개를 쓸어버리는가")]
@@ -599,7 +617,7 @@ public partial class DriveGame : MonoBehaviour
         Time.timeScale = (!gameOver && flow == GameFlow.Playing && Time.unscaledTime < hitStopUntil) ? 0f : 1f;
         var kb = Keyboard.current;
         if (kb == null) return;
-        HandleDebugKeys(kb);
+        if (HandleDebugKeys(kb)) return;
 
         // 설정: 월드는 멈춰 있고 W/S 로 고르고 A/D 로 바꾼다
         if (flow == GameFlow.Settings)
@@ -701,7 +719,7 @@ public partial class DriveGame : MonoBehaviour
 
         // 속도
         bool brake = kb.sKey.isPressed || kb.downArrowKey.isPressed;
-        float target = Mathf.Min(maxSpeed, baseSpeed + elapsed * speedRamp) * (brake ? brakeFactor : 1f);
+        float target = Mathf.Min(Mathf.Min(maxSpeed, cruiseCap), baseSpeed + elapsed * speedRamp) * (brake ? brakeFactor : 1f);
         target *= rage.SpeedMul;                              // 분노 중에는 더 빨리 달린다
         if (turning) target = turnCruiseSpeed;                // 회전 중에는 자동으로 감속/가속해서 같은 속도로 돈다
         else if (blinker != 0 && nextInterDist > 0f && nextInterDist < turnSlowDistance)
@@ -719,8 +737,10 @@ public partial class DriveGame : MonoBehaviour
         if (kb.eKey.wasPressedThisFrame) road.ToggleBlinker(1);
 
         session.Tick(dt);
+        session.TickHeal(dt);
 
         // 보행자: 생성, 이동, 횡단, 충돌 판정 (회전 중에는 월드가 실제로 다가온 만큼만 움직인다)
+        peds.PlayerSpeed = speed;
         peds.Tick(dt, elapsed, turning ? worldMove : speed * dt, carX, turning, SpawnZ);
         UpdateTraffic(dt, turning ? worldMove : speed * dt);
         UpdateGoals();

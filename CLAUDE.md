@@ -44,6 +44,8 @@
   - Gameplay/PedestrianManager.cs : 보행자 목록/생성 시점/이동/횡단/충돌·니어미스 판정. 이벤트 Hit, NearMiss 로 결과를 알림
   - Gameplay/TaxiManager.cs : 손님 호출→대화→탑승→도착 흐름, 목적지, 요금·팁·제한 시간. 이벤트 PopupRequested, TalkStarted, Arrived. 전역 enum TaxiState 도 여기
   - Gameplay/IntersectionManager.cs : 깜빡이, 교차로 회전(시간 기준 90도), 격자 좌표(gx, gy)/방향(heading) 추적, NavState. 이벤트 TurnSwapped, TurnCompleted(새 dist), PopupRequested
+  - 난이도 완화(Balance 헤더): 씬에 Max Speed 40 이 저장돼 있어서 cruiseCap(28)으로 먼저 제한. 튀어나오는/멀리서 건너는 사람은 차 도착 몇 초 전(dartLeadTime/farLeadTime)에 건너기 시작해 속도가 빨라도 보일 시간이 같고, 동시에 건너는 사람은 maxCrossers 로 제한. 분노 폭발 중에는 peds.RageSurge 로 건너는 사람이 rageSurgeInterval 마다 몰려듦(보상)
+  - 체력 회복: GameSession.TickHeal. 사고 없이 healSeconds(기본 50초) 달리면 하트 +1(최대치까지), 사고가 나면(RegisterHit) 처음부터 다시. 하트 아래 초록 막대로 진행도 표시. 업그레이드 '자가 수리'(6번)로 최대 40%까지 빨라짐
   - Gameplay/GameSession.cs : 목숨, 점수, 니어미스/충돌 횟수, 무적 시간, 피격 붉은 화면, 게임오버 여부. DriveGame.Session.cs 가 lives/score/gameOver 등을 읽기 전용 속성으로 보여 줌
   - Gameplay/AudioManager.cs : 배경음악(인스펙터 Bgm Clip 에 넣으면 그 곡, 비우면 코드로 만든 임시 곡)과 빗소리도 여기. 외부 에셋 없이 코드로 합성한 효과음(엔진 소리는 속도에 따라 높낮이, 깜빡이 틱톡, 충돌, 니어미스, 도착 종소리, 손님 등장 차임). DriveGame.Sound.cs 가 연결. public: soundOn, masterVolume, engineVolume. **소리는 아직 귀로 확인 전**
   - Gameplay/DifficultyManager.cs : 플레이 시간에 따른 레벨(levelSeconds 마다 +1, 최대 maxLevel)과 레벨별 배율(보행자 간격, 튀어나오는 비율/속도). 이벤트 LevelChanged. DriveGame.Traffic.cs 가 보행자/교통에 적용하고 HUD 에 LV 표시
@@ -54,7 +56,7 @@
   - Gameplay/TutorialManager.cs : 처음 한 판 동안 단계별 안내(조향 → 손님 → 내비/깜빡이 → 정산). 끝나면 PlayerPrefs 에 기록, 설정에서 다시 켬
   - Gameplay/EventManager.cs : 날짜 시스템. 판(하루)마다 날 종류를 뽑음: 평범(첫날은 항상) / 사람 많은 날(보행자·손님 증가) / 괴수 침공 / 히어로와 빌런 전투. 괴수·히어로 날은 하루 중 무작위 시각에 "긴급 속보"와 함께 갑자기 시작. Day 번호는 PlayerPrefs 저장. 인스펙터 forceDayType 으로 날 고정, 플레이 중 F2=괴수, F3=히어로 즉시 시작
   - Gameplay/TrafficManager.Events.cs : 괴수(다음 교차로 뒤에서 도로 전체를 막음, 연기 기둥, 부딪히면 목숨 -1)와 히어로 레이저(경고 뒤 한쪽 차선을 쓸며 불길을 남김, 반대 차선으로 피함). 월드 연출은 World/DriveGame.Battle.cs, 연결은 Gameplay/DriveGame.Events.cs
-  - Gameplay/DriveGame.Debug.cs : 디버그 패널(에디터/개발 빌드만). F1 로 열고 1 괴수 2 히어로 3 사람 많은 날 4 평범한 날 5 무작위 6 비 7 시각+3h 8 레벨+1 G 무적. 1~4 는 다음 판의 날 종류(forceDayType)도 고정
+  - Gameplay/DriveGame.Debug.cs : 디버그 패널(에디터/개발 빌드만, Del 두 번 = 저장 데이터(PlayerPrefs) 전부 초기화 후 장면 다시 불러오기). F1 로 열고 1 괴수 2 히어로 3 사람 많은 날 4 평범한 날 5 무작위 6 비 7 시각+3h 8 레벨+1 G 무적. 1~4 는 다음 판의 날 종류(forceDayType)도 고정
   - Gameplay/RageManager.cs : 분노 게이지(시간으로 rageFillSeconds 에 가득, 니어미스마다 rageNearMissGain 만큼 더 참). 가득 차면(손님을 태운 상태일 때만. 손님이 없으면 가득 찬 채로 대기하다가 태우는 순간) 자동 발동해 rageDuration 초 동안 무적(부딪혀도 목숨/요금/사고 기록 없음, 점수만)+rageSpeedMul 배 가속. 게이지는 팔(손) 색이 붉어지는 것으로 보여 줌. 연결은 Gameplay/DriveGame.Rage.cs
   - Gameplay/LobbyManager.cs + Gameplay/DriveGame.Lobby.cs + UI/DriveGame.LobbyDraw.cs : 로비(2D 횡스크롤, 모두 도형으로 그린 임시 그림). 타이틀에서 Space → 로비 → 정비사(박 정비사) 옆 Space = 대사 후 상점 / 택시 옆 Space = 화면이 어두워지며 영업 시작. 게임오버에서 U = 로비, R = 바로 재시작. 흐름 enum GameFlow.Lobby
   - Gameplay/StoryCatalog.cs : 정비사 대사(첫 방문 소개, 어제 날 종류에 따른 인사, 분노 힌트, 상점 대사)와 아침 뉴스 원고. 스토리 대사는 이 파일만 고치면 됨
@@ -66,6 +68,7 @@
   - Gameplay/EncounterManager.cs + DriveGame.Encounters.cs : 랜덤 인카운트(레벨 2부터 45초 뒤, 이후 35~60초 간격으로 하나씩): 정전(Blackout01, 화면 어두워짐+헤드라이트), 라이벌 택시(TrafficManager.SpawnRival: 길가 손님을 가로챔, 먼저 태우면 못 가로챔), 팬 습격(PedestrianManager.FanRush: 튀어나오는 사람 연속+플래시), 돼지 떼(TrafficManager.TickPigs: 닿으면 속도만 감소), 긴급 차량(TrafficManager.SpawnAmbulance: 구급차가 뒤에서 사이렌을 울리며 플레이어가 선 차선으로 달려옴, 룸미러와 화면 가장자리에 붉은/푸른 빛, 앞지르는 순간 길을 막고 있으면 들이받혀 목숨 -1, 비켜 주면 +100점과 분노 게이지)
   - 손님 유별 사건(PaxType.quirk, TaxiManager.TickQuirk): 폭탄(속도 bombMinSpeed 아래면 도화선 소모, 터지면 목숨-1, 끝까지 가면 요금 x2) / 결혼식(급조향·급제동이면 부케가 앞유리에 붙고 행복도 하락, 행복하면 축의금) / 외계인(내비에 목적지 안 보임, UFO 빛줄기 기둥을 찾아 멈춤, 요금 x1.5) / 전직 레이서(시간 짧음, 평균 속도 빠를수록 요금 최대 x2, 사고 시 크게 감액) / 욱한 손님(6~10초마다 아무 표시 없이 갑자기: 고함 0.4초 -> 핸들을 확 잡아챔 0.7초(입력 무시) -> 조향 반전 4초. 자막으로 설명하지 말 것). HUD 표시는 UI/DriveGame.QuirkHud.cs. 디버그 B = 다음 손님 유형 고정, Y/K/L/J = 정전/라이벌/팬/돼지
   - 손님의 말(사고 반응, 수다, 고함, 미니건 반응 등)은 모두 같은 얼굴 말풍선 상자(DrawTaxiGui)로 나온다. 평소 손님은 화면 오른쪽에 작게, 수다쟁이(PaxType.bigTalk)만 가운데에 크게(말로 화면을 가리는 것이 기믹)
+  - 목적지 거리: TaxiManager.Accept 가 tripMinBlocks~tripMaxBlocks 칸(기본 6~11, 1칸=80m)에서 뽑고 옆 칸수는 tripSideBlocks 이내. (예전 destMaxAhead/destMaxSide 는 더 안 쓴다)
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

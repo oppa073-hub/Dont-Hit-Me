@@ -19,8 +19,16 @@ public partial class DriveGame
     bool timeUp { get { return session.TimeUp; } }
     int maxLivesNow { get { return session.MaxLives; } }
 
+    // 무사고 덕분에 하트가 하나 찼다
+    void OnHealed()
+    {
+        Popup("체력 회복!  하트 +1", UiGreen);
+        sound.PlayChime();
+    }
+
     void CreateSession()
     {
         session = new GameSession(this);
+        session.Healed += OnHealed;
     }
 }

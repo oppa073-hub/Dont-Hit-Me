@@ -36,7 +36,7 @@ public partial class DriveGame
 
     void AcceptPassenger()
     {
-        float cruise = Mathf.Min(maxSpeed, baseSpeed + elapsed * speedRamp);
+        float cruise = Mathf.Min(Mathf.Min(maxSpeed, cruiseCap), baseSpeed + elapsed * speedRamp);
         taxi.Accept(gx, gy, heading, Period, cruise);
         EndNews();                                           // 손님을 태웠으니 내비는 지도로
         hintF = int.MinValue;                                // 안내 글자를 새 목적지로 다시 만든다

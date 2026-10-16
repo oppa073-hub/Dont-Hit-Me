@@ -232,6 +232,7 @@ public partial class TrafficManager
                     var kid = peds.Spawn(spawnZ, 2, o.z, o.side);     // 공을 쫓아 같은 쪽 인도에서 아이가 튀어나온다
                     kid.triggerZ = o.z + 10f;
                     kid.waitTime = 0.15f;
+                    kid.triggerT = 0f;
                 }
                 if (o.dir * o.x > cfg.roadHalfWidth + 3f || o.z < -6f) RemoveAt(i);
                 continue;
