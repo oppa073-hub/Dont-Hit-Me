@@ -50,7 +50,14 @@ public partial class DriveGame
     {
         if (armMaterial == null) return;
         Color c;
-        if (rage.Active) c = Color.Lerp(RageRed, new Color(1f, 0.4f, 0.25f), 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 14f));
+        if (rage.Active)
+        {
+            // 남은 시간만큼 붉다: 발동 직후는 선명한 빨강으로 깜빡이다가, 끝에 다가갈수록 맥동이 줄고 원래 피부색으로 자연스럽게 돌아온다
+            float rem = rage.Remaining01;
+            Color baseC = Color.Lerp(Color.white, RageRed, rem);
+            Color glow = Color.Lerp(baseC, new Color(1f, 0.45f, 0.3f), 0.5f * rem);
+            c = Color.Lerp(baseC, glow, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 14f));
+        }
         else if (rage.Ready) c = Color.Lerp(RageRed, new Color(0.7f, 0.04f, 0.04f), 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f));     // 가득 찼고 손님을 기다리는 중: 느리게 맥동
         else c = Color.Lerp(Color.white, RageRed, rage.Gauge);
         armMaterial.SetColor("_BaseColor", c);
@@ -60,7 +67,7 @@ public partial class DriveGame
     void DrawRageOverlay(float W, float H)
     {
         if (!rage.Active || gameOver || flow != GameFlow.Playing) return;       // 결과/일시정지 화면에는 붉은 막을 남기지 않는다
-        float a = 0.10f + 0.06f * Mathf.Sin(Time.unscaledTime * 10f);
+        float a = (0.10f + 0.06f * Mathf.Sin(Time.unscaledTime * 10f)) * (0.35f + 0.65f * rage.Remaining01);     // 끝나 갈수록 붉은 막도 옅어진다
         Fill(new Rect(0, 0, W, H), new Color(1f, 0f, 0f, a));
     }
 }

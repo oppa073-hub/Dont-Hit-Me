@@ -33,6 +33,9 @@ public class RageManager
         TimeLeft = 0f;
     }
 
+    /// <summary>분노가 얼마나 남았는가 (발동 직후 1 → 끝날 때 0). 분노 중이 아니면 0.</summary>
+    public float Remaining01 { get { return Active ? Mathf.Clamp01(TimeLeft / Mathf.Max(1f, cfg.rageDuration)) : 0f; } }
+
     /// <summary>분노 상태에서 곱할 속도 배율 (아니면 1).</summary>
     public float SpeedMul { get { return Active ? Mathf.Max(1f, cfg.rageSpeedMul) : 1f; } }
 
