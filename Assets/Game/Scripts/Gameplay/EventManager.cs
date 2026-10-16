@@ -14,6 +14,7 @@ public class EventManager
     float startAt, endAt;
 
     public int Day { get; private set; }
+    public DayType LastType { get; private set; }                  // 어제는 어떤 날이었나 (정비사의 인사말에 쓴다)
     public DayType Type { get; private set; }
     public bool Active { get; private set; }                       // 괴수/히어로 사건이 진행 중
     public bool KaijuActive { get { return Active && Type == DayType.Kaiju; } }
@@ -32,6 +33,7 @@ public class EventManager
     {
         this.cfg = cfg;
         Day = Mathf.Max(1, PlayerPrefs.GetInt(DayKey, 1));
+        LastType = (DayType)Mathf.Clamp(PlayerPrefs.GetInt(DayKey + ".LastType", 0), 0, 3);
         DayLabel = "Day " + Day;
         AlertText = "";
     }
@@ -128,8 +130,10 @@ public class EventManager
     /// <summary>하루가 끝났다: 다음 날 번호로.</summary>
     public void CompleteDay()
     {
+        LastType = Type;
         Day++;
         PlayerPrefs.SetInt(DayKey, Day);
+        PlayerPrefs.SetInt(DayKey + ".LastType", (int)LastType);
         PlayerPrefs.Save();
         DayLabel = "Day " + Day;
     }

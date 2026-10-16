@@ -9,18 +9,27 @@ public partial class DriveGame
     void DrawShop(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.72f));
-        Label(new Rect(0, 70 * u, W, 70 * u), "업그레이드 상점", 52, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
-        Label(new Rect(0, 140 * u, W, 36 * u), shopCoinsText, 28, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 60 * u, W, 70 * u), "박 정비소", 52, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 130 * u, W, 36 * u), shopCoinsText, 28, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+
+        // 정비사 초상과 말풍선
+        var fc = new Vector2(W * 0.13f, 300 * u);
+        DrawFace(fc, 190 * u, NpcSkin, NpcHair, false);
+        Dot(new Vector2(fc.x, 410 * u), 110 * u, NpcShirt);
+        Label(new Rect(W * 0.03f, 450 * u, W * 0.2f, 30 * u), StoryCatalog.NpcName, 22, new Color(1f, 0.85f, 0.4f), TextAnchor.MiddleCenter);
+        style.wordWrap = true;
+        Label(new Rect(W * 0.03f, 482 * u, W * 0.2f, 120 * u), shopNpcLine, 18, Color.white, TextAnchor.UpperCenter);
+        style.wordWrap = false;
         for (int i = 0; i < shopLines.Length; i++)
         {
             bool maxed = upgrades.IsMax(i);
             bool canBuy = !maxed && upgrades.Coins >= upgrades.Cost(i);
             Color c = maxed ? new Color(0.6f, 0.9f, 0.6f) : (canBuy ? Color.white : new Color(1f, 1f, 1f, 0.45f));
-            Label(new Rect(W * 0.14f, (220 + i * 56) * u, W * 0.72f, 40 * u), shopLines[i], 26, c, TextAnchor.MiddleLeft);
+            Label(new Rect(W * 0.28f, (220 + i * 56) * u, W * 0.66f, 40 * u), shopLines[i], 26, c, TextAnchor.MiddleLeft);
         }
         if (Time.unscaledTime < shopMsgUntil)
             Label(new Rect(0, 510 * u, W, 40 * u), shopMsg, 26, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
-        Label(new Rect(0, 600 * u, W, 36 * u), "숫자키로 구매     Esc 또는 U 로 돌아가기", 22, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 600 * u, W, 36 * u), "숫자키로 구매     Esc 로 로비로 돌아가기", 22, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
     }
 
     // 오늘의 목표 목록 (HUD, 타이틀, 일시정지에서 쓴다). 완료한 목표는 초록색.

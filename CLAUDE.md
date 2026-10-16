@@ -14,7 +14,7 @@
 
 ## 게임 규칙
 - 차는 제자리, 월드가 다가온다. 도로는 앞쪽으로 갈수록 아래로 휜다(y = -curvature * z^2, 동물의 숲 방식).
-- 조작: A/D 또는 ←/→ 조향, S/↓ 브레이크(완전 정지), Q/E 좌/우 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작, U 업그레이드 상점(타이틀/게임오버에서, 숫자키로 구매), O 설정(타이틀/일시정지에서). 시작은 타이틀 화면에서 Space/Enter. 반응형(음악 리듬 없음).
+- 조작: A/D 또는 ←/→ 조향, S/↓ 브레이크(완전 정지), Q/E 좌/우 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작, 상점은 로비의 정비사에게 말을 걸면 열림(숫자키로 구매), 게임오버에서 U = 로비, O 설정(타이틀/로비/일시정지에서). 시작은 타이틀 화면에서 Space/Enter. 반응형(음악 리듬 없음).
 - 택시: 인도의 손님(느낌표)에게 차를 붙여 정차하면 옆 시점 대화 후 탑승, 목적지 근처에서 정차하면 요금 정산. 태운 채 사람을 치면 손님 리액션과 요금 감액.
 - 교차로: 80m마다 교차로. 깜빡이를 미리 켜 두면 교차로 22m 전부터 자동 감속하고, 교차로 중심(십자가 중심)에 도착했을 때 그 자리에서 약 1.1초 동안 월드가 90도 회전(진입 전에는 절대 돌지 않음. 회전 중간에 새 도로 구간으로 교체, 건물 배치가 바뀜). 도시는 격자 좌표(gx, gy)와 방향(heading)으로 추적.
 - 보행자는 2D 스프라이트 빌보드. 양쪽 인도에 사람이 많이 걷고, 일부가 도로로 나온다(멀리서 이미 건너는 사람 / 가까이서 갑자기 튀어나오는 사람, 튀어나오기 전 연석에서 잠깐 멈칫). 도로를 건너는 사람과 충돌하면 목숨 -1(3개), 아슬아슬하게 피하면 니어미스 보너스. 인도만 걷는 사람은 충돌/점수 없음.
@@ -55,6 +55,9 @@
   - Gameplay/TrafficManager.Events.cs : 괴수(다음 교차로 뒤에서 도로 전체를 막음, 연기 기둥, 부딪히면 목숨 -1)와 히어로 레이저(경고 뒤 한쪽 차선을 쓸며 불길을 남김, 반대 차선으로 피함). 월드 연출은 World/DriveGame.Battle.cs, 연결은 Gameplay/DriveGame.Events.cs
   - Gameplay/DriveGame.Debug.cs : 디버그 패널(에디터/개발 빌드만). F1 로 열고 1 괴수 2 히어로 3 사람 많은 날 4 평범한 날 5 무작위 6 비 7 시각+3h 8 레벨+1 G 무적. 1~4 는 다음 판의 날 종류(forceDayType)도 고정
   - Gameplay/RageManager.cs : 분노 게이지(시간으로 rageFillSeconds 에 가득, 니어미스마다 rageNearMissGain 만큼 더 참). 가득 차면(손님을 태운 상태일 때만. 손님이 없으면 가득 찬 채로 대기하다가 태우는 순간) 자동 발동해 rageDuration 초 동안 무적(부딪혀도 목숨/요금/사고 기록 없음, 점수만)+rageSpeedMul 배 가속. 게이지는 팔(손) 색이 붉어지는 것으로 보여 줌. 연결은 Gameplay/DriveGame.Rage.cs
+  - Gameplay/LobbyManager.cs + Gameplay/DriveGame.Lobby.cs + UI/DriveGame.LobbyDraw.cs : 로비(2D 횡스크롤, 모두 도형으로 그린 임시 그림). 타이틀에서 Space → 로비 → 정비사(박 정비사) 옆 Space = 대사 후 상점 / 택시 옆 Space = 화면이 어두워지며 영업 시작. 게임오버에서 U = 로비, R = 바로 재시작. 흐름 enum GameFlow.Lobby
+  - Gameplay/StoryCatalog.cs : 정비사 대사(첫 방문 소개, 어제 날 종류에 따른 인사, 분노 힌트, 상점 대사)와 아침 뉴스 원고. 스토리 대사는 이 파일만 고치면 됨
+  - Cabin/DriveGame.News.cs : 영업 시작 직후 내비 화면이 지도 대신 앵커 뉴스(오늘이 어떤 날인지)를 보여 주고, 끝나거나 손님을 태우거나 N 키를 누르면 지도로 복귀
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

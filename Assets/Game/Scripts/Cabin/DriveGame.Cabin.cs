@@ -148,6 +148,7 @@ public partial class DriveGame
         navHeadText = CabinText("NavHead", navScreen, 0.016f, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.85f));
         navInfoText = CabinText("NavInfo", navScreen, 0.014f, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
         LayoutCabin();
+        BuildNews();
 
         // 핸들: 토러스 + 스포크
         var pivot = new GameObject("Wheel").transform;

@@ -417,6 +417,7 @@ public partial class DriveGame : MonoBehaviour
         CreateEvents();
         CreateRage();
         CreateMeta();
+        CreateLobby();
         CreateAmbience();
         LoadBest();
         CreateSession();
@@ -510,6 +511,7 @@ public partial class DriveGame : MonoBehaviour
 
     void ResetGame()
     {
+        newsActive = false;
         rage.Reset();
         ResetEvents();                       // 오늘이 어떤 날인지 먼저 정한다 (사람 많은 날은 시작 인원이 달라진다)
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
@@ -551,6 +553,14 @@ public partial class DriveGame : MonoBehaviour
             return;
         }
 
+        // 로비: 2D 횡스크롤. A/D 로 걷고 Space 로 정비사에게 말을 걸거나 택시에 탄다
+        if (flow == GameFlow.Lobby)
+        {
+            Time.timeScale = 0f;
+            UpdateLobby(kb);
+            return;
+        }
+
         // 상점: 월드는 멈춰 있고 숫자키로 업그레이드를 산다
         if (flow == GameFlow.Shop)
         {
@@ -564,8 +574,7 @@ public partial class DriveGame : MonoBehaviour
         if (flow == GameFlow.Title)
         {
             Time.timeScale = 0f;
-            if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) StartGame();
-            else if (kb.uKey.wasPressedThisFrame) OpenShop();
+            if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) EnterLobby();
             else if (kb.oKey.wasPressedThisFrame) OpenSettings(GameFlow.Title);
             else if (kb.tabKey.wasPressedThisFrame) ToggleMode();
             UpdateWorldVisuals();
@@ -593,7 +602,7 @@ public partial class DriveGame : MonoBehaviour
             SaveResultOnce();
             road.ClearFade();                // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
             if (kb.rKey.wasPressedThisFrame) StartGame();
-            else if (kb.uKey.wasPressedThisFrame) { ResetGame(); OpenShop(); }
+            else if (kb.uKey.wasPressedThisFrame) EnterLobby();
             else if (kb.tabKey.wasPressedThisFrame) ToggleMode();      // 다음 판의 모드를 바꾼다
             UpdateWorldVisuals();
             return;
@@ -657,6 +666,7 @@ public partial class DriveGame : MonoBehaviour
         UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
         UpdateEvents(dt, turning ? worldMove : speed * dt);
         UpdateRage(dt);
+        UpdateNews(dt, kb);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();
@@ -666,7 +676,7 @@ public partial class DriveGame : MonoBehaviour
     {
         if (cam == null) return;
         sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
-        sound.TickMusic(weather.Rain, (flow == GameFlow.Playing && !gameOver) ? 1f : 0.45f);
+        sound.TickMusic(weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f);
         Vector3 off = shakeEnabled && Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;

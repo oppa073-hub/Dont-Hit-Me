@@ -70,13 +70,15 @@ public partial class DriveGame
     void OpenShop()
     {
         flow = GameFlow.Shop;
+        shopNpcLine = StoryCatalog.ShopLine();
         RefreshShop();
     }
 
     void RefreshShop()
     {
         shopCoinsText = "보유 코인  " + upgrades.Coins;
-        shopTitleText = shopCoinsText + "      U  업그레이드 상점      O  설정";
+        shopTitleText = shopCoinsText + "      O  설정";
+        lobbyDayText = "Day " + dayEvents.Day;
         if (shopLines.Length != upgrades.Count) shopLines = new string[upgrades.Count];
         for (int i = 0; i < upgrades.Count; i++)
         {
@@ -98,6 +100,6 @@ public partial class DriveGame
             RefreshShop();
         }
         if (kb.escapeKey.wasPressedThisFrame || kb.uKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
-            flow = GameFlow.Title;
+            flow = GameFlow.Lobby;
     }
 }

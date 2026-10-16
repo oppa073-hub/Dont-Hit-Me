@@ -25,7 +25,7 @@ public partial class DriveGame
         Label(new Rect(0, 466 * u, W, 32 * u), modeText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
         Label(new Rect(0, 498 * u, W, 32 * u), shopTitleText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
         if (Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
-            Label(new Rect(0, 540 * u, W, 40 * u), "Space 또는 Enter 로 시작", 30, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, 540 * u, W, 40 * u), "Space 또는 Enter 로 로비에 입장", 30, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
 
         Label(new Rect(0, 590 * u, W, 28 * u), "오늘의 목표", 20, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
         DrawGoals(0, 618 * u, W, u, 17, TextAnchor.UpperCenter);
@@ -46,7 +46,7 @@ public partial class DriveGame
         else Label(new Rect(0, H * 0.22f, W, 80 * u), shiftMode ? "사고로 영업 중단" : "GAME OVER", 60, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleCenter);
         Label(new Rect(0, H * 0.22f + 84 * u, W, 250 * u), resultText, 26, Color.white, TextAnchor.UpperCenter);
         if (Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
-            Label(new Rect(0, H * 0.84f, W, 40 * u), "R 다시 시작      U 업그레이드 상점", 28, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.84f, W, 40 * u), "R 바로 다시 영업      U 로비로 (정비소)", 28, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
         Label(new Rect(0, H * 0.84f + 42 * u, W, 30 * u), modeText, 18, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
     }
 }

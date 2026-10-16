@@ -282,6 +282,16 @@ public partial class DriveGame
     {
         float W = Screen.width, H = Screen.height, u = H / 720f;
 
+        // 로비와 정비소(상점), 로비에서 연 설정은 로비 장면 위에 그린다
+        if (flow == GameFlow.Lobby || flow == GameFlow.Shop || (flow == GameFlow.Settings && settingsReturn == GameFlow.Lobby))
+        {
+            DrawLobbyScene(W, H, u, flow == GameFlow.Lobby);
+            if (flow == GameFlow.Shop) DrawShop(W, H, u);
+            else if (flow == GameFlow.Settings) DrawSettings(W, H, u);
+            DrawDebug(W, H, u);
+            return;
+        }
+
         if (hurtFlash > 0f) Fill(new Rect(0, 0, W, H), new Color(1f, 0f, 0f, hurtFlash * 0.6f));
 
         DrawCabin();

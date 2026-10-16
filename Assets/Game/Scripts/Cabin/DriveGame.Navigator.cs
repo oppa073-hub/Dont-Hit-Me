@@ -65,6 +65,15 @@ public partial class DriveGame
             clusterText.text = kmh + " km/h";
         }
 
+        // 운전을 시작한 직후에는 지도 대신 뉴스
+        if (newsActive)
+        {
+            if (!newsShown) EnterNewsView();
+            UpdateNewsView();
+            return;
+        }
+        if (newsShown) ExitNewsView();
+
         float w = Mathf.Max(0.05f, navSize.x), hgt = Mathf.Max(0.04f, navSize.y);
         float hw = w * 0.5f, hh = hgt * 0.5f;
         NavState(out int bx, out int by, out int h, out float zE);
