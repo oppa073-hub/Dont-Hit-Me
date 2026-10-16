@@ -269,6 +269,14 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("손가락 두께 여유(m). 손가락이 림을 파고들면 키우고, 림에서 뜨면 줄인다")]
     public float fingerPad = 0.008f;
 
+    [Header("Sound (코드로 만든 효과음, 외부 에셋 없음)")]
+    public bool soundOn = true;
+    [Range(0f, 1f)]
+    public float masterVolume = 0.6f;
+    [Range(0f, 1f)]
+    [Tooltip("엔진 소리 크기. 효과음보다 작게 둔다")]
+    public float engineVolume = 0.25f;
+
     const float RimTube = 0.018f;            // 핸들 림 단면 반지름(m)
 
     public const int RebaseBlocks = 16;             // 회전이 끝나면 도로 좌표를 이 번째 교차로로 옮긴다(구간 번호가 음수가 되지 않게, float 정밀도를 위해 작게)
@@ -382,6 +390,7 @@ public partial class DriveGame : MonoBehaviour
 
         BuildBackdrop();
         BuildCabin();
+        CreateSound();
 
         // 목적지 표지 기둥 (손님을 태운 동안만 보인다)
         destMarker = Block("DestMarker");
@@ -484,6 +493,7 @@ public partial class DriveGame : MonoBehaviour
     void LateUpdate()
     {
         if (cam == null) return;
+        sound.Tick(speed, maxSpeed, road.Blinker, gameOver);
         Vector3 off = Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;

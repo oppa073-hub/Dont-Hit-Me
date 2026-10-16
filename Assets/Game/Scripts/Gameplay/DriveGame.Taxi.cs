@@ -46,5 +46,6 @@ public partial class DriveGame
     void OnTaxiArrived(int income)
     {
         session.AddScore(Mathf.RoundToInt(income / 100f));
+        sound.PlayArrive();
     }
 }

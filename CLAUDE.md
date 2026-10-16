@@ -38,6 +38,7 @@
   - Gameplay/TaxiManager.cs : 손님 호출→대화→탑승→도착 흐름, 목적지, 요금·팁·제한 시간. 이벤트 PopupRequested, TalkStarted, Arrived. 전역 enum TaxiState 도 여기
   - Gameplay/IntersectionManager.cs : 깜빡이, 교차로 회전(시간 기준 90도), 격자 좌표(gx, gy)/방향(heading) 추적, NavState. 이벤트 TurnSwapped, TurnCompleted(새 dist), PopupRequested
   - Gameplay/GameSession.cs : 목숨, 점수, 니어미스/충돌 횟수, 무적 시간, 피격 붉은 화면, 게임오버 여부. DriveGame.Session.cs 가 lives/score/gameOver 등을 읽기 전용 속성으로 보여 줌
+  - Gameplay/AudioManager.cs : 외부 에셋 없이 코드로 합성한 효과음(엔진 소리는 속도에 따라 높낮이, 깜빡이 틱톡, 충돌, 니어미스, 도착 종소리, 손님 등장 차임). DriveGame.Sound.cs 가 연결. public: soundOn, masterVolume, engineVolume. **소리는 아직 귀로 확인 전**
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

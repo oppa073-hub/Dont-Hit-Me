@@ -15,6 +15,7 @@ public partial class DriveGame
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + 0.3f;
 
+        sound.PlayBonk();
         taxi.OnPedHit();                      // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
         if (session.RegisterHit())            // 무적이 아니면 목숨이 줄고, 마지막 목숨이면 게임오버
             Popup("BONK!", new Color(1f, 0.4f, 0.4f));
@@ -24,6 +25,7 @@ public partial class DriveGame
     void OnPedNearMiss(PedestrianManager.Ped p)
     {
         session.RegisterNearMiss(nearMissBonus);
+        sound.PlayNearMiss();
         Popup("NEAR MISS +" + nearMissBonus, new Color(0.4f, 1f, 0.6f));
         shakeUntil = Time.unscaledTime + 0.08f;
     }

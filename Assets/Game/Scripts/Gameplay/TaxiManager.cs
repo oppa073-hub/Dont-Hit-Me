@@ -47,6 +47,8 @@ public class TaxiManager
     public event System.Action<float> TalkStarted;
     /// <summary>정산이 끝났다. 인자는 받은 돈(요금 + 팁). 받는 쪽은 점수에 반영한다.</summary>
     public event System.Action<int> Arrived;
+    /// <summary>길가에 손님이 나타났다 (머리 위에 !).</summary>
+    public event System.Action CallerAppeared;
 
     public TaxiManager(DriveGame cfg, PedestrianManager peds, DestRelFn destRel)
     {
@@ -154,6 +156,7 @@ public class TaxiManager
         p.walkZ = 0f;                                        // 연석에서 제자리
         p.x = p.side * (cfg.roadHalfWidth + 1.2f);
         Caller = p;
+        if (CallerAppeared != null) CallerAppeared();
     }
 
     void BeginTalk()
