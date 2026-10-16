@@ -14,6 +14,7 @@ public class GameSession
     public float Invuln { get; private set; }            // 남은 무적 시간(초)
     public float HurtFlash { get; private set; }         // 피격 붉은 화면의 남은 세기(초)
     public bool GameOver { get; private set; }
+    public bool TimeUp { get; private set; }             // 목숨이 아니라 영업 시간이 끝나서 끝난 판
 
     /// <summary>화면에 보이는 총점.</summary>
     public int TotalScore { get { return Score + Mathf.FloorToInt(DistScore); } }
@@ -38,6 +39,15 @@ public class GameSession
         DistScore = 0f;
         Invuln = HurtFlash = 0f;
         GameOver = false;
+        TimeUp = false;
+    }
+
+    /// <summary>영업 시간이 끝나 판을 마친다 (목숨은 그대로).</summary>
+    public void ForceEnd()
+    {
+        if (GameOver) return;
+        TimeUp = true;
+        GameOver = true;
     }
 
     /// <summary>무적 시간과 피격 붉은 화면을 흘려보낸다.</summary>

@@ -269,6 +269,18 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("손가락 두께 여유(m). 손가락이 림을 파고들면 키우고, 림에서 뜨면 줄인다")]
     public float fingerPad = 0.008f;
 
+    [Header("Shift (하루 영업 모드. 타이틀에서 Tab 으로 무한 모드와 바꾼다)")]
+    [Tooltip("영업 시간(초). 이 시간이 지나면 새 손님을 받지 않고 결산한다")]
+    public float shiftSeconds = 180f;
+    [Tooltip("영업 시간이 끝났을 때 태우고 있는 손님을 마저 모시는 데 주는 최대 시간(초)")]
+    public float shiftOvertimeMax = 60f;
+    [Tooltip("사고(사람/차에 부딪힘) 한 건당 결산에서 깎는 수리비(원)")]
+    public int accidentFine = 300;
+    [Tooltip("순수익이 이 값 이상이면 평점 1 / 2 / 3")]
+    public int shiftStar1 = 3000;
+    public int shiftStar2 = 7000;
+    public int shiftStar3 = 12000;
+
     [Header("Difficulty (시간이 지나면 레벨이 오른다)")]
     [Tooltip("레벨이 한 단계 오르는 데 걸리는 플레이 시간(초)")]
     public float levelSeconds = 30f;
@@ -473,6 +485,7 @@ public partial class DriveGame : MonoBehaviour
         popupUntil = 0f;
 
         taxi.Reset();
+        ResetShift();
         goals.Reset();
         camYaw = camYawTarget = 0f;
         hudTimeLeft = int.MinValue;
@@ -514,6 +527,7 @@ public partial class DriveGame : MonoBehaviour
             if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) StartGame();
             else if (kb.uKey.wasPressedThisFrame) OpenShop();
             else if (kb.oKey.wasPressedThisFrame) OpenSettings(GameFlow.Title);
+            else if (kb.tabKey.wasPressedThisFrame) ToggleMode();
             UpdateWorldVisuals();
             return;
         }
@@ -540,6 +554,7 @@ public partial class DriveGame : MonoBehaviour
             road.ClearFade();                // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
             if (kb.rKey.wasPressedThisFrame) StartGame();
             else if (kb.uKey.wasPressedThisFrame) { ResetGame(); OpenShop(); }
+            else if (kb.tabKey.wasPressedThisFrame) ToggleMode();      // 다음 판의 모드를 바꾼다
             UpdateWorldVisuals();
             return;
         }
@@ -597,6 +612,7 @@ public partial class DriveGame : MonoBehaviour
         UpdateTraffic(dt, turning ? worldMove : speed * dt);
         UpdateGoals();
         UpdateAmbience(dt);
+        UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();

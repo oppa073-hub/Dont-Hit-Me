@@ -320,6 +320,7 @@ public partial class DriveGame
         Label(new Rect(20 * u, 54 * u, 500 * u, 40 * u), hudScore, 22, Color.white, TextAnchor.UpperLeft);
         DrawGoals(20 * u, 116 * u, 520 * u, u, 15, TextAnchor.UpperLeft);
         if (!gameOver && flow == GameFlow.Playing) DrawTutorial(W, H, u);
+        if (shiftMode) Label(new Rect(W - 420 * u, 114 * u, 400 * u, 40 * u), ShiftHudText(), 26, shiftLeft <= 30f ? new Color(1f, 0.45f, 0.4f) : new Color(1f, 0.92f, 0.5f), TextAnchor.UpperRight);
 
         int kmh = Mathf.RoundToInt(speed * 3.6f), sec = Mathf.RoundToInt(elapsed);
         if (kmh != hudKmh || nearMisses != hudNear || hits != hudHits || peds.Count != hudPeds || sec != hudSec || level != hudLevel || weather.ClockStep != hudClock || (weather.Rain > 0.3f) != hudRain)
@@ -336,9 +337,9 @@ public partial class DriveGame
 
         if (!gameOver && flow != GameFlow.Paused) DrawTaxiGui(W, H, u);       // 게임오버/일시정지 글자와 겹치지 않게
 
-        if (Time.unscaledTime < popupUntil)
+        if (Time.unscaledTime < popupUntil && !gameOver)
             Label(new Rect(0, H * 0.28f, W, 50 * u), popupText, 34, popupColor, TextAnchor.MiddleCenter);
-        if (taxi.State == TaxiState.Cruise && Time.unscaledTime < taxi.ThanksUntil)
+        if (!gameOver && taxi.State == TaxiState.Cruise && Time.unscaledTime < taxi.ThanksUntil)
             Label(new Rect(0, H * 0.34f + 30 * u, W, 34 * u), taxi.ThanksText, 22, new Color(1f, 1f, 1f, 0.9f), TextAnchor.MiddleCenter);
 
         // 회전 중 장면 교체 순간에 잠깐 어두워진다

@@ -22,8 +22,7 @@ public partial class DriveGame
         Label(new Rect(W * 0.2f, H * 0.46f, W * 0.6f, 130 * u), ControlsText, 20, new Color(1f, 1f, 1f, 0.85f), TextAnchor.UpperCenter);
         style.wordWrap = false;
 
-        if (bestText.Length > 0)
-            Label(new Rect(0, 466 * u, W, 32 * u), bestText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 466 * u, W, 32 * u), modeText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
         Label(new Rect(0, 498 * u, W, 32 * u), shopTitleText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
         if (Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
             Label(new Rect(0, 540 * u, W, 40 * u), "Space 또는 Enter 로 시작", 30, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
@@ -43,9 +42,11 @@ public partial class DriveGame
     void DrawGameOver(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.55f));
-        Label(new Rect(0, H * 0.22f, W, 80 * u), "GAME OVER", 60, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleCenter);
+        if (timeUp) Label(new Rect(0, H * 0.22f, W, 80 * u), "영업 종료", 60, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
+        else Label(new Rect(0, H * 0.22f, W, 80 * u), shiftMode ? "사고로 영업 중단" : "GAME OVER", 60, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleCenter);
         Label(new Rect(0, H * 0.22f + 84 * u, W, 250 * u), resultText, 26, Color.white, TextAnchor.UpperCenter);
         if (Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
             Label(new Rect(0, H * 0.84f, W, 40 * u), "R 다시 시작      U 업그레이드 상점", 28, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.84f + 42 * u, W, 30 * u), modeText, 18, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
     }
 }

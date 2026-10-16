@@ -59,7 +59,7 @@ public partial class DriveGame
     // 판이 끝났다: 번 돈과 니어미스로 코인을 받는다. 결과 화면에 붙일 글자를 돌려준다.
     string GrantRunCoins()
     {
-        int earned = taxi.FareTotal / 10 + nearMisses * 5;
+        int earned = RunIncome() / 10 + nearMisses * 5;
         upgrades.AddCoins(earned);
         return "획득 코인 +" + earned + "   보유 " + upgrades.Coins + NL
              + "오늘의 목표 " + goals.DoneTodayCount + "/" + goals.Count + " 달성";

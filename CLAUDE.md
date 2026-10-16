@@ -35,6 +35,7 @@
   - Cabin/DriveGame.Cabin.cs : 3D 운전석 부품과 배치(LayoutCabin)
   - Cabin/DriveGame.Navigator.cs : 대시보드 위 내비 화면
   - Cabin/DriveGame.Arms.cs : 3D 팔 IK, 손가락
+  - Gameplay/DriveGame.Shift.cs : 하루 영업 모드(기본). shiftSeconds 동안 일하고 시간이 끝나면 새 손님을 막고, 태운 손님만 마저 모신 뒤 결산(요금 합계 - 사고 수리비, 평점 0~3). Tab(타이틀)으로 무한 모드와 전환, 모드별 최고 점수 따로
   - Gameplay/DriveGame.Flow.cs : 게임 흐름(타이틀 → 플레이 ↔ 일시정지), 게임오버 때 결과 글자와 최고 점수(PlayerPrefs "DontHitMe.Best") 저장
   - UI/DriveGame.Screens.cs : 타이틀/일시정지/게임오버 결과 화면(IMGUI)
   - UI/DriveGame.Gui.cs : IMGUI(HUD, 앞유리, 룸미러, 택시 UI)

@@ -21,6 +21,7 @@ public class TaxiManager
     public float FareBonusMul = 1f;       // 요금에 곱함
     public float TipBonusMul = 1f;        // 팁에 곱함
     public float TimeBonus = 0f;          // 제한 시간에 더함(초)
+    public bool AcceptCallers = true;     // false 면 새 손님이 길가에 나타나지 않는다 (영업 시간이 끝났을 때)
 
     // ---- 상태 (읽기는 누구나, 쓰기는 이 클래스만) ----
     public TaxiState State { get; private set; }
@@ -89,6 +90,7 @@ public class TaxiManager
         Overshot = false;
         LateWarned = false;
         FareTotal = Trips = 0;
+        AcceptCallers = true;
         ReactUntil = ThanksUntil = 0f;
         ReactIsChat = false;
         sick = sickCooldown = 0f;
@@ -122,8 +124,8 @@ public class TaxiManager
         {
             if (Caller == null)
             {
-                callerTimer -= dt;
-                if (callerTimer <= 0f) MakeCaller(spawnZ);
+                if (AcceptCallers) callerTimer -= dt;
+                if (callerTimer <= 0f && AcceptCallers) MakeCaller(spawnZ);
             }
             else if (!turning && speed <= cfg.pickupSpeed && Caller.z > -2.5f && Caller.z < 9f && Mathf.Abs(Caller.x - carX) < cfg.pickupLateral)
             {
