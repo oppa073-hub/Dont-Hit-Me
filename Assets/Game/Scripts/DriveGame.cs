@@ -516,6 +516,7 @@ public partial class DriveGame : MonoBehaviour
     void ResetGame()
     {
         newsActive = false;
+        ClearBlood();
         rage.Reset();
         ResetEvents();                       // 오늘이 어떤 날인지 먼저 정한다 (사람 많은 날은 시작 인원이 달라진다)
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다

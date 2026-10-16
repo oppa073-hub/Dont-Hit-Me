@@ -11,6 +11,7 @@ public partial class DriveGame
     // 차에 치였다: 속도 감소, 히트스톱, 흔들림, 손님 리액션/요금 감액, 목숨. (쓰러지는 연출은 매니저가 한다)
     void OnPedHit(PedestrianManager.Ped p)
     {
+        AddBlood();                                         // 앞유리에 피가 튄다 (분노 중이든 무적 중이든)
         if (rage.Active) { RageSmash(); return; }          // 분노 중에는 목숨/요금이 그대로
         speed *= hitSpeedFactor;
         hitStopUntil = Time.unscaledTime + hitStop;

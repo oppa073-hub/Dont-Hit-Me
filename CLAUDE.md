@@ -38,6 +38,7 @@
   - Gameplay/DriveGame.Shift.cs : 하루 영업 모드(기본). shiftSeconds 동안 일하고 시간이 끝나면 새 손님을 막고, 태운 손님만 마저 모신 뒤 결산(요금 합계 - 사고 수리비, 평점 0~3). Tab(타이틀)으로 무한 모드와 전환, 모드별 최고 점수 따로
   - Gameplay/DriveGame.Flow.cs : 게임 흐름(타이틀 → 플레이 ↔ 일시정지), 게임오버 때 결과 글자와 최고 점수(PlayerPrefs "DontHitMe.Best") 저장
   - UI/DriveGame.Screens.cs : 타이틀/일시정지/게임오버 결과 화면(IMGUI)
+  - UI/DriveGame.Blood.cs : 사람을 칠 때 앞유리에 튀는 피 얼룩(도형). 5초 안에 연속으로 치면 얼룩이 더 많고 커지고 화면 가장자리가 붉어짐, 안 치면 흘러내리며 3초쯤에 지워짐. 분노/무적 중에도 튐
   - UI/DriveGame.Gui.cs : IMGUI(HUD, 앞유리, 룸미러, 택시 UI)
 - **매니저(일반 C# 클래스, MonoBehaviour 아님. 설정 값은 씬에 저장된 DriveGame public 필드를 읽음)**
   - Gameplay/PedestrianManager.cs : 보행자 목록/생성 시점/이동/횡단/충돌·니어미스 판정. 이벤트 Hit, NearMiss 로 결과를 알림
