@@ -25,14 +25,18 @@ public partial class DriveGame
 
     void OnRageStarted()
     {
-        Popup("분노 폭발!  무적 + 가속", new Color(1f, 0.3f, 0.2f));
+        Popup(gunsOwned ? "분노 폭발!  미니건 전개!" : "분노 폭발!  무적 + 가속", new Color(1f, 0.3f, 0.2f));
+        gunKills = 0;
+        gunScoreSum = 0;
+        if (gunsOwned) taxi.Say(StoryCatalog.GunPassengerLine(), 2.6f);
         sound.PlayRoar();
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.25f);
     }
 
     void OnRageEnded()
     {
-        Popup("분노가 가라앉았다", new Color(0.9f, 0.9f, 0.9f));
+        if (gunsOwned && gunKills > 0) Popup("난사 " + gunKills + "마리 처치!  +" + gunScoreSum, UiGold);
+        else Popup("분노가 가라앉았다", new Color(0.9f, 0.9f, 0.9f));
         session.ExtendInvuln(0.6f);                 // 겹친 채 끝나도 바로 다치지 않게 잠깐 더 무적
     }
 

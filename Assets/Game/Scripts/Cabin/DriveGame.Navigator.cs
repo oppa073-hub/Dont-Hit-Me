@@ -109,7 +109,7 @@ public partial class DriveGame
         // 목적지와 L자 안내선 (정수 f,r 기준이라 f==0 경계에서 깜빡이지 않는다)
         n = 0;
         int rem = -1;
-        bool carrying = taxi.State == TaxiState.Carrying;
+        bool carrying = taxi.State == TaxiState.Carrying || taxi.State == TaxiState.Waiting;
         if (carrying)
         {
             DestRel(out int f, out int r, out float sd);

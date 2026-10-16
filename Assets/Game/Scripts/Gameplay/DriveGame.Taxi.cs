@@ -14,10 +14,13 @@ public partial class DriveGame
         taxi.PopupRequested += Popup;
         taxi.TalkStarted += OnTalkStarted;
         taxi.Arrived += OnTaxiArrived;
+        taxi.HeistFleeStarted += OnHeistFlee;
+        taxi.HeistWon += OnHeistWon;
     }
 
     void UpdateTaxi(float dt)
     {
+        taxi.HeistAllowed = heistOn && (!shiftMode || shiftLeft > 90f);        // 영업 시간이 모자라면 수상한 손님은 안 나온다
         taxi.Tick(dt, speed, carX, turning, SpawnZ);
     }
 

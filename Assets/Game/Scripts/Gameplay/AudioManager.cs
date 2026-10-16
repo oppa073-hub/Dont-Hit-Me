@@ -12,7 +12,7 @@ public class AudioManager
     readonly AudioSource sfx;
     readonly AudioSource bgm;
     readonly AudioSource rainSrc;
-    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser;
+    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy;
     bool lastBlinkOn;
 
     public AudioManager(DriveGame cfg, GameObject host, Camera cam)
@@ -51,6 +51,8 @@ public class AudioManager
         alarm = MakeAlarm();
         roar = MakeRoar();
         laser = MakeLaser();
+        gunShot = MakeGunShot();
+        deploy = Click(240f, 0.2f, 1f);
     }
 
     // ---- 사건 효과음 ----
@@ -61,6 +63,8 @@ public class AudioManager
     public void PlayAlarm() { Play(alarm, 0.7f); }       // 긴급 속보 사이렌
     public void PlayRoar() { Play(roar, 1f); }           // 괴수 울음
     public void PlayLaser() { Play(laser, 0.8f); }       // 히어로의 눈 레이저
+    public void PlayGun() { Play(gunShot, 0.35f); }      // 미니건 한 발
+    public void PlayDeploy() { Play(deploy, 1f); }       // 미니건이 튀어나오는 철컹
 
     void Play(AudioClip clip, float volume)
     {
@@ -157,6 +161,22 @@ public class AudioManager
             d[i] = lp * env * 0.9f;
         }
         return Make("roar", d);
+    }
+
+    // 미니건 한 발: 짧은 잡음에 낮은 쿵이 섞인 소리
+    static AudioClip MakeGunShot()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 0.07f)];
+        var rnd = new System.Random(41);
+        float phase = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            phase += 170f / Rate * Mathf.PI * 2f;
+            float env = Mathf.Pow(1f - t, 3f);
+            d[i] = (((float)rnd.NextDouble() * 2f - 1f) * 0.8f + Mathf.Sin(phase) * 0.6f) * env * 0.7f;
+        }
+        return Make("gun", d);
     }
 
     // 레이저: 높은 음이 쭉 떨어지는 찌잉

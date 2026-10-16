@@ -6,7 +6,7 @@ using UnityEngine;
 //  레이저: 경고(얇은 빛) 뒤 한쪽 차선을 멀리서부터 쓸어 오며 불길을 남긴다. 반대쪽 차선으로 비켜 가면 안전하다.
 public partial class TrafficManager
 {
-    float nextKaiju, nextStrike, strikeT, flameAcc;
+    float nextKaiju, nextStrike, strikeT, flameAcc, nextBlock;
 
     /// <summary>레이저 상태: 0 없음, 1 경고, 2 쓸어 오는 중.</summary>
     public int StrikeState;
@@ -30,9 +30,88 @@ public partial class TrafficManager
         for (int i = objs.Count - 1; i >= 0; i--)
         {
             int k = objs[i].kind;
-            if (k == Kaiju || k == Flame || k == Smoke) RemoveAt(i);
+            if (k == Kaiju || k == Flame || k == Smoke || k == Boom || k == Police) RemoveAt(i);
         }
         StrikeState = 0;
+    }
+
+    // ---- 경찰 바리케이드 (은행 강도 손님을 태우고 도망칠 때) ----
+
+    public void StartPolice(float elapsed) { nextBlock = elapsed + 3f; }
+
+    public void ClearPolice()
+    {
+        for (int i = objs.Count - 1; i >= 0; i--) if (objs[i].kind == Police) RemoveAt(i);
+    }
+
+    /// <summary>도망 중이면 가끔 경찰차 두 대가 길의 한쪽을 막는다 (반대쪽 차선으로 빠져나가야 한다).</summary>
+    public void TickPolice(float elapsed, bool active, bool turning, float spawnZ)
+    {
+        if (!active || turning || elapsed < nextBlock) return;
+        if (!SlotFree(spawnZ)) { nextBlock = elapsed + 0.6f; return; }
+        float side = Random.value < 0.5f ? -1f : 1f;
+        float z = spawnZ - 4f;
+        SpawnPolice(side * 1.2f, z);
+        SpawnPolice(side * 3.0f, z + 0.5f);
+        nextBlock = elapsed + Mathf.Max(2f, cfg.roadblockInterval) * Random.Range(0.8f, 1.3f);
+    }
+
+    void SpawnPolice(float x, float z)
+    {
+        var o = new Obj { kind = Police, halfW = 0.95f, x = x, z = z, speed = 0f, phase = Random.value * 6f };
+        bool useCustom = cfg.carSprite != null;
+        Sprite bodySprite = useCustom ? cfg.carSprite : sprites.carBody;
+        Bounds sb = bodySprite.bounds;
+        o.centerY = -sb.min.y;
+        if (useCustom) o.halfW = Mathf.Max(0.5f, sb.extents.x * 0.85f);       // 그림 폭에 맞춘다
+        var go = new GameObject("Police");
+        go.transform.SetParent(parent, false);
+        o.t = go.transform;
+        o.body = go.AddComponent<SpriteRenderer>();
+        o.body.sprite = bodySprite;
+        o.body.color = useCustom ? Color.white : new Color(0.14f, 0.22f, 0.6f);
+        if (!useCustom)
+        {
+            var dgo = new GameObject("Detail");
+            dgo.transform.SetParent(go.transform, false);
+            dgo.transform.localPosition = new Vector3(0f, 0f, -0.02f);
+            o.detail = dgo.AddComponent<SpriteRenderer>();
+            o.detail.sprite = sprites.carDetail;
+        }
+        o.lamps = new SpriteRenderer[2];
+        for (int k = 0; k < 2; k++)
+        {
+            var lgo = new GameObject("Light");
+            lgo.transform.SetParent(go.transform, false);
+            lgo.transform.localPosition = new Vector3((k == 0 ? -0.3f : 0.3f) * sb.extents.x, sb.max.y - 0.06f, -0.04f);
+            var lsr = lgo.AddComponent<SpriteRenderer>();
+            lsr.sprite = sprites.lamp;
+            lsr.color = k == 0 ? new Color(1f, 0.1f, 0.1f) : new Color(0.25f, 0.45f, 1f);
+            lgo.transform.localScale = Vector3.one * 1.4f;
+            o.lamps[k] = lsr;
+        }
+        objs.Add(o);
+    }
+
+    // ---- 미니건 ----
+
+    /// <summary>작은 폭발 (총에 맞은 자리).</summary>
+    public void SpawnBoom(float x, float z)
+    {
+        var o = MakeSpriteObj("Boom", Boom, cfg.flameSprite != null ? cfg.flameSprite : sprites.flame);
+        o.x = x;
+        o.z = z;
+        o.life = 0.35f;
+    }
+
+    /// <summary>총에 맞았다: 차/콘/공은 날아가 쓰러지고 불길은 꺼진다. (괴수와 장식은 맞지 않는다)</summary>
+    public void Shoot(Obj o)
+    {
+        SpawnBoom(o.x, o.z);
+        if (o.kind == Flame) { o.life = 0f; o.fallT = 0f; o.hitDone = true; return; }       // 같은 불길을 두 번 처치하지 않게
+        o.hitDone = true;
+        o.fallT = 0f;
+        o.kickDir = Random.value < 0.5f ? -1f : 1f;
     }
 
     // 스프라이트 하나짜리 물체를 만들어 목록에 넣는다 (바닥이 도로에 닿게 높이를 맞춘다)
@@ -100,7 +179,7 @@ public partial class TrafficManager
         for (int i = 0; i < objs.Count; i++)
         {
             var o = objs[i];
-            if (o.kind == Ball || o.kind == Smoke || o.kind == Flame) continue;
+            if (o.kind == Ball || o.kind == Smoke || o.kind == Flame || o.kind == Boom) continue;
             if (o.z > 4f && o.z < 85f) return false;
         }
         return true;

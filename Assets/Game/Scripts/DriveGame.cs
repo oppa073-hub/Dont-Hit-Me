@@ -283,6 +283,28 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("분노 중 부딪혔을 때 얻는 점수")]
     public int rageSmashScore = 30;
 
+    [Header("Heist (랜덤 인카운트: 수상한 손님이 은행까지 가서 기다리게 하고, 나오면 경찰에게 쫓긴다)")]
+    public bool heistOn = true;
+    [Range(0f, 1f)]
+    [Tooltip("손님을 태울 때 수상한 손님일 확률")]
+    public float heistChance = 0.12f;
+    [Tooltip("은행 앞에서 손님을 기다려야 하는 시간(초)")]
+    public float heistWaitSeconds = 9f;
+    [Tooltip("도망칠 때 제한 시간 배율 (작을수록 빠듯)")]
+    public float heistTimeMul = 0.6f;
+    [Tooltip("도망 손님의 요금 배율")]
+    public float heistFareMul = 3f;
+    [Tooltip("경찰 바리케이드가 나오는 간격(초)")]
+    public float roadblockInterval = 6f;
+
+    [Header("Minigun (분노 폭발 때 양옆에서 튀어나와 앞을 쓸어버림. 택시 개조 3단계를 사면 켜짐)")]
+    [Tooltip("1초에 몇 개를 쓸어버리는가")]
+    public float gunKillsPerSec = 7f;
+    [Tooltip("이 거리(m) 안의 앞쪽 물체를 쏜다")]
+    public float gunRange = 55f;
+    [Tooltip("하나 처치할 때마다 얻는 점수")]
+    public int gunKillScore = 10;
+
     [Header("Events (날짜와 돌발 사건: 평범한 날 / 사람 많은 날 / 괴수 침공 / 히어로와 빌런)")]
     [Tooltip("시험용. -1 = 무작위, 0 평범, 1 사람 많은 날, 2 괴수 침공, 3 히어로와 빌런. 플레이 중 F2 = 괴수, F3 = 히어로를 바로 시작")]
     public int forceDayType = -1;
@@ -420,6 +442,7 @@ public partial class DriveGame : MonoBehaviour
         CreateTraffic();
         CreateEvents();
         CreateRage();
+        CreateMinigun();
         CreateMeta();
         CreateLobby();
         CreateAmbience();
@@ -501,6 +524,7 @@ public partial class DriveGame : MonoBehaviour
         BuildBackdrop();
         BuildCabin();
         BuildBattle();
+        BuildMinigun();
         CreateSound();
 
         // 목적지 표지 기둥 (손님을 태운 동안만 보인다)
@@ -517,6 +541,7 @@ public partial class DriveGame : MonoBehaviour
     {
         newsActive = false;
         ClearBlood();
+        gun.Reset();
         rage.Reset();
         ResetEvents();                       // 오늘이 어떤 날인지 먼저 정한다 (사람 많은 날은 시작 인원이 달라진다)
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
@@ -619,7 +644,7 @@ public partial class DriveGame : MonoBehaviour
             session.Tick(Time.deltaTime);                            // 피격 직후 정차해도 붉은 화면이 남지 않게
             bool turned = Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f;
             if (turned && kb.spaceKey.wasPressedThisFrame) AcceptPassenger();
-            else if (turned && kb.xKey.wasPressedThisFrame) DeclinePassenger();
+            else if (turned && kb.xKey.wasPressedThisFrame && !taxi.HeistLocked) DeclinePassenger();
             UpdateWorldVisuals();
             return;
         }
@@ -671,6 +696,8 @@ public partial class DriveGame : MonoBehaviour
         UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
         UpdateEvents(dt, turning ? worldMove : speed * dt);
         UpdateRage(dt);
+        UpdateMinigun(dt);
+        UpdatePolice(dt);
         UpdateNews(dt, kb);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
@@ -697,6 +724,7 @@ public partial class DriveGame : MonoBehaviour
         {
             LayoutCabin();
             UpdateNav();
+            UpdateMinigunView();
         }
 
         UpdateRageTint();

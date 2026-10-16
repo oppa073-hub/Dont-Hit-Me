@@ -59,6 +59,10 @@
   - Gameplay/LobbyManager.cs + Gameplay/DriveGame.Lobby.cs + UI/DriveGame.LobbyDraw.cs : 로비(2D 횡스크롤, 모두 도형으로 그린 임시 그림). 타이틀에서 Space → 로비 → 정비사(박 정비사) 옆 Space = 대사 후 상점 / 택시 옆 Space = 화면이 어두워지며 영업 시작. 게임오버에서 U = 로비, R = 바로 재시작. 흐름 enum GameFlow.Lobby
   - Gameplay/StoryCatalog.cs : 정비사 대사(첫 방문 소개, 어제 날 종류에 따른 인사, 분노 힌트, 상점 대사)와 아침 뉴스 원고. 스토리 대사는 이 파일만 고치면 됨
   - Cabin/DriveGame.News.cs : 영업 시작 직후 내비 화면이 지도 대신 앵커 뉴스(오늘이 어떤 날인지)를 보여 주고, 끝나거나 손님을 태우거나 N 키를 누르면 지도로 복귀
+  - Gameplay/ProjectManager.cs : 택시 개조 4단계(정비소 증축=업그레이드 20% 할인 / 황금 도색=분노 1.5배 오래+요금 / 지붕 양옆 미니건 / 하늘을 나는 택시=엔딩). 상점에서 Tab 으로 쪽을 넘겨 숫자키로 구매, 앞 단계를 먼저 끝내야 함, 끝내면 로비 모습이 바뀌고 정비사 병맛 대사
+  - Gameplay/MinigunManager.cs + Cabin/DriveGame.Minigun.cs : 미니건 개조 후 분노 폭발 때 운전석 양옆으로 미니건이 튀어나와 돌며 앞(3~55m)의 보행자/차/콘/공/불길을 초당 7개 쓸어버림. 괴수, 히어로, 길가의 손님은 쏘지 않음. 처치마다 점수, 분노가 끝나면 처치 수 팝업
+  - 이야기 분위기는 병맛 막장(StoryCatalog 의 대사 톤을 유지할 것)
+  - Gameplay/DriveGame.Heist.cs + TaxiManager(HeistStage) : 랜덤 인카운트 "은행 강도 손님"(heistChance). 수상한 손님을 태우면 은행(1)으로 가고, 도착하면 손님이 들어가고 heistWaitSeconds 동안 이 자리에서 기다려야 함(2, 벗어나면 실패, TaxiState.Waiting), 손님이 뛰어와 거절 불가로 타면(3) 비밀 아지트까지 빠듯한 시간 안에 도망(요금 heistFareMul 배, 경찰 바리케이드=TrafficManager.TickPolice/Police 종류, 사이렌, 화면 가장자리 경광). 디버그 V = 다음 손님을 강도로
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

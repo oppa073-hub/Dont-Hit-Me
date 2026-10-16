@@ -45,6 +45,8 @@ public partial class DriveGame
         }
         else if (kb.digit8Key.wasPressedThisFrame) elapsed += levelSeconds;          // 다음 프레임에 레벨이 한 단계 오른다
         else if (kb.digit9Key.wasPressedThisFrame) rage.DebugFill();
+        else if (kb.cKey.wasPressedThisFrame) { upgrades.AddCoins(5000); RefreshShop(); }
+        else if (kb.vKey.wasPressedThisFrame) taxi.ForceHeistNext = true;
         else if (kb.gKey.wasPressedThisFrame) debugGod = !debugGod;
         else changed = false;
         if (changed) RefreshDebug();
@@ -75,6 +77,8 @@ public partial class DriveGame
                   + "7  시각 +3시간" + NL
                   + "8  레벨 +1" + NL
                   + "9  분노 바로 발동" + NL
+                  + "C  코인 +5000" + NL
+                  + "V  다음 손님을 은행 강도로" + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
                   + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 4)];
     }
@@ -82,7 +86,7 @@ public partial class DriveGame
     void DrawDebug(float W, float H, float u)
     {
         if (!debugOpen) return;
-        Panel(new Rect(14 * u, 326 * u, 300 * u, 284 * u), 0.78f);
-        Label(new Rect(24 * u, 330 * u, 286 * u, 276 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        Panel(new Rect(14 * u, 326 * u, 300 * u, 330 * u), 0.78f);
+        Label(new Rect(24 * u, 330 * u, 286 * u, 322 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
     }
 }

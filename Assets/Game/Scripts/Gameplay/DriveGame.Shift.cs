@@ -52,7 +52,7 @@ public partial class DriveGame
         if (shiftLeft > 0f) return;
 
         taxi.AcceptCallers = false;
-        if (taxi.State == TaxiState.Carrying)
+        if (taxi.State == TaxiState.Carrying || taxi.State == TaxiState.Waiting)       // 손님을 태웠거나 은행 앞에서 기다리는 중이면 마저 끝낸다
         {
             if (!lastFareWarned)
             {

@@ -25,6 +25,9 @@ public class UpgradeManager
     readonly int[] levels = new int[Defs.Length];
 
     public int Coins { get; private set; }
+
+    /// <summary>업그레이드 값에 곱하는 할인 배율 (정비소 증축 프로젝트를 끝내면 0.8).</summary>
+    public float CostMul = 1f;
     public int Count { get { return Defs.Length; } }
 
     public UpgradeManager()
@@ -38,7 +41,17 @@ public class UpgradeManager
     public bool IsMax(int id) { return levels[id] >= Defs[id].maxLevel; }
 
     /// <summary>다음 단계 비용. 최고 단계면 -1.</summary>
-    public int Cost(int id) { return IsMax(id) ? -1 : Defs[id].baseCost * (levels[id] + 1); }
+    public int Cost(int id) { return IsMax(id) ? -1 : Mathf.RoundToInt(Defs[id].baseCost * (levels[id] + 1) * CostMul / 10f) * 10; }
+
+    /// <summary>코인을 쓴다 (프로젝트 구매용). 모자라면 false.</summary>
+    public bool Spend(int n)
+    {
+        if (n < 0 || Coins < n) return false;
+        Coins -= n;
+        PlayerPrefs.SetInt(CoinsKey, Coins);
+        PlayerPrefs.Save();
+        return true;
+    }
 
     public void AddCoins(int n)
     {

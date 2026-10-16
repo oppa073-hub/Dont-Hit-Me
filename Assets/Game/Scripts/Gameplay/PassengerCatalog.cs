@@ -14,6 +14,7 @@ public class PaxType
     public int weight = 2;           // 나타날 확률 가중치
     public string[] chat;            // 타고 가는 동안 가끔 걸어 오는 말 (없으면 조용한 손님)
     public float swerveSense = 0f;   // 급하게 핸들을 꺾을 때 멀미하는 정도 (0 = 상관없음, 클수록 쉽게 멀미)
+    public bool heist;               // 은행 강도 손님 (랜덤 인카운트로만 나온다. weight 는 0)
 }
 
 // 손님 데이터 표: 여기만 고치면 이름/대사/목적지/요금이 바뀐다. (대사를 늘리려면 이 파일만 열면 된다)
@@ -103,7 +104,47 @@ public static class PassengerCatalog
             thanks = new[] { "살았다… 감사합니다.", "부드럽게 와줘서 고마워요." },
             fareMul = 1.1f, hitSense = 1.0f, swerveSense = 0.25f, weight = 1
         },
+        new PaxType   // 수상한 손님: 은행까지 태워 가서 기다리게 하고, 나오면 경찰에 쫓긴다 (랜덤 인카운트, 평소에는 안 나옴)
+        {
+            names = new[] { "선글라스 손님", "마스크 손님", "큰 가방 손님" },
+            dests = new[] { "은행" },
+            hello = new[]
+            {
+                "{0}까지 가 주세요. 잠깐 볼일만 보고 올 거예요. 복면은… 패션이에요.",
+                "{0}까지요! 가방이 좀 큰데 빈 거예요. 진짜로. 나올 땐 무거워지겠지만.",
+                "{0}까지 부탁해요. 기사님, 입 무거우시죠? 아, 그냥 물어봤어요.",
+            },
+            react = new[] { "으악, 눈에 안 띄게 가자니까요!", "경찰 오면 어쩌려고요!", "조용히 좀 몰아요, 조용히!" },
+            thanks = new[] { "(헉헉) 고마워요! 이건 비밀 팁이에요. 우리 만난 적 없죠?", "도주 성공! 이 돈은… 음, 세탁해야겠네요." },
+            fareMul = 1.2f, hitSense = 1.0f, tipMul = 3f, weight = 0, heist = true
+        },
     };
+
+    // 은행 강도 인카운트 대사
+    public static readonly string[] HeistHideouts = { "비밀 아지트", "이모네 집", "폐공장", "역 앞 코인락커" };
+
+    public static readonly string[] HeistReturnLines =
+    {
+        "(헉헉) 출발! 출발해요!! 경찰이 와요!! {0}까지 빨리빨리!!",
+        "가자 가자 가자!! 뒤돌아보지 마요!! {0}까지요!!",
+        "기사님 사랑해요!! 아무튼 {0}까지 전속력으로!!",
+    };
+
+    public static readonly string[] HeistWaitLines =
+    {
+        "금방 올게요! 여기서 꼼짝 말고 기다려 주세요!",
+        "5분이면 돼요. 아, 시동은 끄지 마시고요.",
+    };
+
+    /// <summary>은행 강도 손님 유형.</summary>
+    public static PaxType Heist
+    {
+        get
+        {
+            foreach (var t in PaxTypes) if (t.heist) return t;
+            return PaxTypes[0];
+        }
+    }
 
     public static readonly Color[] SkinTones =
     {

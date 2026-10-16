@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum TaxiState { Cruise, Talking, Carrying }
+public enum TaxiState { Cruise, Talking, Carrying, Waiting }
 
 // 택시 매니저: 손님 호출 → 정차 → 대화 → 탑승 → 도착(정산)까지의 흐름과 요금/팁/제한 시간/목적지를 맡는다.
 // 차의 속도, 시점, 점수, 팝업 같은 "게임 쪽" 일은 이벤트로 DriveGame 에 알리고, 필요한 값은 Tick/Accept 인자로 받는다.
@@ -59,6 +59,16 @@ public class TaxiManager
     /// <summary>길가에 손님이 나타났다 (머리 위에 !).</summary>
     public event System.Action CallerAppeared;
 
+    // ---- 은행 강도 인카운트: 1 은행으로 가는 중, 2 은행 앞에서 손님을 기다리는 중(떠나면 실패), 3 손님을 태우고 경찰에게서 도망치는 중 ----
+    public int HeistStage { get; private set; }
+    public float WaitT { get; private set; }
+    float awayT;                            // 은행 자리를 벗어나 있던 시간 (잠깐은 봐준다)
+    public bool HeistAllowed;               // DriveGame 이 정한다 (영업 시간이 모자라면 안 나온다)
+    public bool ForceHeistNext;             // 시험용: 다음 손님을 은행 강도로
+    public bool HeistFlee { get { return HeistStage == 3 && State == TaxiState.Carrying; } }
+    public bool HeistLocked { get { return HeistStage == 3 && State == TaxiState.Talking; } }       // 도망 손님은 거절할 수 없다
+    public event System.Action HeistFleeStarted, HeistWon;
+
     public TaxiManager(DriveGame cfg, PedestrianManager peds, DestRelFn destRel)
     {
         this.cfg = cfg;
@@ -95,6 +105,9 @@ public class TaxiManager
         ReactUntil = ThanksUntil = 0f;
         ReactIsChat = false;
         sick = sickCooldown = 0f;
+        HeistStage = 0;
+        WaitT = 0f;
+        ForceHeistNext = false;
     }
 
     /// <summary>회전이 끝나 사람들을 다시 깔았다: 기다리던 손님도 사라졌으니 잊고 다음 손님을 기다린다.</summary>
@@ -132,6 +145,17 @@ public class TaxiManager
             {
                 BeginTalk();
             }
+        }
+        else if (State == TaxiState.Waiting)
+        {
+            // 은행 앞에서 손님을 기다린다: 이 자리를 벗어나면 실패, 시간이 차면 손님이 뛰어온다
+            WaitT += dt;
+            destRel(DestX, DestY, out int wf, out int wr, out float wsd);
+            bool away = wr != 0 || Mathf.Abs(wsd) > Mathf.Max(1f, cfg.arriveRadius) * 2.2f;
+            awayT = away ? awayT + dt : 0f;
+            if (away && awayT - dt <= 0f) Popup("자리를 지키세요! 손님이 아직 안 나왔어요", new Color(1f, 0.7f, 0.3f));      // 벗어나는 순간 경고
+            if (!turning && awayT > 1.5f) HeistFail();                                                           // 1.5초 넘게 벗어나 있으면 실패
+            else if (WaitT >= cfg.heistWaitSeconds && !turning) BeginHeistReturn(spawnZ);
         }
         else if (State == TaxiState.Carrying)
         {
@@ -183,7 +207,8 @@ public class TaxiManager
                 float radius = Mathf.Max(1f, cfg.arriveRadius);
                 if (speed <= cfg.pickupSpeed && Mathf.Abs(sd) <= radius)
                 {
-                    Arrive();
+                    if (HeistStage == 1) BeginHeistWait();       // 은행에 도착: 손님은 내려서 들어가고, 기다려야 한다
+                    else Arrive();
                 }
                 else if (sd < -radius && !Overshot)
                 {
@@ -209,18 +234,65 @@ public class TaxiManager
     void BeginTalk()
     {
         State = TaxiState.Talking;
-        Pax = PassengerCatalog.PickType();
+        bool heist = HeistAllowed && HeistStage == 0 && (ForceHeistNext || Random.value < cfg.heistChance);       // 가끔 수상한 손님
+        ForceHeistNext = false;
+        Pax = heist ? PassengerCatalog.Heist : PassengerCatalog.PickType();
         PaxName = PassengerCatalog.PickOne(Pax.names);
         DestName = PassengerCatalog.PickOne(Pax.dests);
         PaxLine = string.Format(PassengerCatalog.PickOne(Pax.hello), DestName);
         PaxSkin = PassengerCatalog.SkinTones[Random.Range(0, PassengerCatalog.SkinTones.Length)];
         PaxHair = PassengerCatalog.HairTones[Pax.hair >= 0 ? Pax.hair % PassengerCatalog.HairTones.Length : Random.Range(0, PassengerCatalog.HairTones.Length)];
         PaxShirt = Caller.baseColor;
+        FaceCaller();
+    }
 
-        // 손님 쪽(왼쪽/오른쪽)으로 시점을 돌린다
+    // 손님 쪽(왼쪽/오른쪽)으로 시점을 돌린다
+    void FaceCaller()
+    {
         float dx = Caller.x - (carX - 0.4f);
         float yaw = Mathf.Atan2(dx, Mathf.Max(0.5f, Caller.z)) * Mathf.Rad2Deg;
         if (TalkStarted != null) TalkStarted(yaw);
+    }
+
+    // ---- 은행 강도 ----
+
+    void BeginHeistWait()
+    {
+        HeistStage = 2;
+        State = TaxiState.Waiting;
+        WaitT = 0f;
+        awayT = 0f;
+        ThanksText = PaxName + ": \"" + PassengerCatalog.PickOne(PassengerCatalog.HeistWaitLines) + "\"";
+        ThanksUntil = Time.unscaledTime + 3f;
+        Popup("손님이 은행으로 들어갔다…  기다리세요!", new Color(1f, 0.85f, 0.3f));
+    }
+
+    void HeistFail()
+    {
+        HeistStage = 0;
+        State = TaxiState.Cruise;
+        Pax = null;
+        ThanksUntil = 0f;                                    // 기다리라던 대사가 남지 않게
+        ResetCallerTimer();
+        Popup("손님을 버리고 떠났다…  의뢰 실패!", new Color(1f, 0.5f, 0.4f));
+    }
+
+    // 시간이 찼다: 손님이 가방을 끌어안고 뛰어와 차에 매달린다 (옆 시점 대화, 거절 불가)
+    void BeginHeistReturn(float spawnZ)
+    {
+        float side = Random.value < 0.5f ? -1f : 1f;
+        var p = peds.Spawn(spawnZ, 0, 1.5f, side);
+        p.caller = true;
+        p.walkZ = 0f;
+        p.x = side * (cfg.roadHalfWidth + 1.2f);
+        p.baseColor = PaxShirt;
+        p.sr.color = PaxShirt;
+        Caller = p;
+        DestName = PassengerCatalog.PickOne(PassengerCatalog.HeistHideouts);
+        PaxLine = string.Format(PassengerCatalog.PickOne(PassengerCatalog.HeistReturnLines), DestName);
+        HeistStage = 3;
+        State = TaxiState.Talking;
+        FaceCaller();
     }
 
     /// <summary>손님을 태운다. 목적지를 정하고 제한 시간을 계산한다. (gx, gy) = 방금 지난 교차로, heading = 진행 방향, period = 교차로 간격(m), cruiseSpeed = 지금 순항 속도.</summary>
@@ -247,10 +319,14 @@ public class TaxiManager
         sick = sickCooldown = 0f;
         chatTimer = Random.Range(5f, 9f);
         LateWarned = false;
+        if (Pax != null && Pax.heist && HeistStage == 0) HeistStage = 1;              // 수상한 손님을 태웠다: 먼저 은행으로
+        bool fleeing = HeistStage == 3;
+        if (fleeing) TripLimit *= Mathf.Max(0.2f, cfg.heistTimeMul);                  // 도망 중이라 시간이 빠듯하다
 
         peds.Remove(Caller);                                 // 손님은 차 안으로
         Caller = null;
-        Popup("출발!", new Color(1f, 0.9f, 0.4f));
+        Popup(fleeing ? "출발!  경찰이 쫓아온다!" : "출발!", new Color(1f, 0.9f, 0.4f));
+        if (fleeing && HeistFleeStarted != null) HeistFleeStarted();
     }
 
     /// <summary>손님을 거절한다. 손님은 다시 인도를 걷는다.</summary>
@@ -268,6 +344,7 @@ public class TaxiManager
 
     void Arrive()
     {
+        bool escaped = HeistStage == 3;                       // 도주 성공 (요금이 몇 배)
         int fare = CurrentFare();
         if (Pax != null)
         {
@@ -277,10 +354,21 @@ public class TaxiManager
         int tip = CurrentTip();
         FareTotal += fare + tip;
         Trips++;
-        Popup(tip > 0 ? "도착! +" + fare + "원  (팁 +" + tip + ")" : "도착! +" + fare + "원", new Color(1f, 0.85f, 0.3f));
+        Popup(escaped ? "도주 성공!  +" + (fare + tip) + "원" : (tip > 0 ? "도착! +" + fare + "원  (팁 +" + tip + ")" : "도착! +" + fare + "원"), new Color(1f, 0.85f, 0.3f));
         State = TaxiState.Cruise;
+        HeistStage = 0;
         ResetCallerTimer();
+        if (escaped && HeistWon != null) HeistWon();
         if (Arrived != null) Arrived(fare + tip);
+    }
+
+    /// <summary>태운 손님이 한마디 한다 (미니건이 튀어나올 때 같은 상황).</summary>
+    public void Say(string text, float seconds)
+    {
+        if (State != TaxiState.Carrying) return;
+        ReactText = text;
+        ReactIsChat = true;
+        ReactUntil = Time.unscaledTime + seconds;
     }
 
     /// <summary>사람을 쳤다. 태운 손님이 놀라고 요금이 깎인다.</summary>
@@ -302,7 +390,8 @@ public class TaxiManager
     {
         float typeMul = Pax != null ? Pax.fareMul : 1f;
         float mul = Mathf.Max(0.2f, FareMul * LateMul());                  // 사고/지나침/지각 감액을 합쳐도 20% 밑으로는 안 내려간다
-        return Mathf.RoundToInt((cfg.baseFare + cfg.farePerMeter * TripMeters) * mul * typeMul * FareBonusMul / 10f) * 10;
+        float heistMul = HeistStage == 3 ? Mathf.Max(1f, cfg.heistFareMul) : 1f;       // 도망 중인 손님은 요금이 몇 배
+        return Mathf.RoundToInt((cfg.baseFare + cfg.farePerMeter * TripMeters) * mul * typeMul * heistMul * FareBonusMul / 10f) * 10;
     }
 
     // 제한 시간을 넘긴 만큼 요금에 곱하는 값 (제한 안이면 1)

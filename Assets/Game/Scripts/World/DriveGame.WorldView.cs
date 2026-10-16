@@ -158,7 +158,7 @@ public partial class DriveGame
         {
             // 목적지가 지금 달리는 도로 위(r==0)에 있을 때만 보인다. 회전 중에는 옛 도로 위에 있는 경우(회전하는 교차로 자체)만, 장면 교체 전까지.
             DestRel(out int mf, out int mr, out float mz);
-            bool show = taxi.State == TaxiState.Carrying && mr == 0 && mz > -25f && mz < SpawnZ
+            bool show = (taxi.State == TaxiState.Carrying || taxi.State == TaxiState.Waiting) && mr == 0 && mz > -25f && mz < SpawnZ
                         && (!turning || (!retargeted && mf < 0));
             if (destMarker.gameObject.activeSelf != show) destMarker.gameObject.SetActive(show);
             rendRot = turning;
@@ -223,6 +223,14 @@ public partial class DriveGame
                 // 불길은 일렁이고 꺼지기 직전에 작아진다
                 sy = (1f + 0.2f * Mathf.Sin(elapsed * 17f + o.phase)) * Mathf.Min(1f, o.life);
                 o.t.localScale = new Vector3(0.9f + 0.15f * Mathf.Sin(elapsed * 13f + o.phase), sy, 1f);
+            }
+            else if (o.kind == TrafficManager.Boom)
+            {
+                // 폭발은 순식간에 부풀었다가 사라진다
+                float bk = 1f - Mathf.Clamp01(o.life / 0.35f);
+                sy = 1f + 2.4f * bk;
+                o.t.localScale = new Vector3(1f + 2.4f * bk, sy, 1f);
+                o.body.color = new Color(1f, 0.8f, 0.4f, 1f - bk);
             }
             else if (o.kind == TrafficManager.Smoke)
             {

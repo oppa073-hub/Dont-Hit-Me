@@ -13,7 +13,7 @@ public class TrafficSprites
 
 public partial class TrafficManager
 {
-    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7;
+    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7, Boom = 8, Police = 9;
 
     public class Obj
     {
@@ -78,6 +78,7 @@ public partial class TrafficManager
         StrikeState = 0;
         nextKaiju = Mathf.Max(nextKaiju, lastElapsed + 6f);
         nextStrike = Mathf.Max(nextStrike, lastElapsed + 3f);
+        nextBlock = Mathf.Max(nextBlock, lastElapsed + 2.5f);          // 회전 직후에는 경찰 바리케이드도 잠깐 쉰다
         nextVehicle = Mathf.Max(nextVehicle, lastElapsed + 3f);       // 회전 직후에는 잠깐 비워 둔다
         nextHazard = Mathf.Max(nextHazard, lastElapsed + 4f);
     }
@@ -99,7 +100,7 @@ public partial class TrafficManager
         int blockers = 0;
         for (int i = 0; i < objs.Count; i++)
         {
-            if (objs[i].kind == Ball || objs[i].kind == Smoke) continue;
+            if (objs[i].kind == Ball || objs[i].kind == Smoke || objs[i].kind == Boom) continue;
             blockers++;
             if (objs[i].z > spawnZ - 35f) return false;
         }
@@ -138,6 +139,11 @@ public partial class TrafficManager
 
             if (o.kind == Broken && o.lamps != null)
                 for (int k = 0; k < o.lamps.Length; k++) o.lamps[k].enabled = lampOn;
+            else if (o.kind == Police && o.lamps != null)
+            {
+                o.lamps[0].enabled = lampOn;            // 경광등: 빨강/파랑이 번갈아 번쩍인다
+                o.lamps[1].enabled = !lampOn;
+            }
 
             if (o.kind == Kaiju)
             {
@@ -148,7 +154,7 @@ public partial class TrafficManager
                     o.lamps[0].transform.localScale = new Vector3(fk, fk * 1.2f, 1f);
                 }
             }
-            else if (o.kind == Smoke)
+            else if (o.kind == Smoke || o.kind == Boom)
             {
                 o.life -= dt;
                 if (o.life <= 0f || o.z < -6f) RemoveAt(i);
@@ -205,7 +211,7 @@ public partial class TrafficManager
             else if (o.z <= -0.6f && !o.scored)
             {
                 o.scored = true;
-                bool vehicle = o.kind == Sedan || o.kind == Truck || o.kind == Broken;
+                bool vehicle = o.kind == Sedan || o.kind == Truck || o.kind == Broken || o.kind == Police;
                 if (vehicle && o.minLat < hitDist + cfg.vehicleNearMissMargin && NearMiss != null) NearMiss(o);
             }
 

@@ -17,6 +17,10 @@ public class RageManager
     /// <summary>게이지는 가득 찼는데 손님이 없어서 발동을 기다리는 중.</summary>
     public bool Ready { get { return Gauge >= 1f && !Active; } }
 
+    // 영구 효과 배율 (택시 개조 프로젝트가 정해 준다. 기본값은 영향 없음)
+    public float DurationMul = 1f;      // 분노 지속 시간에 곱함
+    public float FillMul = 1f;          // 게이지가 차는 속도에 곱함
+
     bool canActivate;                   // 마지막 Tick 에서 받은 값: 지금 발동해도 되는가 (손님을 태운 중)
 
     public event System.Action Started, Ended;
@@ -34,7 +38,7 @@ public class RageManager
     }
 
     /// <summary>분노가 얼마나 남았는가 (발동 직후 1 → 끝날 때 0). 분노 중이 아니면 0.</summary>
-    public float Remaining01 { get { return Active ? Mathf.Clamp01(TimeLeft / Mathf.Max(1f, cfg.rageDuration)) : 0f; } }
+    public float Remaining01 { get { return Active ? Mathf.Clamp01(TimeLeft / Mathf.Max(1f, cfg.rageDuration * DurationMul)) : 0f; } }
 
     /// <summary>분노 상태에서 곱할 속도 배율 (아니면 1).</summary>
     public float SpeedMul { get { return Active ? Mathf.Max(1f, cfg.rageSpeedMul) : 1f; } }
@@ -58,7 +62,7 @@ public class RageManager
             }
             return;
         }
-        Gauge = Mathf.Min(1f, Gauge + dt / Mathf.Max(5f, cfg.rageFillSeconds));
+        Gauge = Mathf.Min(1f, Gauge + dt * FillMul / Mathf.Max(5f, cfg.rageFillSeconds));
         if (Gauge >= 1f && canActivate) Begin();
     }
 
@@ -80,7 +84,7 @@ public class RageManager
     {
         Gauge = 1f;
         Active = true;
-        TimeLeft = Mathf.Max(1f, cfg.rageDuration);
+        TimeLeft = Mathf.Max(1f, cfg.rageDuration) * DurationMul;
         if (Started != null) Started();
     }
 }

@@ -73,6 +73,15 @@ public class PedestrianManager
         peds.Clear();
     }
 
+    /// <summary>총에 맞았다: 쓰러지는 연출을 시작한다 (충돌/니어미스 판정은 하지 않는다).</summary>
+    public void Shoot(Ped p)
+    {
+        if (p.fallT >= 0f) return;
+        p.fallT = 0f;
+        p.dir = Random.value < 0.5f ? -1f : 1f;
+        p.sr.color = new Color(1f, 0.4f, 0.4f);
+    }
+
     public void Remove(Ped p)
     {
         int i = peds.IndexOf(p);
