@@ -16,15 +16,7 @@ public partial class DriveGame
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + 0.3f;
 
-        // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
-        if (taxi == TaxiState.Carrying)
-        {
-            reactText = PickOne(pax != null ? pax.react : PaxTypes[0].react);
-            reactUntil = Time.unscaledTime + 1.6f;
-            float sense = pax != null ? pax.hitSense : 1f;
-            float hitMul = Mathf.Clamp01(1f - (1f - hitFareMul) * sense);    // 유형이 민감할수록 더 깎는다
-            fareMul = Mathf.Max(0.2f, fareMul * hitMul);
-        }
+        taxi.OnPedHit();                      // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
         if (invuln > 0f) return;
 
         lives--;

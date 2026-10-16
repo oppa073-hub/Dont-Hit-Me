@@ -299,6 +299,11 @@ public partial class DriveGame : MonoBehaviour
 
     bool gameOver;
 
+    // 시점: 손님과 대화할 때 옆으로 돌린다 (camYawTarget 은 목표, camYaw 는 현재)
+    float camYaw, camYawTarget;
+
+    Transform destMarker;                // 목적지 표지 기둥 (손님을 태운 동안만 보인다)
+
     void Awake()
     {
         whiteTex = MakeTexture(false);
@@ -306,6 +311,7 @@ public partial class DriveGame : MonoBehaviour
         peds = new PedestrianManager(this, transform, MakePedSprite());
         peds.Hit += OnPedHit;
         peds.NearMiss += OnPedNearMiss;
+        CreateTaxi();
         litShader = Shader.Find("Universal Render Pipeline/Lit");
         if (litShader == null) litShader = Shader.Find("Standard");
 
@@ -402,28 +408,16 @@ public partial class DriveGame : MonoBehaviour
         popupUntil = 0f;
         gameOver = false;
 
-        taxi = TaxiState.Cruise;
-        caller = null;
-        callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+        taxi.Reset();
         camYaw = camYawTarget = 0f;
-        fareMul = 1f;
-        fareTotal = trips = 0;
-        reactUntil = 0f;
-        pax = null;
-        thanksUntil = 0f;
-        tripLimit = tripT = 0f;
-        lateWarned = false;
         hudTimeLeft = int.MinValue;
         blinker = 0;
         heading = 0;
         gx = 0;
         gy = 0;
         turning = retargeted = false;
-        destX = destY = 0;
-        overshot = false;
         hintF = int.MinValue;
         hudRem = -1;
-        tripMeters = 0f;
         lastKNext = int.MinValue;
         turnAlpha = 0f;
         retargetFadeT = -1f;
@@ -447,7 +441,7 @@ public partial class DriveGame : MonoBehaviour
         }
 
         // 손님과 대화 중: 월드는 멈춰 있고 Space 로 태우거나 X 로 거절한다
-        if (taxi == TaxiState.Talking)
+        if (taxi.State == TaxiState.Talking)
         {
             hurtFlash = Mathf.Max(0f, hurtFlash - Time.deltaTime);   // 피격 직후 정차해도 붉은 화면이 남지 않게
             invuln = Mathf.Max(0f, invuln - Time.deltaTime);
@@ -514,11 +508,11 @@ public partial class DriveGame : MonoBehaviour
         float roll = -lateralVel / maxLateral * 2.5f;
         camYaw = Mathf.MoveTowardsAngle(camYaw, camYawTarget, yawSpeed * Time.unscaledDeltaTime);
         cam.transform.rotation = Quaternion.Euler(0f, camYaw, roll);
-        float fovTarget = taxi == TaxiState.Talking ? sideFov : 70f;
+        float fovTarget = taxi.State == TaxiState.Talking ? sideFov : 70f;
         cam.fieldOfView = Mathf.MoveTowards(cam.fieldOfView, fovTarget, 120f * Time.unscaledDeltaTime);
 
         // 옆 시점(손님 대화) 중에는 손/핸들/대시보드를 숨긴다
-        cabinVisible = taxi != TaxiState.Talking && Mathf.Abs(camYaw) < 4f;
+        cabinVisible = taxi.State != TaxiState.Talking && Mathf.Abs(camYaw) < 4f;
         if (viewRoot != null && viewRoot.gameObject.activeSelf != cabinVisible) viewRoot.gameObject.SetActive(cabinVisible);
         if (cabinVisible && navScreen != null)
         {

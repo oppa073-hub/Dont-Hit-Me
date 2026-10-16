@@ -6,8 +6,6 @@ using UnityEngine.Rendering;
 // 목적지 안내: 목적지를 앞/옆 칸수로 바꾸고 안내 문장을 만든다
 public partial class DriveGame
 {
-    int destX, destY;                    // 목적지 교차로의 격자 좌표 (AcceptPassenger 에서 정함)
-
     int hintF = int.MinValue, hintR;     // 안내 글자 캐시 키 (f,r 이 바뀔 때만 문자열을 다시 만든다)
 
     string hintText = "";
@@ -33,6 +31,12 @@ public partial class DriveGame
     }
 
     void DestRel(out int f, out int r, out float sd)
+    {
+        DestRel(taxi.DestX, taxi.DestY, out f, out r, out sd);      // 지금 태운 손님의 목적지
+    }
+
+    // 주어진 격자 좌표(destX, destY)에 대해 계산한다. TaxiManager 가 도착/지나침 판정에 이 함수를 빌려 쓴다.
+    void DestRel(int destX, int destY, out int f, out int r, out float sd)
     {
         NavState(out int bx, out int by, out int h, out float zE);
         float period = Period;

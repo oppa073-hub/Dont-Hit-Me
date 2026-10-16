@@ -37,6 +37,8 @@ public partial class DriveGame
     int hudLives = -1, hudMaxLives = -1, hudTotal = -1, hudKmh = -1, hudNear = -1, hudHits = -1, hudPeds = -1, hudSec = -1;
 
     string hudHearts = "", hudScore = "", hudStats = "";
+    int hudFareTotal = -1, hudTrips = -1;
+    string hudFareTotalText = "";
 
     void Label(Rect r, string text, int size, Color color, TextAnchor anchor)
     {
@@ -82,7 +84,7 @@ public partial class DriveGame
     // 룸미러: 평소엔 빈 거울, 손님을 태우면 기사 얼굴 뒤로 손님 얼굴이 보인다
     void DrawRearMirror(float W, float H)
     {
-        bool carrying = taxi == TaxiState.Carrying;
+        bool carrying = taxi.State == TaxiState.Carrying;
         float mw = carrying ? W * 0.16f : W * 0.106f;
         float mh = carrying ? H * 0.085f : H * 0.04f;
         var r = new Rect(W * 0.5f - mw * 0.5f, H * 0.098f, mw, mh);
@@ -91,9 +93,9 @@ public partial class DriveGame
         if (!carrying) return;
 
         float s = mh * 0.62f;
-        bool shocked = Time.unscaledTime < reactUntil;
-        DrawFace(new Vector2(r.center.x + mw * 0.16f, r.center.y - mh * 0.02f), s * 0.85f, paxSkin, paxHair, shocked);   // 뒤쪽 손님
-        DrawFace(new Vector2(r.center.x - mw * 0.14f, r.center.y + mh * 0.06f), s, SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);   // 기사
+        bool shocked = Time.unscaledTime < taxi.ReactUntil;
+        DrawFace(new Vector2(r.center.x + mw * 0.16f, r.center.y - mh * 0.02f), s * 0.85f, taxi.PaxSkin, taxi.PaxHair, shocked);   // 뒤쪽 손님
+        DrawFace(new Vector2(r.center.x - mw * 0.14f, r.center.y + mh * 0.06f), s, PassengerCatalog.SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);   // 기사
     }
 
     void DrawCabin()
@@ -154,9 +156,9 @@ public partial class DriveGame
         if (cam == null) return;
 
         // 손님 머리 위 느낌표
-        if (caller != null && caller.t != null && taxi != TaxiState.Carrying && !(turning && retargeted))
+        if (taxi.Caller != null && taxi.Caller.t != null && taxi.State != TaxiState.Carrying && !(turning && retargeted))
         {
-            Vector3 sp = cam.WorldToScreenPoint(caller.t.position + Vector3.up * 1.2f);
+            Vector3 sp = cam.WorldToScreenPoint(taxi.Caller.t.position + Vector3.up * 1.2f);
             if (sp.z > 0f)
             {
                 float size = Mathf.Clamp(1100f / sp.z, 26f, 90f);
@@ -165,18 +167,18 @@ public partial class DriveGame
         }
 
         // 목적지 표지 위 글자
-        if (taxi == TaxiState.Carrying && destMarker != null && destMarker.gameObject.activeSelf)
+        if (taxi.State == TaxiState.Carrying && destMarker != null && destMarker.gameObject.activeSelf)
         {
             Vector3 sp = cam.WorldToScreenPoint(destMarker.position + Vector3.up * 3.4f);
             if (sp.z > 0f)
             {
                 float size = Mathf.Clamp(1400f / sp.z, 20f, 60f);
-                Label(new Rect(sp.x - 120 * u, H - sp.y - size * u, 240 * u, size * u * 1.3f), destName, Mathf.RoundToInt(size), new Color(1f, 0.9f, 0.3f), TextAnchor.MiddleCenter);
+                Label(new Rect(sp.x - 120 * u, H - sp.y - size * u, 240 * u, size * u * 1.3f), taxi.DestName, Mathf.RoundToInt(size), new Color(1f, 0.9f, 0.3f), TextAnchor.MiddleCenter);
             }
         }
 
         // 탑승 정보 (상단 가운데)
-        if (taxi == TaxiState.Carrying)
+        if (taxi.State == TaxiState.Carrying)
         {
             DestRel(out int nf, out int nr, out float nsd);
             int rem = Mathf.RoundToInt(Mathf.Abs(nsd) + Mathf.Abs(nr) * Period);
@@ -188,28 +190,28 @@ public partial class DriveGame
                 hintNear = near;
                 hintText = NavHint(nf, nr, near);
             }
-            int fareNow = CurrentFare();
-            bool late = tripT > tripLimit;
-            int timeKey = late ? -Mathf.CeilToInt(tripT - tripLimit) : Mathf.CeilToInt(tripLimit - tripT);   // 음수면 지각한 초
-            int tipNow = CurrentTip();
-            if (rem != hudRem || fareNow != hudFareNow || timeKey != hudTimeLeft || tipNow != hudTip || paxName != hudPaxName || destName != hudDestName)
+            int fareNow = taxi.CurrentFare();
+            bool late = taxi.TripT > taxi.TripLimit;
+            int timeKey = late ? -Mathf.CeilToInt(taxi.TripT - taxi.TripLimit) : Mathf.CeilToInt(taxi.TripLimit - taxi.TripT);   // 음수면 지각한 초
+            int tipNow = taxi.CurrentTip();
+            if (rem != hudRem || fareNow != hudFareNow || timeKey != hudTimeLeft || tipNow != hudTip || taxi.PaxName != hudPaxName || taxi.DestName != hudDestName)
             {
                 hudRem = rem;
                 hudFareNow = fareNow;
                 hudTimeLeft = timeKey;
                 hudTip = tipNow;
-                hudPaxName = paxName;
-                hudDestName = destName;
+                hudPaxName = taxi.PaxName;
+                hudDestName = taxi.DestName;
                 string timeStr = late ? "지각 " + (-timeKey) + "초" : "남은 시간 " + timeKey + "초";
                 string tipStr = tipNow > 0 ? " (팁 +" + tipNow + ")" : "";
-                hudTripText = paxName + " → " + destName + "   남은 거리 " + rem + " m   " + timeStr + "   요금 " + fareNow + "원" + tipStr;
+                hudTripText = taxi.PaxName + " → " + taxi.DestName + "   남은 거리 " + rem + " m   " + timeStr + "   요금 " + fareNow + "원" + tipStr;
             }
             Label(new Rect(0, H * 0.20f, W, 30 * u), hudTripText, 20, late ? new Color(1f, 0.55f, 0.45f) : new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
             Label(new Rect(0, H * 0.20f + 28 * u, W, 26 * u), hintText, 17, new Color(0.6f, 1f, 0.7f, 0.95f), TextAnchor.MiddleCenter);
         }
-        else if (taxi == TaxiState.Cruise)
+        else if (taxi.State == TaxiState.Cruise)
         {
-            string hint = caller != null
+            string hint = taxi.Caller != null
                 ? "손님이 기다린다! 손님 쪽 인도에 붙어서 브레이크로 멈추세요"
                 : "손님을 찾는 중...";
             Label(new Rect(0, H * 0.20f, W, 28 * u), hint, 18, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
@@ -236,30 +238,36 @@ public partial class DriveGame
         Label(new Rect(0, H * 0.34f, W, 26 * u), hudInterText, 16, new Color(0.8f, 0.95f, 1f, 0.9f), TextAnchor.MiddleCenter);
 
         // 누적 요금 (좌측 상단 아래)
-        Label(new Rect(20 * u, 84 * u, 500 * u, 30 * u), "요금 " + fareTotal + "원   (" + trips + "명)", 18, new Color(1f, 0.92f, 0.5f), TextAnchor.UpperLeft);
+        if (taxi.FareTotal != hudFareTotal || taxi.Trips != hudTrips)
+        {
+            hudFareTotal = taxi.FareTotal;
+            hudTrips = taxi.Trips;
+            hudFareTotalText = "요금 " + hudFareTotal + "원   (" + hudTrips + "명)";
+        }
+        Label(new Rect(20 * u, 84 * u, 500 * u, 30 * u), hudFareTotalText, 18, new Color(1f, 0.92f, 0.5f), TextAnchor.UpperLeft);
 
         // 손님 대화 상자
-        if (taxi == TaxiState.Talking && Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f)
+        if (taxi.State == TaxiState.Talking && Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f)
         {
             var box = new Rect(W * 0.10f, H * 0.62f, W * 0.80f, H * 0.30f);
             Fill(box, new Color(0.05f, 0.05f, 0.08f, 0.88f));
-            DrawFace(new Vector2(box.x + box.height * 0.55f, box.center.y), box.height * 0.62f, paxSkin, paxHair, false);
-            Dot(new Vector2(box.x + box.height * 0.55f, box.yMax - box.height * 0.10f), box.height * 0.36f, paxShirt);
+            DrawFace(new Vector2(box.x + box.height * 0.55f, box.center.y), box.height * 0.62f, taxi.PaxSkin, taxi.PaxHair, false);
+            Dot(new Vector2(box.x + box.height * 0.55f, box.yMax - box.height * 0.10f), box.height * 0.36f, taxi.PaxShirt);
             float tx = box.x + box.height * 1.15f;
-            Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), paxName, 24, new Color(1f, 0.85f, 0.4f), TextAnchor.UpperLeft);
+            Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), taxi.PaxName, 24, new Color(1f, 0.85f, 0.4f), TextAnchor.UpperLeft);
             style.wordWrap = true;
-            Label(new Rect(tx, box.y + 52 * u, box.width - box.height * 1.3f, box.height - 90 * u), paxLine, 24, Color.white, TextAnchor.UpperLeft);
+            Label(new Rect(tx, box.y + 52 * u, box.width - box.height * 1.3f, box.height - 90 * u), taxi.PaxLine, 24, Color.white, TextAnchor.UpperLeft);
             style.wordWrap = false;
             Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), "[Space] 태우기    [X] 거절", 18, new Color(0.7f, 0.9f, 1f), TextAnchor.LowerLeft);
         }
 
         // 사고 시 손님 리액션
-        if (taxi == TaxiState.Carrying && Time.unscaledTime < reactUntil)
+        if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil)
         {
             Vector2 c = new Vector2(W * 0.5f, H * 0.42f);
             Fill(new Rect(c.x - 230 * u, c.y - 120 * u, 460 * u, 240 * u), new Color(0f, 0f, 0f, 0.55f));
-            DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, paxSkin, paxHair, true);
-            Label(new Rect(c.x - 40 * u, c.y - 40 * u, 260 * u, 80 * u), reactText, 30, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
+            DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, true);
+            Label(new Rect(c.x - 40 * u, c.y - 40 * u, 260 * u, 80 * u), taxi.ReactText, 30, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
         }
     }
 
@@ -303,8 +311,8 @@ public partial class DriveGame
 
         if (Time.unscaledTime < popupUntil)
             Label(new Rect(0, H * 0.28f, W, 50 * u), popupText, 34, popupColor, TextAnchor.MiddleCenter);
-        if (taxi == TaxiState.Cruise && Time.unscaledTime < thanksUntil)
-            Label(new Rect(0, H * 0.34f + 30 * u, W, 34 * u), thanksText, 22, new Color(1f, 1f, 1f, 0.9f), TextAnchor.MiddleCenter);
+        if (taxi.State == TaxiState.Cruise && Time.unscaledTime < taxi.ThanksUntil)
+            Label(new Rect(0, H * 0.34f + 30 * u, W, 34 * u), taxi.ThanksText, 22, new Color(1f, 1f, 1f, 0.9f), TextAnchor.MiddleCenter);
 
         // 회전 중 장면 교체 순간에 잠깐 어두워진다
         if (fade > 0f) Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, Mathf.Clamp01(fade)));

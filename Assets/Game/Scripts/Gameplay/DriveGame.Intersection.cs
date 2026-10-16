@@ -20,9 +20,9 @@ public partial class DriveGame
 
     float turnAlpha, turnCenterRoad, turnT, worldMove, retargetFadeT = -1f;
 
-    static readonly int[] HeadX = { 0, 1, 0, -1 };
+    public static readonly int[] HeadX = { 0, 1, 0, -1 };
 
-    static readonly int[] HeadY = { 1, 0, -1, 0 };
+    public static readonly int[] HeadY = { 1, 0, -1, 0 };
 
     static readonly string[] HeadNames = { "북", "동", "남", "서" };
 
@@ -78,7 +78,7 @@ public partial class DriveGame
 
             // 프레임이 튀어도 중심을 건너뛰지 않도록, 이번 프레임에 달리는 거리의 2배까지는 시작 범위로 본다
             float startWindow = Mathf.Max(turnCenterTolerance, speed * dt * 2f);
-            if (blinker != 0 && zC <= startWindow && zC > 0f && taxi != TaxiState.Talking)
+            if (blinker != 0 && zC <= startWindow && zC > 0f && taxi.State != TaxiState.Talking)
             {
                 turning = true;
                 turnT = 0f;
@@ -149,8 +149,7 @@ public partial class DriveGame
         invuln = Mathf.Max(invuln, postTurnInvuln);
 
         // 사람들은 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게)
-        caller = null;
-        callerTimer = Random.Range(callerDelay.x, callerDelay.y);
+        taxi.CallerLost();
         peds.Respawn(SpawnZ);
     }
 }

@@ -158,7 +158,7 @@ public partial class DriveGame
         {
             // 목적지가 지금 달리는 도로 위(r==0)에 있을 때만 보인다. 회전 중에는 옛 도로 위에 있는 경우(회전하는 교차로 자체)만, 장면 교체 전까지.
             DestRel(out int mf, out int mr, out float mz);
-            bool show = taxi == TaxiState.Carrying && mr == 0 && mz > -25f && mz < SpawnZ
+            bool show = taxi.State == TaxiState.Carrying && mr == 0 && mz > -25f && mz < SpawnZ
                         && (!turning || (!retargeted && mf < 0));
             if (destMarker.gameObject.activeSelf != show) destMarker.gameObject.SetActive(show);
             rendRot = turning;
@@ -187,7 +187,7 @@ public partial class DriveGame
             p.sr.enabled = !(turning && retargeted);
             p.t.position = new Vector3(px, Drop(pz) + h, pz);
             // 옆 시점으로 손님을 볼 때는 손님이 카메라를 향하게 돌린다 (평소 보행자는 정면 고정)
-            float faceYaw = (taxi == TaxiState.Talking && p == caller) ? camYaw : 0f;
+            float faceYaw = (taxi.State == TaxiState.Talking && p == taxi.Caller) ? camYaw : 0f;
             p.t.rotation = Quaternion.Euler(0f, faceYaw, fallen ? -p.dir * 85f : 0f);
             if (p.pauseLeft > 0f) p.sr.color = Color.Lerp(p.baseColor, Color.white, 0.5f);
             else if (!fallen) p.sr.color = p.baseColor;

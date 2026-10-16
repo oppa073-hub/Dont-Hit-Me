@@ -100,7 +100,7 @@ public partial class DriveGame
         // 목적지와 L자 안내선 (정수 f,r 기준이라 f==0 경계에서 깜빡이지 않는다)
         n = 0;
         int rem = -1;
-        bool carrying = taxi == TaxiState.Carrying;
+        bool carrying = taxi.State == TaxiState.Carrying;
         if (carrying)
         {
             DestRel(out int f, out int r, out float sd);
@@ -144,11 +144,11 @@ public partial class DriveGame
             navHead = h;
             navHeadText.text = HeadNames[h];
         }
-        if (rem != navRem || (carrying && !ReferenceEquals(destName, navDestShown)))
+        if (rem != navRem || (carrying && !ReferenceEquals(taxi.DestName, navDestShown)))
         {
             navRem = rem;
-            navDestShown = destName;
-            navInfoText.text = carrying ? destName + "  " + rem + "m" : "손님 찾는 중";
+            navDestShown = taxi.DestName;
+            navInfoText.text = carrying ? taxi.DestName + "  " + rem + "m" : "손님 찾는 중";
         }
     }
 }
