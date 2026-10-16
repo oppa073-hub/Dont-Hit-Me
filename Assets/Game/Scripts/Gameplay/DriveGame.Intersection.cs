@@ -61,7 +61,7 @@ public partial class DriveGame
         dist = newDist;
         carX = lateralVel = 0f;
         foreach (var s in strips) s.lastIdx = int.MinValue;
-        invuln = Mathf.Max(invuln, postTurnInvuln);
+        session.ExtendInvuln(postTurnInvuln);
 
         // 사람들은 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게)
         taxi.CallerLost();

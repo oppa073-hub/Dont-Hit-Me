@@ -45,6 +45,6 @@ public partial class DriveGame
     // 정산이 끝났다: 받은 돈의 일부를 점수에 더한다
     void OnTaxiArrived(int income)
     {
-        score += Mathf.RoundToInt(income / 100f);
+        session.AddScore(Mathf.RoundToInt(income / 100f));
     }
 }

@@ -289,15 +289,11 @@ public partial class DriveGame : MonoBehaviour
 
     Shader litShader;
 
-    float carX, lateralVel, speed, dist, elapsed, distScore;
+    float carX, lateralVel, speed, dist, elapsed;
 
     float steerAngle;
 
-    int lives, score, nearMisses, hits;
-
-    float hitStopUntil, shakeUntil, hurtFlash, invuln, popupUntil;
-
-    bool gameOver;
+    float hitStopUntil, shakeUntil, popupUntil;      // 연출 타이머 (히트스톱, 화면 흔들림, 팝업)
 
     // 시점: 손님과 대화할 때 옆으로 돌린다 (camYawTarget 은 목표, camYaw 는 현재)
     float camYaw, camYawTarget;
@@ -311,6 +307,7 @@ public partial class DriveGame : MonoBehaviour
         peds = new PedestrianManager(this, transform, MakePedSprite());
         peds.Hit += OnPedHit;
         peds.NearMiss += OnPedNearMiss;
+        CreateSession();
         CreateRoad();
         CreateTaxi();
         litShader = Shader.Find("Universal Render Pipeline/Lit");
@@ -402,12 +399,8 @@ public partial class DriveGame : MonoBehaviour
         carX = lateralVel = steerAngle = 0f;
         speed = baseSpeed;
         dist = elapsed = 0f;
-        lives = maxLives;
-        score = nearMisses = hits = 0;
-        distScore = 0f;
-        hurtFlash = invuln = 0f;
+        session.Reset();
         popupUntil = 0f;
-        gameOver = false;
 
         taxi.Reset();
         camYaw = camYawTarget = 0f;
@@ -436,8 +429,7 @@ public partial class DriveGame : MonoBehaviour
         // 손님과 대화 중: 월드는 멈춰 있고 Space 로 태우거나 X 로 거절한다
         if (taxi.State == TaxiState.Talking)
         {
-            hurtFlash = Mathf.Max(0f, hurtFlash - Time.deltaTime);   // 피격 직후 정차해도 붉은 화면이 남지 않게
-            invuln = Mathf.Max(0f, invuln - Time.deltaTime);
+            session.Tick(Time.deltaTime);                            // 피격 직후 정차해도 붉은 화면이 남지 않게
             bool turned = Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f;
             if (turned && kb.spaceKey.wasPressedThisFrame) AcceptPassenger();
             else if (turned && kb.xKey.wasPressedThisFrame) DeclinePassenger();
@@ -474,14 +466,13 @@ public partial class DriveGame : MonoBehaviour
         dist += speed * dt;
         if (turning) dist = Mathf.Min(dist, turnCenterRoad - 8f);   // 회전 중에는 교차로 중심을 넘어가지 않는다 (중심에서 제자리 회전)
         worldMove = dist - prevDist;                                // 이번 프레임에 월드가 실제로 다가온 거리 (보행자도 이만큼만 이동)
-        distScore += (dist - prevDist) * 0.1f;
+        session.AddDistance(dist - prevDist);
 
         // 깜빡이: Q 좌 / E 우 (다시 누르면 해제)
         if (kb.qKey.wasPressedThisFrame) road.ToggleBlinker(-1);
         if (kb.eKey.wasPressedThisFrame) road.ToggleBlinker(1);
 
-        invuln = Mathf.Max(0f, invuln - dt);
-        hurtFlash = Mathf.Max(0f, hurtFlash - dt);
+        session.Tick(dt);
 
         // 보행자: 생성, 이동, 횡단, 충돌 판정 (회전 중에는 월드가 실제로 다가온 만큼만 움직인다)
         peds.Tick(dt, elapsed, turning ? worldMove : speed * dt, carX, turning, SpawnZ);

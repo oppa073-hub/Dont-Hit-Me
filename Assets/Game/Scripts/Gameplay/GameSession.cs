@@ -1,0 +1,84 @@
+using UnityEngine;
+
+// 게임 진행 기록 매니저: 목숨, 점수, 니어미스/충돌 횟수, 무적 시간, 피격 붉은 화면, 게임오버 여부를 맡는다.
+// 차의 속도나 화면 흔들림 같은 "연출"은 모른다. 설정 값(최대 목숨, 무적 시간)은 DriveGame 의 public 필드를 읽는다.
+public class GameSession
+{
+    readonly DriveGame cfg;
+
+    public int Lives { get; private set; }
+    public int Score { get; private set; }               // 니어미스 보너스, 요금 환산 점수 등 (달린 거리 점수는 따로)
+    public int NearMisses { get; private set; }
+    public int Hits { get; private set; }
+    public float DistScore { get; private set; }         // 달린 거리에서 얻는 점수
+    public float Invuln { get; private set; }            // 남은 무적 시간(초)
+    public float HurtFlash { get; private set; }         // 피격 붉은 화면의 남은 세기(초)
+    public bool GameOver { get; private set; }
+
+    /// <summary>화면에 보이는 총점.</summary>
+    public int TotalScore { get { return Score + Mathf.FloorToInt(DistScore); } }
+
+    public GameSession(DriveGame cfg)
+    {
+        this.cfg = cfg;
+    }
+
+    /// <summary>판을 새로 시작.</summary>
+    public void Reset()
+    {
+        Lives = cfg.maxLives;
+        Score = NearMisses = Hits = 0;
+        DistScore = 0f;
+        Invuln = HurtFlash = 0f;
+        GameOver = false;
+    }
+
+    /// <summary>무적 시간과 피격 붉은 화면을 흘려보낸다.</summary>
+    public void Tick(float dt)
+    {
+        Invuln = Mathf.Max(0f, Invuln - dt);
+        HurtFlash = Mathf.Max(0f, HurtFlash - dt);
+    }
+
+    public void AddDistance(float meters)
+    {
+        DistScore += meters * 0.1f;
+    }
+
+    public void AddScore(int points)
+    {
+        Score += points;
+    }
+
+    public void RegisterNearMiss(int bonus)
+    {
+        NearMisses++;
+        Score += bonus;
+    }
+
+    /// <summary>
+    /// 사람을 쳤다. 충돌 횟수는 항상 늘고, 무적이 아닐 때만 목숨이 줄어든다.
+    /// 목숨이 줄었으면 true, 무적이라 그냥 넘어갔으면 false.
+    /// </summary>
+    public bool RegisterHit()
+    {
+        Hits++;
+        if (Invuln > 0f) return false;
+
+        Lives--;
+        Invuln = cfg.invulnTime;
+        HurtFlash = 0.45f;
+        if (Lives <= 0)
+        {
+            Lives = 0;
+            GameOver = true;
+        }
+        return true;
+    }
+
+    /// <summary>무적 시간을 적어도 이만큼은 유지한다 (회전 직후 등).</summary>
+    public void ExtendInvuln(float seconds)
+    {
+        Invuln = Mathf.Max(Invuln, seconds);
+    }
+}
