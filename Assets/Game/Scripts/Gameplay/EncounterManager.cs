@@ -1,9 +1,10 @@
 using UnityEngine;
 
-public enum EncounterType { None, Blackout, Rival, Fans, Pigs }
+public enum EncounterType { None, Blackout, Rival, Fans, Pigs, Emergency }
 
 // 랜덤 인카운트 스케줄러: 운전 중 가끔 길거리 사건이 하나씩 터진다. (괴수/히어로 같은 '날'과는 별개)
 //  정전(도시가 어두워짐) / 라이벌 택시(내 손님을 가로채려 함) / 팬 습격(연예인 출몰, 사람들이 차 앞으로 몰려듦) / 돼지 떼(트럭 전복, 돼지가 도로를 건넘)
+//  / 긴급 차량(구급차가 뒤에서 사이렌을 울리며 달려옴, 길을 비켜 줘야 함)
 // 사건이 하나 끝나기 전에는 다음 사건이 시작되지 않는다. 이 클래스는 일정과 정전의 밝기만 알고, 실제 사람/돼지/택시는 각 매니저가 만든다.
 // 설정 값(켜기, 첫 사건까지의 시간, 사건 간격)은 DriveGame 의 public 필드를 읽는다.
 public class EncounterManager
@@ -38,6 +39,7 @@ public class EncounterManager
             case EncounterType.Blackout: return 18f;
             case EncounterType.Fans: return 10f;
             case EncounterType.Pigs: return 8f;
+            case EncounterType.Emergency: return 9f;
             default: return 12f;
         }
     }
@@ -62,9 +64,9 @@ public class EncounterManager
         }
         if (elapsed < nextAt || !allow) return;
 
-        int n = rivalPossible ? 4 : 3;
+        int n = rivalPossible ? 5 : 4;
         int pick = Random.Range(0, n);
-        EncounterType t = pick == 0 ? EncounterType.Blackout : (pick == 1 ? EncounterType.Fans : (pick == 2 ? EncounterType.Pigs : EncounterType.Rival));
+        EncounterType t = pick == 0 ? EncounterType.Blackout : (pick == 1 ? EncounterType.Fans : (pick == 2 ? EncounterType.Pigs : (pick == 3 ? EncounterType.Emergency : EncounterType.Rival)));
         Begin(t, elapsed);
     }
 

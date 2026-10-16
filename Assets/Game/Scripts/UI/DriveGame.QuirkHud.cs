@@ -55,14 +55,7 @@ public partial class DriveGame
                 break;
             }
             case Quirk.Fighter:
-            {
-                r = new Rect(W * 0.5f - 230 * u, y, 460 * u, 28 * u);
-                Panel(r, 0.55f);
-                if (taxi.SteerFlip) Label(r, "조향 반전!!", 20, UiRed, TextAnchor.MiddleCenter);
-                else if (taxi.SteerFlipWarn > 0f) Label(r, Mathf.Repeat(Time.unscaledTime, 0.2f) < 0.1f ? "손님이 핸들을 잡으려 한다!!" : "", 20, UiRed, TextAnchor.MiddleCenter);
-                else Label(r, "손님이 가끔 핸들을 노린다", 16, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
-                break;
-            }
+                break;                                         // 일부러 아무 표시도 하지 않는다 (무슨 일이 벌어지는지는 직접 겪어서 알게)
         }
     }
 }

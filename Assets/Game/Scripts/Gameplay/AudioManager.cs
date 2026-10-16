@@ -63,6 +63,7 @@ public class AudioManager
     public void PlayArrive() { Play(ding, 0.8f); }
     public void PlayChime() { Play(chime, 0.6f); }
     public void PlayAlarm() { Play(alarm, 0.7f); }       // 긴급 속보 사이렌
+    public void PlaySiren(float volume) { Play(alarm, volume); }       // 구급차 사이렌 (가까울수록 크게)
     public void PlayRoar() { Play(roar, 1f); }           // 괴수 울음
     public void PlayLaser() { Play(laser, 0.8f); }       // 히어로의 눈 레이저
     public void PlayOink() { Play(oink, 0.8f); }         // 돼지

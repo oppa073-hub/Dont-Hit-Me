@@ -53,6 +53,7 @@ public partial class DriveGame
         else if (kb.kKey.wasPressedThisFrame) enc.Force(EncounterType.Rival, elapsed);
         else if (kb.lKey.wasPressedThisFrame) enc.Force(EncounterType.Fans, elapsed);
         else if (kb.jKey.wasPressedThisFrame) enc.Force(EncounterType.Pigs, elapsed);
+        else if (kb.mKey.wasPressedThisFrame) enc.Force(EncounterType.Emergency, elapsed);
         else if (kb.bKey.wasPressedThisFrame)
         {
             debugQuirk = (debugQuirk + 1) % DebugQuirkNames.Length;                  // 다음 손님 유형을 고정 (0 = 무작위)
@@ -90,7 +91,7 @@ public partial class DriveGame
                   + "9  분노 바로 발동" + NL
                   + "C  코인 +5000" + NL
                   + "V  다음 손님을 은행 강도로" + NL
-                  + "Y 정전   K 라이벌   L 팬   J 돼지" + NL
+                  + "Y 정전   K 라이벌   L 팬   J 돼지   M 구급차" + NL
                   + "B  다음 손님: " + DebugQuirkNames[debugQuirk] + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
                   + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 4)];

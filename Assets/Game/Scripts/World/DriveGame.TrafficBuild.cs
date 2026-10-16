@@ -97,6 +97,7 @@ public partial class DriveGame
         s.lamp = PixelSprite(lamp, 24f);
 
         // ---- 날짜 사건용 그림 (모두 코드로 그린 임시 그림. 인스펙터에서 진짜 스프라이트로 바꿀 수 있다) ----
+        s.cross = PixelSprite(MakeCrossTex(), 20f);         // 12x12 -> 0.6m
         s.pig = PixelSprite(MakePigTex(), 22f);             // 22x16 -> 1.0m x 0.73m
         s.kaiju = PixelSprite(MakeKaijuTex(), 5f);          // 64x80 -> 12.8m x 16m
         s.flame = PixelSprite(MakeFlameTex(), 11f);         // 16x24 -> 1.5m x 2.2m
@@ -118,6 +119,15 @@ public partial class DriveGame
         for (int y = Mathf.Max(0, Mathf.FloorToInt(cy - r)); y <= Mathf.Min(t.height - 1, Mathf.CeilToInt(cy + r)); y++)
             for (int x = Mathf.Max(0, Mathf.FloorToInt(cx - r)); x <= Mathf.Min(t.width - 1, Mathf.CeilToInt(cx + r)); x++)
                 if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) t.SetPixel(x, y, c);
+    }
+
+    // 구급차의 붉은 십자
+    static Texture2D MakeCrossTex()
+    {
+        var t = NewPixelTex(12, 12);
+        PxRect(t, 4, 0, 7, 11, new Color(0.9f, 0.1f, 0.1f));
+        PxRect(t, 0, 4, 11, 7, new Color(0.9f, 0.1f, 0.1f));
+        return t;
     }
 
     // 오른쪽을 보고 뛰는 분홍 돼지

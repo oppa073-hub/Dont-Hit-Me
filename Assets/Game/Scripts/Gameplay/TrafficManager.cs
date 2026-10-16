@@ -8,13 +8,13 @@ using UnityEngine;
 public class TrafficSprites
 {
     public Sprite carBody, carDetail, cone, ball, lamp;
-    public Sprite pig;
+    public Sprite pig, cross;
     public Sprite kaiju, flame, smoke, hero, villain;       // 날짜 사건용 (괴수, 불길, 연기 기둥, 히어로, 빌런)
 }
 
 public partial class TrafficManager
 {
-    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7, Boom = 8, Police = 9, Rival = 10, Pig = 11;
+    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7, Boom = 8, Police = 9, Rival = 10, Pig = 11, Ambulance = 12;
 
     public class Obj
     {
@@ -83,7 +83,8 @@ public partial class TrafficManager
         nextStrike = Mathf.Max(nextStrike, lastElapsed + 3f);
         nextBlock = Mathf.Max(nextBlock, lastElapsed + 2.5f);
         nextPig = Mathf.Max(nextPig, lastElapsed + 1f);
-        rivalTarget = null;          // 회전 직후에는 경찰 바리케이드도 잠깐 쉰다
+        rivalTarget = null;
+        ambulance = null;          // 회전 직후에는 경찰 바리케이드도 잠깐 쉰다
         nextVehicle = Mathf.Max(nextVehicle, lastElapsed + 3f);       // 회전 직후에는 잠깐 비워 둔다
         nextHazard = Mathf.Max(nextHazard, lastElapsed + 4f);
     }
@@ -105,7 +106,7 @@ public partial class TrafficManager
         int blockers = 0;
         for (int i = 0; i < objs.Count; i++)
         {
-            if (objs[i].kind == Ball || objs[i].kind == Smoke || objs[i].kind == Boom || objs[i].kind == Pig || objs[i].kind == Rival) continue;
+            if (objs[i].kind == Ball || objs[i].kind == Smoke || objs[i].kind == Boom || objs[i].kind == Pig || objs[i].kind == Rival || objs[i].kind == Ambulance) continue;
             blockers++;
             if (objs[i].z > spawnZ - 35f) return false;
         }
@@ -169,6 +170,27 @@ public partial class TrafficManager
             {
                 o.life -= dt;
                 if (o.life <= 0f) { RemoveAt(i); continue; }
+            }
+
+            if (o.kind == Ambulance)
+            {
+                // 구급차: 뒤에서 달려와 플레이어를 앞질러 간다. 지나치는 순간 플레이어가 길을 막고 있었는지 한 번 본다.
+                o.life -= dt;
+                if (o.life <= 0f) { if (ambulance == o) ambulance = null; RemoveAt(i); continue; }       // 끝내 못 앞지르면 사라진다
+                o.speed = (dt > 0.0001f ? advance / dt : 0f) + cfg.ambulanceSpeedAdd;                    // 플레이어 속도가 변해도 항상 같은 빠르기로 따라잡는다
+                if (!o.scored && o.z >= -1f)
+                {
+                    o.scored = true;
+                    bool blocked = Mathf.Abs(o.x - carX) < 1.0f + o.halfW + 0.15f;
+                    if (!turning && AmbulancePassed != null) AmbulancePassed(blocked);                   // 회전 중에는 판정하지 않는다
+                }
+                if (o.lamps != null && o.lamps.Length > 1)
+                {
+                    o.lamps[0].enabled = lampOn;            // 경광등: 빨강/파랑 번갈아
+                    o.lamps[1].enabled = !lampOn;
+                }
+                if (o.z > spawnZ + 40f) { if (ambulance == o) ambulance = null; RemoveAt(i); }
+                continue;
             }
 
             if (o.kind == Rival)

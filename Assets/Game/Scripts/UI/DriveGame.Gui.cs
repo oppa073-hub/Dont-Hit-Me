@@ -129,6 +129,17 @@ public partial class DriveGame
         var r = new Rect(W * 0.5f - mw * 0.5f, H * 0.098f, mw, mh);
         Fill(new Rect(r.x - 4f, r.y - 4f, r.width + 8f, r.height + 8f), new Color(0.1f, 0.1f, 0.12f));
         Fill(r, new Color(0.35f, 0.4f, 0.45f));
+
+        // 구급차가 뒤에서 오면 룸미러에 붉은/푸른 빛과 점점 커지는 흰 차체가 보인다
+        float amb = traffic.AmbulanceDist;
+        if (amb >= 0f && !gameOver && flow == GameFlow.Playing)
+        {
+            float k = Mathf.Clamp01(1f - amb / 70f);
+            bool blink = Mathf.Repeat(Time.unscaledTime, 0.25f) < 0.125f;
+            Fill(r, blink ? new Color(1f, 0.1f, 0.1f, 0.35f * k + 0.1f) : new Color(0.15f, 0.3f, 1f, 0.35f * k + 0.1f));
+            float sz = k * mh * 0.7f;
+            Fill(new Rect(r.center.x - sz * 0.9f, r.center.y - sz * 0.4f, sz * 1.8f, sz * 0.8f), new Color(1f, 1f, 0.92f, 0.9f));
+        }
         if (!carrying) return;
 
         float s = mh * 0.62f;
@@ -308,19 +319,30 @@ public partial class DriveGame
             Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), taxi.HeistLocked ? "[Space] 출발!!" : "[Space] 태우기    [X] 거절", 18, UiCyan, TextAnchor.LowerLeft);
         }
 
-        // 사고 시 손님 리액션
-        if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil && taxi.ReactIsChat && Time.unscaledTime >= dayEvents.AlertUntil)
+        // 손님의 말풍선: 사고 반응, 수다, 고함, 폭탄/미니건 반응 등 모든 말이 이 상자로 나온다.
+        // 수다쟁이 손님만 화면 가운데에 크게(말로 화면을 가리는 것이 그 손님의 특징), 나머지는 오른쪽에 작게.
+        if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil)
         {
-            // 수다: 운전을 방해하지 않게 화면 위쪽 가운데에 작은 말풍선으로
-            Panel(new Rect(W * 0.5f - 260 * u, 10 * u, 520 * u, 46 * u), 0.7f);
-            Label(new Rect(W * 0.5f - 250 * u, 10 * u, 500 * u, 46 * u), taxi.ReactText, 20, new Color(1f, 0.95f, 0.75f), TextAnchor.MiddleCenter);
-        }
-        else if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil)
-        {
-            Vector2 c = new Vector2(W * 0.5f, H * 0.62f);
-            Panel(new Rect(c.x - 230 * u, c.y - 120 * u, 460 * u, 240 * u), 0.7f);
-            DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, !taxi.ReactIsChat);
-            Label(new Rect(c.x - 40 * u, c.y - 40 * u, 260 * u, 80 * u), taxi.ReactText, 30, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
+            bool big = taxi.Pax != null && taxi.Pax.bigTalk;
+            bool angry = !taxi.ReactIsChat || (taxi.Pax != null && taxi.Pax.quirk == Quirk.Fighter);
+            if (big)
+            {
+                Vector2 c = new Vector2(W * 0.5f, H * 0.62f);
+                Panel(new Rect(c.x - 230 * u, c.y - 120 * u, 460 * u, 240 * u), 0.7f);
+                DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, angry);
+                style.wordWrap = true;
+                Label(new Rect(c.x - 40 * u, c.y - 60 * u, 260 * u, 120 * u), taxi.ReactText, 28, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
+                style.wordWrap = false;
+            }
+            else
+            {
+                var box = new Rect(W - 340 * u, 196 * u, 326 * u, 118 * u);
+                Panel(box, 0.7f);
+                DrawFace(new Vector2(box.x + 56 * u, box.center.y), 84 * u, taxi.PaxSkin, taxi.PaxHair, angry);
+                style.wordWrap = true;
+                Label(new Rect(box.x + 108 * u, box.y + 8 * u, box.width - 118 * u, box.height - 16 * u), taxi.ReactText, 18, new Color(1f, 0.92f, 0.65f), TextAnchor.MiddleLeft);
+                style.wordWrap = false;
+            }
         }
     }
 
@@ -344,6 +366,7 @@ public partial class DriveGame
         DrawWeatherOverlay(W, H, u);
         DrawRageOverlay(W, H);
         DrawPoliceOverlay(W, H);
+        DrawAmbulanceOverlay(W, H);
         DrawBlood(W, H, u);
 
         if (flow == GameFlow.Title)

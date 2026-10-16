@@ -21,6 +21,7 @@ public class PaxType
     public string[] chat;            // 타고 가는 동안 가끔 걸어 오는 말 (없으면 조용한 손님)
     public float swerveSense = 0f;   // 급하게 핸들을 꺾을 때 멀미하는 정도 (0 = 상관없음, 클수록 쉽게 멀미)
     public bool heist;               // 은행 강도 손님 (랜덤 인카운트로만 나온다. weight 는 0)
+    public bool bigTalk;             // 말이 화면 가운데에 크게 나온다 (수다쟁이만: 말로 화면을 가리는 것이 그 손님의 특징)
     public int quirk;                // 손님 유별 사건 (Quirk 상수: 폭탄, 결혼식, 외계인, 레이서, 폭주)
 }
 
@@ -91,7 +92,7 @@ public static class PassengerCatalog
             react = new[] { "헉, 지금 뭐예요!?", "어머 놀라라!", "기사님 괜찮아요!?" },
             thanks = new[] { "얘기 즐거웠어요! 또 타요~", "수다 떠느라 시간 가는 줄 몰랐네요!" },
             chat = new[] { "기사님은 이 일 오래 하셨어요?", "저번에 탄 택시는 말이 없어서요~", "요즘 물가 진짜 올랐죠?", "저기 새로 생긴 가게 아세요?" },
-            fareMul = 1.0f, hitSense = 0.9f, tipMul = 1.6f
+            fareMul = 1.0f, hitSense = 0.9f, tipMul = 1.6f, bigTalk = true
         },
         new PaxType   // 서두르는 손님: 시간이 아주 짧지만 요금과 팁이 높다
         {
@@ -184,8 +185,8 @@ public static class PassengerCatalog
             dests = new[] { "시장", "중앙역", "대학병원" },
             hello = new[]
             {
-                "{0}까지요! 저 오늘 기분이 안 좋아서 핸들을 잡을 수도 있어요. 그냥 참고하세요.",
-                "{0}까지. 운전이 맘에 안 들면 제가 할게요. 농담이에요. 반쯤은요.",
+                "{0}까지요! 저 오늘 기분이 별로 안 좋거든요. 운전 잘 부탁해요… 진짜로.",
+                "{0}까지. 운전 마음에 안 들면 어떻게 되는지 알죠? 농담이에요. 반쯤은요.",
             },
             react = new[] { "내가 운전할래!!", "그쪽 말고 이쪽이라고!!", "비켜 봐요 내가 할게!!" },
             thanks = new[] { "아까는 미안해요… 팁 드릴게요.", "내가 운전한 것보다 낫네요. 인정!" },

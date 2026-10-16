@@ -295,10 +295,16 @@ public partial class DriveGame : MonoBehaviour
     public float bombMinSpeed = 8f;
     [Tooltip("폭탄 손님: 느린 동안 초당 줄어드는 도화선 (0.3이면 약 3.3초 만에 폭발)")]
     public float bombDrain = 0.3f;
-    [Tooltip("욱한 손님: 조향이 반대로 먹히는 시간(초)")]
-    public float fighterFlipSeconds = 3f;
+    [Tooltip("욱한 손님: 핸들을 확 잡아채는 시간(초). 이 동안은 플레이어가 막을 수 없다")]
+    public float fighterYankSeconds = 0.7f;
+    [Tooltip("욱한 손님: 핸들을 쥐고 조향이 반대로 먹히는 시간(초)")]
+    public float fighterFlipSeconds = 4f;
     [Tooltip("돼지 그림. 비우면 코드로 그린 임시 그림")]
     public Sprite pigSprite;
+    [Tooltip("구급차 그림(뒷모습). 비우면 코드로 그린 임시 그림")]
+    public Sprite ambulanceSprite;
+    [Tooltip("구급차가 플레이어보다 이만큼(m/s) 더 빠르게 달려 앞지른다. 작을수록 비킬 시간이 길다")]
+    public float ambulanceSpeedAdd = 14f;
 
     [Header("Heist (랜덤 인카운트: 수상한 손님이 은행까지 가서 기다리게 하고, 나오면 경찰에게 쫓긴다)")]
     public bool heistOn = true;
@@ -674,7 +680,11 @@ public partial class DriveGame : MonoBehaviour
         // 조향 (관성)
         float input = (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f)
                     - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
-        if (taxi.SteerFlip && taxi.State == TaxiState.Carrying) input = -input;       // 욱한 손님이 핸들을 잡았다
+        if (taxi.State == TaxiState.Carrying)
+        {
+            if (taxi.SteerYank != 0) input = taxi.SteerYank;                           // 욱한 손님이 핸들을 확 잡아챈다: 막을 수 없다
+            else if (taxi.SteerFlip) input = -input;                                   // 핸들을 쥔 채 반대로 돌린다
+        }
         if (turning) input = 0f;                              // 회전 중에는 차가 알아서 교차로 중앙으로 간다
         lateralVel = Mathf.MoveTowards(lateralVel, input * maxLateral, lateralAccel * (1f - rainSlip * weather.Rain) * dt);
         float limit = roadHalfWidth - CarHalfWidth;

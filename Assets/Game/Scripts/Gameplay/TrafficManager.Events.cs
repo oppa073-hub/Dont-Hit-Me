@@ -8,6 +8,13 @@ public partial class TrafficManager
 {
     float nextKaiju, nextStrike, strikeT, flameAcc, nextBlock, nextPig;
     PedestrianManager.Ped rivalTarget;
+    Obj ambulance;
+
+    /// <summary>구급차가 플레이어를 앞질렀다. true = 길을 막고 있어서 들이받았다, false = 비켜 줬다.</summary>
+    public event System.Action<bool> AmbulancePassed;
+
+    /// <summary>구급차가 뒤에서 접근 중이면 뒤쪽 거리(m), 아니면 -1.</summary>
+    public float AmbulanceDist { get { return ambulance != null && ambulance.z < 0f ? -ambulance.z : -1f; } }
 
     /// <summary>라이벌 택시가 손님 앞에 도착했다 (손님을 가로챈다).</summary>
     public event System.Action<PedestrianManager.Ped> RivalArrived;
@@ -34,9 +41,55 @@ public partial class TrafficManager
         for (int i = objs.Count - 1; i >= 0; i--)
         {
             int k = objs[i].kind;
-            if (k == Kaiju || k == Flame || k == Smoke || k == Boom || k == Police || k == Pig || k == Rival) RemoveAt(i);
+            if (k == Kaiju || k == Flame || k == Smoke || k == Boom || k == Police || k == Pig || k == Rival || k == Ambulance) RemoveAt(i);
         }
+        ambulance = null;
         StrikeState = 0;
+    }
+
+    // ---- 구급차 (랜덤 인카운트) ----
+
+    /// <summary>구급차를 뒤쪽 멀리에 만든다. 지금 차 위치 근처의 차선으로 달려오니, 그 차선에서 비켜야 한다.</summary>
+    public void SpawnAmbulance(float carX, float playerSpeed)
+    {
+        if (ambulance != null) { int old = objs.IndexOf(ambulance); if (old >= 0) RemoveAt(old); ambulance = null; }
+        bool custom = cfg.ambulanceSprite != null;
+        var o = MakeSpriteObj("Ambulance", Ambulance, custom ? cfg.ambulanceSprite : sprites.carBody);
+        o.life = 16f;
+        o.halfW = 1.1f;
+        o.x = Mathf.Clamp(carX, -1.2f, 1.2f);                 // 플레이어가 서 있는 차선으로 달려온다
+        o.z = -60f;
+        o.speed = Mathf.Max(8f, playerSpeed) + cfg.ambulanceSpeedAdd;     // 플레이어보다 빠르게 앞지른다
+        o.body.color = custom ? Color.white : new Color(0.97f, 0.97f, 1f);
+        if (!custom)
+        {
+            o.t.localScale = new Vector3(1.15f, 1.25f, 1f);
+            o.centerY = -o.body.sprite.bounds.min.y * 1.25f;
+            var dgo = new GameObject("Detail");
+            dgo.transform.SetParent(o.t, false);
+            dgo.transform.localPosition = new Vector3(0f, 0f, -0.02f);
+            o.detail = dgo.AddComponent<SpriteRenderer>();
+            o.detail.sprite = sprites.carDetail;
+            var cgo = new GameObject("Cross");               // 붉은 십자
+            cgo.transform.SetParent(o.t, false);
+            cgo.transform.localPosition = new Vector3(0f, 0.22f, -0.03f);
+            var csr = cgo.AddComponent<SpriteRenderer>();
+            csr.sprite = sprites.cross;
+        }
+        Bounds sb = o.body.sprite.bounds;
+        o.lamps = new SpriteRenderer[2];
+        for (int k = 0; k < 2; k++)
+        {
+            var lgo = new GameObject("Light");
+            lgo.transform.SetParent(o.t, false);
+            lgo.transform.localPosition = new Vector3((k == 0 ? -0.3f : 0.3f) * sb.extents.x, sb.max.y - 0.04f, -0.04f);
+            lgo.transform.localScale = Vector3.one * 1.5f;
+            var lsr = lgo.AddComponent<SpriteRenderer>();
+            lsr.sprite = sprites.lamp;
+            lsr.color = k == 0 ? new Color(1f, 0.1f, 0.1f) : new Color(0.25f, 0.45f, 1f);
+            o.lamps[k] = lsr;
+        }
+        ambulance = o;
     }
 
     // ---- 돼지 떼 / 라이벌 택시 (랜덤 인카운트) ----

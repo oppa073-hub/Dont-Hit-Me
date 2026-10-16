@@ -72,13 +72,16 @@ public class TaxiManager
     // ---- 손님 유별 사건 (폭탄, 결혼식, 외계인, 레이서, 폭주) ----
     public float Fuse { get; private set; }                // 폭탄 도화선 (1 안전 ~ 0 폭발)
     public float Happy { get; private set; }               // 결혼식 행복도 (1 ~ 0)
-    public bool SteerFlip { get; private set; }            // 폭주 손님이 핸들을 잡고 있다 (조향 반대)
-    public float SteerFlipWarn { get; private set; }       // 핸들을 잡기 직전의 경고 시간
+    public bool SteerFlip { get; private set; }            // 욱한 손님이 핸들을 잡고 있다 (조향 반대)
+    public int SteerYank { get; private set; }             // 욱한 손님이 핸들을 확 잡아챈다 (-1 왼쪽, +1 오른쪽, 0 아님). 이때는 플레이어가 막을 수 없다
+    int fightPhase;                                        // 0 평소, 1 소리치며 덤빔, 2 확 잡아챔, 3 핸들을 잡고 반대로 돌림
+    float fightT;
     public float AvgSpeed { get { return TripT > 1f ? speedSum / TripT : 0f; } }
     public bool AlienTrip { get { return State == TaxiState.Carrying && Pax != null && Pax.quirk == Quirk.Alien; } }
     public PaxType ForcePaxType;                           // 시험용: 다음 손님 유형을 고정
-    public event System.Action BombExploded, BouquetThrown;
-    float speedSum, prevSpeed, ruffCool, flipEventT, flipT;
+    public event System.Action BombExploded, BouquetThrown, WheelGrabbed;
+    float speedSum, prevSpeed, ruffCool, flipEventT;
+    int yankDir;
 
     public TaxiManager(DriveGame cfg, PedestrianManager peds, DestRelFn destRel)
     {
@@ -243,7 +246,8 @@ public class TaxiManager
         Fuse = 1f;
         Happy = 1f;
         SteerFlip = false;
-        SteerFlipWarn = 0f;
+        SteerYank = 0;
+        fightPhase = 0;
         ruffCool = 0f;
         speedSum = 0f;
         prevSpeed = 0f;
@@ -286,35 +290,30 @@ public class TaxiManager
                 break;
 
             case Quirk.Fighter:
+                // 설명 없이 갑자기: 소리치며 덤빔(0.4초) -> 핸들을 확 잡아챔(0.7초, 막을 수 없음) -> 핸들을 쥔 채 반대로 돌림(몇 초)
                 if (turning) break;
-                if (SteerFlip)
-                {
-                    flipT -= dt;
-                    if (flipT <= 0f)
-                    {
-                        SteerFlip = false;
-                        flipEventT = Random.Range(10f, 16f);
-                    }
-                }
-                else if (SteerFlipWarn > 0f)
-                {
-                    SteerFlipWarn -= dt;
-                    if (SteerFlipWarn <= 0f)
-                    {
-                        SteerFlip = true;
-                        flipT = Mathf.Max(1f, cfg.fighterFlipSeconds);
-                        Popup("손님이 핸들을 잡았다!!  조향 반전!", new Color(1f, 0.4f, 0.3f));
-                    }
-                }
-                else
+                if (fightPhase == 0)
                 {
                     flipEventT -= dt;
                     if (flipEventT <= 0f)
                     {
-                        SteerFlipWarn = 0.9f;
-                        ReactText = PassengerCatalog.PickOne(Pax.react);
-                        ReactIsChat = false;
-                        ReactUntil = Time.unscaledTime + 1.2f;
+                        fightPhase = 1;
+                        fightT = 0.4f;
+                        yankDir = Random.value < 0.5f ? -1 : 1;
+                        ReactText = PassengerCatalog.PickOne(Pax.react);          // 손님의 고함 (말풍선)
+                        ReactIsChat = true;
+                        ReactUntil = Time.unscaledTime + 1.8f;
+                        if (WheelGrabbed != null) WheelGrabbed();
+                    }
+                }
+                else
+                {
+                    fightT -= dt;
+                    if (fightT <= 0f)
+                    {
+                        if (fightPhase == 1) { fightPhase = 2; fightT = Mathf.Max(0.2f, cfg.fighterYankSeconds); SteerYank = yankDir; }
+                        else if (fightPhase == 2) { fightPhase = 3; fightT = Mathf.Max(1f, cfg.fighterFlipSeconds); SteerYank = 0; SteerFlip = true; }
+                        else { fightPhase = 0; SteerFlip = false; flipEventT = Random.Range(6f, 10f); }
                     }
                 }
                 break;
