@@ -1,0 +1,94 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+
+// 화면에 얹는 것들 (IMGUI): 밤/노을/비의 어두운 막, 헤드라이트 빛, 빗줄기와 와이퍼, 설정 화면, 튜토리얼 안내
+public partial class DriveGame
+{
+    static float Frac(float x) { return x - Mathf.Floor(x); }
+
+    void DrawWeatherOverlay(float W, float H, float u)
+    {
+        // 어두운 막은 앞유리(화면 위 80%)에만 깔아서, 아래쪽 계기판과 내비는 밤에도 또렷하게 둔다
+        float playH = H * 0.80f;
+        var full = new Rect(0, 0, W, playH);
+        var no = weather.NightOverlay;
+        if (no.a > 0.005f) Fill(full, no);
+        var wo = weather.WarmOverlay;
+        if (wo.a > 0.005f) Fill(full, wo);
+        var ro = weather.RainOverlay;
+        if (ro.a > 0.005f) Fill(full, ro);
+
+        // 밤에는 앞길을 비추는 헤드라이트 빛 (겹쳐 그려서 가운데가 더 밝아 보이게)
+        if (weather.Darkness > 0.2f)
+        {
+            Color glow = new Color(1f, 0.95f, 0.7f, 0.035f * weather.Darkness);
+            for (int k = 0; k < 5; k++)
+            {
+                float w = W * (0.10f + 0.09f * k);
+                float top = H * (0.45f + 0.06f * k);
+                Fill(new Rect(W * 0.5f - w * 0.5f, top, w, playH - top), glow);
+            }
+        }
+
+        if (weather.Rain <= 0.02f) return;
+
+        // 빗줄기 (그리기 이벤트에서만)
+        if (Event.current.type == EventType.Repaint)
+        {
+            int n = Mathf.RoundToInt(160f * weather.Rain);
+            Color streak = new Color(0.8f, 0.86f, 0.95f, 0.28f);
+            float t = Mathf.Repeat(Time.unscaledTime, 600f);
+            for (int i = 0; i < n; i++)
+            {
+                float h1 = Frac(Mathf.Sin(i * 12.9898f) * 43758.5453f);
+                float h2 = Frac(Mathf.Sin((i + 0.5f) * 78.233f) * 12345.678f);
+                float y = Mathf.Repeat(h2 * H + t * (700f + h1 * 400f) * u, H);
+                Fill(new Rect(h1 * W, y, 2f * u, 22f * u), streak);
+            }
+        }
+
+        // 와이퍼: 앞유리 아래쪽 대시보드 뒤에서 올라와 쓸고 내려간다 (화면 위 80% 안에서만 보이게 잘라 그린다)
+        if (weather.Rain > 0.15f)
+        {
+            float clipH = H * 0.80f;
+            GUI.BeginClip(new Rect(0, 0, W, clipH));
+            float sweep = Mathf.PingPong(Time.unscaledTime * (0.8f + 0.8f * weather.Rain), 1f);
+            sweep = sweep * sweep * (3f - 2f * sweep);
+            float ang = Mathf.Lerp(-78f, -8f, sweep);
+            float len = H * 0.55f;
+            for (int k = 0; k < 2; k++)
+            {
+                var pivot = new Vector2(W * (k == 0 ? 0.28f : 0.62f), clipH + 10f * u);
+                GUIUtility.RotateAroundPivot(ang, pivot);
+                Fill(new Rect(pivot.x - 3f * u, pivot.y - len, 6f * u, len), new Color(0.05f, 0.05f, 0.06f, 0.9f));
+                GUI.matrix = Matrix4x4.identity;
+            }
+            GUI.EndClip();
+        }
+    }
+
+    void DrawSettings(float W, float H, float u)
+    {
+        Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.72f));
+        Label(new Rect(0, 70 * u, W, 70 * u), "설정", 52, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
+        for (int i = 0; i < settingsLines.Length; i++)
+        {
+            bool sel = i == settingsSel;
+            Color c = sel ? new Color(1f, 0.92f, 0.4f) : new Color(1f, 1f, 1f, 0.8f);
+            Label(new Rect(W * 0.22f, (190 + i * 56) * u, W * 0.56f, 44 * u), (sel ? "> " : "   ") + settingsLines[i], 28, c, TextAnchor.MiddleLeft);
+        }
+        Label(new Rect(0, 600 * u, W, 36 * u), "W / S 선택      A / D 또는 Enter 조절      Esc 또는 O 돌아가기", 22, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
+    }
+
+    void DrawTutorial(float W, float H, float u)
+    {
+        if (!tutorial.Active) return;
+        // 왼쪽 목표 목록 아래 빈 자리에 둔다 (가운데 룸미러, 팝업, 교차로 안내와 겹치지 않게)
+        Fill(new Rect(14f * u, 196f * u, 380f * u, 116f * u), new Color(0f, 0f, 0f, 0.6f));
+        style.wordWrap = true;
+        Label(new Rect(22f * u, 200f * u, 364f * u, 108f * u), tutorial.Text, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        style.wordWrap = false;
+    }
+}

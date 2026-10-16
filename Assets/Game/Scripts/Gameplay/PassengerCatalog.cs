@@ -12,6 +12,8 @@ public class PaxType
     public float tipMul = 1f;        // 팁 배율
     public int hair = -1;            // HairTones 번호. -1 이면 무작위
     public int weight = 2;           // 나타날 확률 가중치
+    public string[] chat;            // 타고 가는 동안 가끔 걸어 오는 말 (없으면 조용한 손님)
+    public float swerveSense = 0f;   // 급하게 핸들을 꺾을 때 멀미하는 정도 (0 = 상관없음, 클수록 쉽게 멀미)
 }
 
 // 손님 데이터 표: 여기만 고치면 이름/대사/목적지/요금이 바뀐다. (대사를 늘리려면 이 파일만 열면 된다)
@@ -72,6 +74,34 @@ public static class PassengerCatalog
             react = new[] { "오 마이 갓!!", "이게 무슨 무례한 운전입니까!", "Stop! 방금 뭐였죠!?" },
             thanks = new[] { "Excellent! 훌륭한 운전이었어요.", "만족합니다. 수고했어요." },
             fareMul = 1.5f, hitSense = 1.7f, weight = 1, timeMul = 0.9f, tipMul = 2f
+        },
+        new PaxType   // 수다쟁이: 가는 동안 계속 말을 걸고, 대신 팁이 후하다
+        {
+            names = new[] { "홍 언니", "백 오빠", "마 작가님" },
+            dests = new[] { "시장", "도서관", "공원 입구", "호텔" },
+            hello = new[] { "기사님 안녕하세요~ {0}까지요! 가면서 얘기나 해요.", "{0}까지 가 주세요! 오늘 날씨 진짜 좋죠?" },
+            react = new[] { "헉, 지금 뭐예요!?", "어머 놀라라!", "기사님 괜찮아요!?" },
+            thanks = new[] { "얘기 즐거웠어요! 또 타요~", "수다 떠느라 시간 가는 줄 몰랐네요!" },
+            chat = new[] { "기사님은 이 일 오래 하셨어요?", "저번에 탄 택시는 말이 없어서요~", "요즘 물가 진짜 올랐죠?", "저기 새로 생긴 가게 아세요?" },
+            fareMul = 1.0f, hitSense = 0.9f, tipMul = 1.6f
+        },
+        new PaxType   // 서두르는 손님: 시간이 아주 짧지만 요금과 팁이 높다
+        {
+            names = new[] { "급한 김 씨", "박 배달원", "조 대리" },
+            dests = new[] { "공항", "중앙역", "시청" },
+            hello = new[] { "{0}까지! 제발 빨리요, 비행기 놓쳐요!", "{0}까지요! 최대한 빨리 부탁합니다!" },
+            react = new[] { "아 뭐예요! 시간 없다고요!", "으악, 늦겠어요!", "지금 장난해요!?" },
+            thanks = new[] { "세이프! 정말 고마워요!", "덕분에 안 늦었어요!" },
+            fareMul = 1.3f, hitSense = 1.0f, timeMul = 0.6f, tipMul = 1.5f, weight = 1
+        },
+        new PaxType   // 멀미하는 손님: 핸들을 급하게 꺾으면 요금이 깎인다
+        {
+            names = new[] { "창백한 이 씨", "멀미 많은 최 씨" },
+            dests = new[] { "대학병원", "공원 입구", "도서관" },
+            hello = new[] { "{0}까지요… 저 멀미가 심해서 핸들 살살 돌려 주세요…", "{0}까지 부탁해요. 급하게 틀면 안 돼요… 우웩." },
+            react = new[] { "우웩… 살살 좀 몰아요…", "으… 속이 울렁거려요…", "핸들 좀 부드럽게요!" },
+            thanks = new[] { "살았다… 감사합니다.", "부드럽게 와줘서 고마워요." },
+            fareMul = 1.1f, hitSense = 1.0f, swerveSense = 0.25f, weight = 1
         },
     };
 

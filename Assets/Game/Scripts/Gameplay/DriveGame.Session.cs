@@ -16,6 +16,7 @@ public partial class DriveGame
     float invuln { get { return session.Invuln; } }
     float hurtFlash { get { return session.HurtFlash; } }
     bool gameOver { get { return session.GameOver; } }
+    int maxLivesNow { get { return session.MaxLives; } }
 
     void CreateSession()
     {

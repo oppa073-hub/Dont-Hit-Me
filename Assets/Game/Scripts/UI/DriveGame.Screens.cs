@@ -10,7 +10,7 @@ public partial class DriveGame
         "A / D  조향      S  브레이크      Q / E  좌 / 우 깜빡이" + ((char)10) +
         "손님 `!` 옆에 정차 -> Space 태우기 / X 거절" + ((char)10) +
         "목적지 교차로에서 브레이크로 정차하면 요금 정산" + ((char)10) +
-        "횡단하는 사람을 치면 목숨이 줄어듭니다 (3개)";
+        "횡단하는 사람이나 차에 부딪히면 목숨이 줄고, 모두 잃으면 게임 오버";
 
     void DrawTitle(float W, float H, float u)
     {
@@ -23,24 +23,29 @@ public partial class DriveGame
         style.wordWrap = false;
 
         if (bestText.Length > 0)
-            Label(new Rect(0, H * 0.70f, W, 32 * u), bestText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, 466 * u, W, 32 * u), bestText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 498 * u, W, 32 * u), shopTitleText, 22, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
         if (Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
-            Label(new Rect(0, H * 0.78f, W, 40 * u), "Space 또는 Enter 로 시작", 30, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, 540 * u, W, 40 * u), "Space 또는 Enter 로 시작", 30, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
+
+        Label(new Rect(0, 590 * u, W, 28 * u), "오늘의 목표", 20, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
+        DrawGoals(0, 618 * u, W, u, 17, TextAnchor.UpperCenter);
     }
 
     void DrawPause(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.55f));
         Label(new Rect(0, H * 0.36f, W, 70 * u), "일시정지", 56, Color.white, TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.36f + 72 * u, W, 36 * u), "Esc 또는 P  계속      R  처음부터 다시", 24, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.36f + 72 * u, W, 36 * u), "Esc 또는 P  계속      R  처음부터 다시      O  설정", 24, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+        DrawGoals(0, H * 0.36f + 130 * u, W, u, 18, TextAnchor.UpperCenter);
     }
 
     void DrawGameOver(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.55f));
         Label(new Rect(0, H * 0.22f, W, 80 * u), "GAME OVER", 60, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.22f + 84 * u, W, 190 * u), resultText, 26, Color.white, TextAnchor.UpperCenter);
+        Label(new Rect(0, H * 0.22f + 84 * u, W, 250 * u), resultText, 26, Color.white, TextAnchor.UpperCenter);
         if (Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
-            Label(new Rect(0, H * 0.78f, W, 40 * u), "R 로 다시 시작", 28, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.84f, W, 40 * u), "R 다시 시작      U 업그레이드 상점", 28, new Color(0.5f, 1f, 0.6f), TextAnchor.MiddleCenter);
     }
 }

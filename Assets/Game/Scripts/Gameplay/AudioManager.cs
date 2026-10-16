@@ -10,6 +10,8 @@ public class AudioManager
     readonly DriveGame cfg;
     readonly AudioSource engine;
     readonly AudioSource sfx;
+    readonly AudioSource bgm;
+    readonly AudioSource rainSrc;
     readonly AudioClip tick, tock, bonk, whoosh, ding, chime;
     bool lastBlinkOn;
 
@@ -27,6 +29,18 @@ public class AudioManager
         sfx = host.AddComponent<AudioSource>();
         sfx.playOnAwake = false;
         sfx.spatialBlend = 0f;
+
+        // 배경음악: 인스펙터 bgmClip 이 있으면 그걸, 없으면 코드로 만든 임시 곡을 반복 재생한다
+        bgm = host.AddComponent<AudioSource>();
+        bgm.clip = cfg.bgmClip != null ? cfg.bgmClip : MakeBgm();
+        bgm.loop = true;
+        bgm.playOnAwake = false;
+        bgm.spatialBlend = 0f;
+        rainSrc = host.AddComponent<AudioSource>();
+        rainSrc.clip = MakeRain();
+        rainSrc.loop = true;
+        rainSrc.playOnAwake = false;
+        rainSrc.spatialBlend = 0f;
 
         tick = Click(1800f, 0.012f, 0.9f);
         tock = Click(1100f, 0.014f, 0.8f);
@@ -77,7 +91,105 @@ public class AudioManager
         }
     }
 
+    /// <summary>
+    /// 매 프레임: 배경음악과 빗소리. rain = 비의 세기(0~1), duck = 음악을 줄이는 배율(일시정지 등에서 작게).
+    /// 효과음/엔진과 달리 타이틀, 일시정지, 상점에서도 계속 흐른다.
+    /// </summary>
+    public void TickMusic(float rain, float duck)
+    {
+        if (!cfg.soundOn)
+        {
+            if (bgm.isPlaying) bgm.Pause();
+            if (rainSrc.isPlaying) rainSrc.Pause();
+            return;
+        }
+        if (!bgm.isPlaying) bgm.Play();
+        bgm.volume = cfg.masterVolume * cfg.bgmVolume * duck;
+        if (rain > 0.02f)
+        {
+            if (!rainSrc.isPlaying) rainSrc.Play();
+            rainSrc.volume = cfg.masterVolume * 0.4f * rain;
+        }
+        else if (rainSrc.isPlaying) rainSrc.Pause();
+    }
+
     // ---- 소리 만들기 (모두 코드로 합성) ----
+
+    // 임시 배경음악 16초: Am - F - C - G 코드를 부드러운 패드와 짧은 아르페지오로. 끝과 처음이 이어지도록 소리가 넘치면 앞으로 감아 넣는다.
+    // 진짜 곡을 넣으려면 DriveGame 인스펙터의 Bgm Clip 에 AudioClip 을 끌어다 놓으면 이 곡 대신 재생된다.
+    static AudioClip MakeBgm()
+    {
+        const float bar = 4f;
+        int n = Mathf.RoundToInt(Rate * bar * 4f);
+        var d = new float[n];
+        float[][] chords =
+        {
+            new[] { 220.00f, 261.63f, 329.63f },
+            new[] { 174.61f, 220.00f, 261.63f },
+            new[] { 261.63f, 329.63f, 392.00f },
+            new[] { 196.00f, 246.94f, 293.66f },
+        };
+        float[] roots = { 110.00f, 87.31f, 130.81f, 98.00f };
+        for (int b = 0; b < 4; b++)
+        {
+            int start = Mathf.RoundToInt(Rate * bar * b);
+            int len = Mathf.RoundToInt(Rate * bar);
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / len;
+                float env = Mathf.Sin(t * Mathf.PI);
+                env *= env;                                                   // 마디 양끝에서 0 이 되는 부드러운 패드
+                float v = 0f;
+                foreach (float f in chords[b]) v += Mathf.Sin((float)i / Rate * f * Mathf.PI * 2f);
+                v = v / 3f * env * 0.16f;
+                v += Mathf.Sin((float)i / Rate * roots[b] * Mathf.PI * 2f) * env * 0.12f;
+                d[(start + i) % n] += v;
+            }
+            // 0.5초마다 코드 음 하나씩 짧게 퉁기는 아르페지오
+            int[] order = { 0, 1, 2, 1, 2, 1, 0, 1 };
+            for (int s = 0; s < 8; s++)
+            {
+                float f = chords[b][order[s]] * 2f;
+                int noteStart = start + Mathf.RoundToInt(Rate * 0.5f * s);
+                int noteLen = Mathf.RoundToInt(Rate * 0.6f);
+                for (int i = 0; i < noteLen; i++)
+                {
+                    float tt = (float)i / Rate;
+                    float v = Mathf.Sin(tt * f * Mathf.PI * 2f) * Mathf.Exp(-5f * tt) * Mathf.Min(1f, tt * 80f) * 0.10f;
+                    d[(noteStart + i) % n] += v;
+                }
+            }
+        }
+        return Make("bgm", d);
+    }
+
+    // 빗소리: 부드러운 잡음. 끝과 처음을 섞어 이음매가 안 들리게 한다.
+    static AudioClip MakeRain()
+    {
+        const int fade = 2000;
+        int len = Rate * 2;
+        var rnd = new System.Random(23);
+        var raw = new float[len + fade];
+        float lp = 0f, hp = 0f;
+        for (int i = 0; i < raw.Length; i++)
+        {
+            float x = (float)rnd.NextDouble() * 2f - 1f;
+            lp += (x - lp) * 0.45f;
+            hp += (lp - hp) * 0.02f;
+            raw[i] = (lp - hp) * 0.8f;
+        }
+        var d = new float[len];
+        for (int i = 0; i < len; i++)
+        {
+            if (i < fade)
+            {
+                float k = (float)i / fade;
+                d[i] = raw[i] * k + raw[len + i] * (1f - k);
+            }
+            else d[i] = raw[i];
+        }
+        return Make("rain", d);
+    }
 
     static AudioClip Make(string name, float[] data)
     {

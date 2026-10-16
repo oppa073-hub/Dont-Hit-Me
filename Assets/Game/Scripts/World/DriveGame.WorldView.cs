@@ -192,6 +192,30 @@ public partial class DriveGame
             if (p.pauseLeft > 0f) p.sr.color = Color.Lerp(p.baseColor, Color.white, 0.5f);
             else if (!fallen) p.sr.color = p.baseColor;
         }
+
+        // 다른 차와 돌발 장애물 (사람처럼 정면 고정 스프라이트)
+        bool trafficVisible = !(turning && retargeted);
+        for (int ti = 0; ti < traffic.Count; ti++)
+        {
+            var o = traffic[ti];
+            if (o.t.gameObject.activeSelf != trafficVisible) o.t.gameObject.SetActive(trafficVisible);
+            if (!trafficVisible) continue;
+            float ox = o.x, oz = o.z;
+            if (turning)
+            {
+                // 옛 도로와 함께 돈다
+                float rad = thetaA * Mathf.Deg2Rad;
+                float dz = oz - pivotZ;
+                float nx = ox * Mathf.Cos(rad) + dz * Mathf.Sin(rad);
+                float nz = -ox * Mathf.Sin(rad) + dz * Mathf.Cos(rad);
+                ox = nx;
+                oz = pivotZ + nz;
+            }
+            o.t.position = new Vector3(ox, Drop(oz) + o.centerY, oz);
+            float tilt = o.angle;                                           // 공: 구르는 각도
+            if (o.fallT >= 0f) tilt = -o.kickDir * Mathf.Min(o.fallT * 4f, 1f) * 35f;   // 부딪힌 차/콘: 옆으로 기울며 밀려난다
+            o.t.rotation = Quaternion.Euler(0f, 0f, tilt);
+        }
     }
 
     // 건물 = 상자 몸통 + 각 면에 붙인 스프라이트. 도로 쪽 정면과 다가오는 쪽(-z) 면은 월드에 고정(카메라를 쳐다보지 않음).

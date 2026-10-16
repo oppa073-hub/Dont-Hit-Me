@@ -269,6 +269,58 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("손가락 두께 여유(m). 손가락이 림을 파고들면 키우고, 림에서 뜨면 줄인다")]
     public float fingerPad = 0.008f;
 
+    [Header("Difficulty (시간이 지나면 레벨이 오른다)")]
+    [Tooltip("레벨이 한 단계 오르는 데 걸리는 플레이 시간(초)")]
+    public float levelSeconds = 30f;
+    public int maxLevel = 10;
+
+    [Header("Traffic (다른 차와 돌발 장애물. 레벨이 낮으면 안 나온다)")]
+    [Tooltip("이 레벨부터 다른 차가 나온다 (트럭은 +1, 고장 난 차는 +2 레벨부터)")]
+    public int vehicleStartLevel = 2;
+    [Tooltip("이 레벨부터 굴러오는 공(뒤따라 아이가 튀어나옴)이 나온다 (공사 콘은 +1 레벨부터)")]
+    public int hazardStartLevel = 2;
+    [Tooltip("차가 나타나는 기본 간격(초). 레벨이 오를수록 줄어든다")]
+    public float vehicleInterval = 9f;
+    [Tooltip("돌발 장애물이 나타나는 기본 간격(초)")]
+    public float hazardInterval = 11f;
+    public float minTrafficInterval = 4f;
+    [Tooltip("다른 차가 스스로 달리는 속도(m/s) 범위. 내 속도보다 느려야 따라잡는다")]
+    public Vector2 vehicleSpeed = new Vector2(3f, 7f);
+    [Tooltip("도로에 동시에 있을 수 있는 차/장애물 수")]
+    public int maxTraffic = 6;
+    [Tooltip("차 옆을 이 거리(m)보다 가깝게 비껴가면 CLOSE PASS 보너스")]
+    public float vehicleNearMissMargin = 0.35f;
+    public int vehicleNearMissBonus = 25;
+    [Tooltip("비워 두면 코드로 그린 임시 그림을 쓴다. 넣으면 그 스프라이트를 그대로 쓴다 (뒷모습). 차/콘은 pivot 아무거나, 공은 pivot Center. 충돌 폭은 그림 폭에 맞춰진다")]
+    public Sprite carSprite;
+    public Sprite truckSprite;
+    public Sprite coneSprite;
+    public Sprite ballSprite;
+
+    [Header("Music (배경음악)")]
+    [Tooltip("여기에 AudioClip 을 넣으면 그 곡이 반복 재생된다. 비워 두면 코드로 만든 임시 곡이 나온다")]
+    public AudioClip bgmClip;
+    [Range(0f, 1f)]
+    public float bgmVolume = 0.35f;
+
+    [Header("Weather (낮/밤과 비)")]
+    [Tooltip("끄면 항상 맑은 낮")]
+    public bool weatherOn = true;
+    [Tooltip("하루(24시간)가 흐르는 데 걸리는 플레이 시간(초)")]
+    public float dayLength = 300f;
+    [Range(0f, 1f)]
+    [Tooltip("판을 시작할 때의 시각. 0.25 = 아침 6시, 0.5 = 낮 12시, 0.75 = 저녁 6시")]
+    public float startTimeOfDay = 0.33f;
+    [Range(0f, 1f)]
+    [Tooltip("날씨가 바뀔 때마다 비가 올 확률")]
+    public float rainChance = 0.5f;
+    [Range(0f, 1f)]
+    [Tooltip("비 올 때 핸들이 얼마나 미끄러운지 (조향 반응이 이만큼 느려진다)")]
+    public float rainSlip = 0.35f;
+
+    [Header("Options (설정 화면에서 바꾼다)")]
+    public bool shakeEnabled = true;
+
     [Header("Sound (코드로 만든 효과음, 외부 에셋 없음)")]
     public bool soundOn = true;
     [Range(0f, 1f)]
@@ -315,6 +367,9 @@ public partial class DriveGame : MonoBehaviour
         peds = new PedestrianManager(this, transform, MakePedSprite());
         peds.Hit += OnPedHit;
         peds.NearMiss += OnPedNearMiss;
+        CreateTraffic();
+        CreateMeta();
+        CreateAmbience();
         LoadBest();
         CreateSession();
         CreateRoad();
@@ -330,6 +385,7 @@ public partial class DriveGame : MonoBehaviour
         var light = lgo.AddComponent<Light>();
         light.type = LightType.Directional;
         light.intensity = 0.8f;
+        sunLight = light;
 
         roadA = Mat(new Color(0.28f, 0.28f, 0.3f));
         roadB = Mat(new Color(0.32f, 0.32f, 0.34f));
@@ -406,14 +462,18 @@ public partial class DriveGame : MonoBehaviour
     void ResetGame()
     {
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
+        ResetTraffic();
         carX = lateralVel = steerAngle = 0f;
         speed = baseSpeed;
         dist = elapsed = 0f;
+        ResetAmbience();
+        ApplyUpgrades();                     // 산 업그레이드를 먼저 적용해야 목숨에 반영된다
         session.Reset();
         ResetFlowState();
         popupUntil = 0f;
 
         taxi.Reset();
+        goals.Reset();
         camYaw = camYawTarget = 0f;
         hudTimeLeft = int.MinValue;
         road.Reset();
@@ -429,11 +489,31 @@ public partial class DriveGame : MonoBehaviour
         var kb = Keyboard.current;
         if (kb == null) return;
 
+        // 설정: 월드는 멈춰 있고 W/S 로 고르고 A/D 로 바꾼다
+        if (flow == GameFlow.Settings)
+        {
+            Time.timeScale = 0f;
+            UpdateSettings(kb);
+            UpdateWorldVisuals();
+            return;
+        }
+
+        // 상점: 월드는 멈춰 있고 숫자키로 업그레이드를 산다
+        if (flow == GameFlow.Shop)
+        {
+            Time.timeScale = 0f;
+            UpdateShop(kb);
+            UpdateWorldVisuals();
+            return;
+        }
+
         // 타이틀: 월드는 멈춰 있고 Space/Enter 로 시작한다
         if (flow == GameFlow.Title)
         {
             Time.timeScale = 0f;
             if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) StartGame();
+            else if (kb.uKey.wasPressedThisFrame) OpenShop();
+            else if (kb.oKey.wasPressedThisFrame) OpenSettings(GameFlow.Title);
             UpdateWorldVisuals();
             return;
         }
@@ -444,7 +524,12 @@ public partial class DriveGame : MonoBehaviour
         if (flow == GameFlow.Paused)
         {
             Time.timeScale = 0f;
-            if (kb.rKey.wasPressedThisFrame) StartGame();
+            if (kb.rKey.wasPressedThisFrame)
+            {
+                GrantRunCoins();             // 일시정지에서 다시 시작해도 이번 판에 번 코인은 받는다
+                StartGame();
+            }
+            else if (kb.oKey.wasPressedThisFrame) OpenSettings(GameFlow.Paused);
             UpdateWorldVisuals();
             return;
         }
@@ -454,6 +539,7 @@ public partial class DriveGame : MonoBehaviour
             SaveResultOnce();
             road.ClearFade();                // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
             if (kb.rKey.wasPressedThisFrame) StartGame();
+            else if (kb.uKey.wasPressedThisFrame) { ResetGame(); OpenShop(); }
             UpdateWorldVisuals();
             return;
         }
@@ -476,7 +562,7 @@ public partial class DriveGame : MonoBehaviour
         float input = (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f)
                     - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
         if (turning) input = 0f;                              // 회전 중에는 차가 알아서 교차로 중앙으로 간다
-        lateralVel = Mathf.MoveTowards(lateralVel, input * maxLateral, lateralAccel * dt);
+        lateralVel = Mathf.MoveTowards(lateralVel, input * maxLateral, lateralAccel * (1f - rainSlip * weather.Rain) * dt);
         float limit = roadHalfWidth - CarHalfWidth;
         carX += lateralVel * dt;
         if (turning) carX = Mathf.MoveTowards(carX, 0f, turnCenteringSpeed * dt);
@@ -508,6 +594,9 @@ public partial class DriveGame : MonoBehaviour
 
         // 보행자: 생성, 이동, 횡단, 충돌 판정 (회전 중에는 월드가 실제로 다가온 만큼만 움직인다)
         peds.Tick(dt, elapsed, turning ? worldMove : speed * dt, carX, turning, SpawnZ);
+        UpdateTraffic(dt, turning ? worldMove : speed * dt);
+        UpdateGoals();
+        UpdateAmbience(dt);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
         UpdateWorldVisuals();
@@ -517,7 +606,8 @@ public partial class DriveGame : MonoBehaviour
     {
         if (cam == null) return;
         sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
-        Vector3 off = Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
+        sound.TickMusic(weather.Rain, (flow == GameFlow.Playing && !gameOver) ? 1f : 0.45f);
+        Vector3 off = shakeEnabled && Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;
         camYaw = Mathf.MoveTowardsAngle(camYaw, camYawTarget, yawSpeed * Time.unscaledDeltaTime);

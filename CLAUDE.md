@@ -14,7 +14,7 @@
 
 ## 게임 규칙
 - 차는 제자리, 월드가 다가온다. 도로는 앞쪽으로 갈수록 아래로 휜다(y = -curvature * z^2, 동물의 숲 방식).
-- 조작: A/D 또는 ←/→ 조향, S/↓ 브레이크(완전 정지), Q/E 좌/우 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작. 시작은 타이틀 화면에서 Space/Enter. 반응형(음악 리듬 없음).
+- 조작: A/D 또는 ←/→ 조향, S/↓ 브레이크(완전 정지), Q/E 좌/우 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작, U 업그레이드 상점(타이틀/게임오버에서, 숫자키로 구매), O 설정(타이틀/일시정지에서). 시작은 타이틀 화면에서 Space/Enter. 반응형(음악 리듬 없음).
 - 택시: 인도의 손님(느낌표)에게 차를 붙여 정차하면 옆 시점 대화 후 탑승, 목적지 근처에서 정차하면 요금 정산. 태운 채 사람을 치면 손님 리액션과 요금 감액.
 - 교차로: 80m마다 교차로. 깜빡이를 미리 켜 두면 교차로 22m 전부터 자동 감속하고, 교차로 중심(십자가 중심)에 도착했을 때 그 자리에서 약 1.1초 동안 월드가 90도 회전(진입 전에는 절대 돌지 않음. 회전 중간에 새 도로 구간으로 교체, 건물 배치가 바뀜). 도시는 격자 좌표(gx, gy)와 방향(heading)으로 추적.
 - 보행자는 2D 스프라이트 빌보드. 양쪽 인도에 사람이 많이 걷고, 일부가 도로로 나온다(멀리서 이미 건너는 사람 / 가까이서 갑자기 튀어나오는 사람, 튀어나오기 전 연석에서 잠깐 멈칫). 도로를 건너는 사람과 충돌하면 목숨 -1(3개), 아슬아슬하게 피하면 니어미스 보너스. 인도만 걷는 사람은 충돌/점수 없음.
@@ -28,6 +28,9 @@
   - Gameplay/DriveGame.Intersection.cs : 교차로 연결부(IntersectionManager 상태를 blinker/heading/gx/gy/turning 등 읽기 전용 속성으로 보여 주고, 회전이 끝나면 차·사람·구간을 정리)
   - Gameplay/DriveGame.Guidance.cs : 목적지를 앞/옆 칸수로 바꾸고 안내 문장 만들기
   - Gameplay/DriveGame.Taxi.cs : 택시 연결부(TaxiManager 이벤트를 받아 차 세우기/시점/점수/팝업에 반영)
+  - Gameplay/DriveGame.Traffic.cs : 난이도/교통 연결부(레벨 적용, 차 충돌/니어미스 결과를 속도·목숨·점수·팝업에 반영). World/DriveGame.TrafficBuild.cs : 교통 임시 스프라이트 그리기
+  - Gameplay/DriveGame.Meta.cs : 성장 연결부(업그레이드를 목숨/무적/택시에 적용, 판이 끝나면 코인 지급, 목표 판정, 상점 키 입력). UI/DriveGame.Shop.cs : 상점 화면과 오늘의 목표 표시
+  - Gameplay/DriveGame.Ambience.cs : 분위기 연결부(날씨를 하늘/조명/도시 그림에 칠함, 튜토리얼 진행, 설정 입력/저장). UI/DriveGame.Overlays.cs : 밤/비 막, 헤드라이트, 빗줄기, 와이퍼, 설정 화면, 튜토리얼 글자 그리기
   - Gameplay/DriveGame.Pedestrians.cs : 보행자 연결부(치임/니어미스 결과를 목숨·점수·손님 리액션에 반영)
   - Cabin/DriveGame.Cabin.cs : 3D 운전석 부품과 배치(LayoutCabin)
   - Cabin/DriveGame.Navigator.cs : 대시보드 위 내비 화면
@@ -40,7 +43,13 @@
   - Gameplay/TaxiManager.cs : 손님 호출→대화→탑승→도착 흐름, 목적지, 요금·팁·제한 시간. 이벤트 PopupRequested, TalkStarted, Arrived. 전역 enum TaxiState 도 여기
   - Gameplay/IntersectionManager.cs : 깜빡이, 교차로 회전(시간 기준 90도), 격자 좌표(gx, gy)/방향(heading) 추적, NavState. 이벤트 TurnSwapped, TurnCompleted(새 dist), PopupRequested
   - Gameplay/GameSession.cs : 목숨, 점수, 니어미스/충돌 횟수, 무적 시간, 피격 붉은 화면, 게임오버 여부. DriveGame.Session.cs 가 lives/score/gameOver 등을 읽기 전용 속성으로 보여 줌
-  - Gameplay/AudioManager.cs : 외부 에셋 없이 코드로 합성한 효과음(엔진 소리는 속도에 따라 높낮이, 깜빡이 틱톡, 충돌, 니어미스, 도착 종소리, 손님 등장 차임). DriveGame.Sound.cs 가 연결. public: soundOn, masterVolume, engineVolume. **소리는 아직 귀로 확인 전**
+  - Gameplay/AudioManager.cs : 배경음악(인스펙터 Bgm Clip 에 넣으면 그 곡, 비우면 코드로 만든 임시 곡)과 빗소리도 여기. 외부 에셋 없이 코드로 합성한 효과음(엔진 소리는 속도에 따라 높낮이, 깜빡이 틱톡, 충돌, 니어미스, 도착 종소리, 손님 등장 차임). DriveGame.Sound.cs 가 연결. public: soundOn, masterVolume, engineVolume. **소리는 아직 귀로 확인 전**
+  - Gameplay/DifficultyManager.cs : 플레이 시간에 따른 레벨(levelSeconds 마다 +1, 최대 maxLevel)과 레벨별 배율(보행자 간격, 튀어나오는 비율/속도). 이벤트 LevelChanged. DriveGame.Traffic.cs 가 보행자/교통에 적용하고 HUD 에 LV 표시
+  - Gameplay/TrafficManager.cs : 다른 차(승용차/트럭/고장 난 차)와 돌발 장애물(공사 콘, 굴러오는 공+뒤따라 튀어나오는 아이) 생성/이동/충돌/CLOSE PASS 판정. 이벤트 Hit, NearMiss. 차는 목숨 -1, 콘은 속도만 감소, 공은 무해(경고용). 스프라이트는 코드로 그린 임시 그림이고 인스펙터 carSprite/truckSprite/coneSprite/ballSprite 에 넣으면 그걸 쓴다
+  - Gameplay/UpgradeManager.cs : 코인과 영구 업그레이드 5종(여분 목숨, 무적 시간, 팁, 요금, 제한 시간)을 PlayerPrefs 에 저장. 업그레이드를 늘리려면 Defs 표에 한 줄 + 효과 속성 추가
+  - Gameplay/GoalManager.cs : 오늘의 목표 3개(날짜 시드라 하루 동안 고정, 달성 기록은 PlayerPrefs). 달성하면 이벤트 Completed 로 보상 코인을 알림
+  - Gameplay/WeatherManager.cs : 하루 시계(dayLength 초에 24시간)와 비. 하늘색/조명/밤 막 색을 계산만 하고 칠하지는 않음. weatherOn 으로 끔
+  - Gameplay/TutorialManager.cs : 처음 한 판 동안 단계별 안내(조향 → 손님 → 내비/깜빡이 → 정산). 끝나면 PlayerPrefs 에 기록, 설정에서 다시 켬
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

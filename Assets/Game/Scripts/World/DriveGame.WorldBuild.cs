@@ -52,6 +52,8 @@ public partial class DriveGame
         fsr.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), new Vector2(0.5f, 1f), whiteTex.width);
         fsr.color = new Color(98f / 255f, 122f / 255f, 163f / 255f);
         fsr.sortingOrder = -11;
+        backdropSrs.Add(fsr);
+        backdropBase.Add(fsr.color);
         for (int k = -1; k <= 1; k++)
         {
             var go = new GameObject("Backdrop" + k);
@@ -61,6 +63,8 @@ public partial class DriveGame
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sp;
             sr.sortingOrder = -10;
+            backdropSrs.Add(sr);
+            backdropBase.Add(Color.white);
         }
     }
 

@@ -34,7 +34,8 @@ public partial class DriveGame
     GUIStyle style;
 
     // HUD 문자열 캐시
-    int hudLives = -1, hudMaxLives = -1, hudTotal = -1, hudKmh = -1, hudNear = -1, hudHits = -1, hudPeds = -1, hudSec = -1;
+    int hudLives = -1, hudMaxLives = -1, hudTotal = -1, hudKmh = -1, hudNear = -1, hudHits = -1, hudPeds = -1, hudSec = -1, hudLevel = -1, hudClock = -1;
+    bool hudRain;
 
     string hudHearts = "", hudScore = "", hudStats = "";
     int hudFareTotal = -1, hudTrips = -1;
@@ -93,7 +94,7 @@ public partial class DriveGame
         if (!carrying) return;
 
         float s = mh * 0.62f;
-        bool shocked = Time.unscaledTime < taxi.ReactUntil;
+        bool shocked = Time.unscaledTime < taxi.ReactUntil && !taxi.ReactIsChat;
         DrawFace(new Vector2(r.center.x + mw * 0.16f, r.center.y - mh * 0.02f), s * 0.85f, taxi.PaxSkin, taxi.PaxHair, shocked);   // 뒤쪽 손님
         DrawFace(new Vector2(r.center.x - mw * 0.14f, r.center.y + mh * 0.06f), s, PassengerCatalog.SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);   // 기사
     }
@@ -262,11 +263,17 @@ public partial class DriveGame
         }
 
         // 사고 시 손님 리액션
-        if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil)
+        if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil && taxi.ReactIsChat)
+        {
+            // 수다: 운전을 방해하지 않게 화면 위쪽 가운데에 작은 말풍선으로
+            Fill(new Rect(W * 0.5f - 300 * u, 10 * u, 600 * u, 44 * u), new Color(0f, 0f, 0f, 0.55f));
+            Label(new Rect(W * 0.5f - 290 * u, 10 * u, 580 * u, 44 * u), taxi.ReactText, 22, new Color(1f, 0.95f, 0.75f), TextAnchor.MiddleCenter);
+        }
+        else if (taxi.State == TaxiState.Carrying && Time.unscaledTime < taxi.ReactUntil)
         {
             Vector2 c = new Vector2(W * 0.5f, H * 0.42f);
             Fill(new Rect(c.x - 230 * u, c.y - 120 * u, 460 * u, 240 * u), new Color(0f, 0f, 0f, 0.55f));
-            DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, true);
+            DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, !taxi.ReactIsChat);
             Label(new Rect(c.x - 40 * u, c.y - 40 * u, 260 * u, 80 * u), taxi.ReactText, 30, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
         }
     }
@@ -278,19 +285,30 @@ public partial class DriveGame
         if (hurtFlash > 0f) Fill(new Rect(0, 0, W, H), new Color(1f, 0f, 0f, hurtFlash * 0.6f));
 
         DrawCabin();
+        DrawWeatherOverlay(W, H, u);
 
         if (flow == GameFlow.Title)
         {
             DrawTitle(W, H, u);                       // 타이틀 화면에서는 HUD 를 그리지 않는다
             return;
         }
+        if (flow == GameFlow.Shop)
+        {
+            DrawShop(W, H, u);
+            return;
+        }
+        if (flow == GameFlow.Settings)
+        {
+            DrawSettings(W, H, u);
+            return;
+        }
 
         // 문자열은 값이 바뀔 때만 새로 만든다 (OnGUI 는 프레임당 여러 번 불려서 매번 만들면 GC 쓰레기가 쌓인다)
-        if (lives != hudLives || maxLives != hudMaxLives)
+        if (lives != hudLives || maxLivesNow != hudMaxLives)
         {
             hudLives = lives;
-            hudMaxLives = maxLives;
-            hudHearts = new string('♥', Mathf.Max(0, lives)) + new string('♡', Mathf.Max(0, maxLives - lives));
+            hudMaxLives = maxLivesNow;
+            hudHearts = new string('♥', Mathf.Max(0, lives)) + new string('♡', Mathf.Max(0, maxLivesNow - lives));
         }
         Label(new Rect(20 * u, 14 * u, 500 * u, 40 * u), hudHearts, 30, new Color(1f, 0.4f, 0.5f), TextAnchor.UpperLeft);
         int total = score + Mathf.FloorToInt(distScore);
@@ -300,20 +318,23 @@ public partial class DriveGame
             hudScore = "SCORE  " + total;
         }
         Label(new Rect(20 * u, 54 * u, 500 * u, 40 * u), hudScore, 22, Color.white, TextAnchor.UpperLeft);
+        DrawGoals(20 * u, 116 * u, 520 * u, u, 15, TextAnchor.UpperLeft);
+        if (!gameOver && flow == GameFlow.Playing) DrawTutorial(W, H, u);
 
         int kmh = Mathf.RoundToInt(speed * 3.6f), sec = Mathf.RoundToInt(elapsed);
-        if (kmh != hudKmh || nearMisses != hudNear || hits != hudHits || peds.Count != hudPeds || sec != hudSec)
+        if (kmh != hudKmh || nearMisses != hudNear || hits != hudHits || peds.Count != hudPeds || sec != hudSec || level != hudLevel || weather.ClockStep != hudClock || (weather.Rain > 0.3f) != hudRain)
         {
-            hudKmh = kmh; hudNear = nearMisses; hudHits = hits; hudPeds = peds.Count; hudSec = sec;
-            hudStats = kmh + " km/h"
+            hudKmh = kmh; hudNear = nearMisses; hudHits = hits; hudPeds = peds.Count; hudSec = sec; hudLevel = level; hudClock = weather.ClockStep; hudRain = weather.Rain > 0.3f;
+            hudStats = kmh + " km/h   LV " + level
                      + "\nnear miss " + nearMisses + "   hit " + hits
-                     + "\npeds " + peds.Count + "   t " + sec + "s";
+                     + "\npeds " + peds.Count + "   t " + sec + "s"
+                     + "\n" + weather.ClockText() + (hudRain ? "   비" : "");
         }
         Label(new Rect(W - 420 * u, 14 * u, 400 * u, 100 * u), hudStats, 18, new Color(1f, 1f, 1f, 0.9f), TextAnchor.UpperRight);
 
         Label(new Rect(20 * u, H - 30 * u, W * 0.62f, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerLeft);   // 내비(오른쪽 아래)와 겹치지 않게 왼쪽 정렬
 
-        DrawTaxiGui(W, H, u);
+        if (!gameOver && flow != GameFlow.Paused) DrawTaxiGui(W, H, u);       // 게임오버/일시정지 글자와 겹치지 않게
 
         if (Time.unscaledTime < popupUntil)
             Label(new Rect(0, H * 0.28f, W, 50 * u), popupText, 34, popupColor, TextAnchor.MiddleCenter);

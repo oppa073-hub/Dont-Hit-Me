@@ -15,6 +15,12 @@ public class TaxiManager
     readonly DestRelFn destRel;
     float callerTimer;
     float carX;                           // 마지막 Tick 에서 받은 차의 좌우 위치 (BeginTalk 이 쓴다)
+    float prevCarX, sick, sickCooldown, chatTimer;     // 멀미 게이지, 수다 타이머
+
+    // 업그레이드 효과 (DriveGame 이 판 시작 때 정해 준다. 기본값은 영향 없음)
+    public float FareBonusMul = 1f;       // 요금에 곱함
+    public float TipBonusMul = 1f;        // 팁에 곱함
+    public float TimeBonus = 0f;          // 제한 시간에 더함(초)
 
     // ---- 상태 (읽기는 누구나, 쓰기는 이 클래스만) ----
     public TaxiState State { get; private set; }
@@ -36,6 +42,7 @@ public class TaxiManager
     public bool LateWarned { get; private set; }
     public int FareTotal { get; private set; }
     public int Trips { get; private set; }
+    public bool ReactIsChat { get; private set; }                  // 한마디가 사고 반응이 아니라 수다인지
     public string ReactText { get; private set; }                  // 사람을 쳤을 때 손님의 한마디
     public float ReactUntil { get; private set; }
     public string ThanksText { get; private set; }                 // 도착했을 때 손님의 한마디
@@ -83,6 +90,8 @@ public class TaxiManager
         LateWarned = false;
         FareTotal = Trips = 0;
         ReactUntil = ThanksUntil = 0f;
+        ReactIsChat = false;
+        sick = sickCooldown = 0f;
     }
 
     /// <summary>회전이 끝나 사람들을 다시 깔았다: 기다리던 손님도 사라졌으니 잊고 다음 손님을 기다린다.</summary>
@@ -98,6 +107,8 @@ public class TaxiManager
     public void Tick(float dt, float speed, float carX, bool turning, float spawnZ)
     {
         this.carX = carX;
+        float latSpeed = dt > 0.0001f ? Mathf.Min(10f, Mathf.Abs(carX - prevCarX) / dt) : 0f;     // 좌우로 움직이는 빠르기
+        prevCarX = carX;
 
         // 손님이 사라졌다(지나쳐서 제거됨)
         if (Caller != null && (Caller.t == null || !peds.Contains(Caller)))
@@ -127,6 +138,39 @@ public class TaxiManager
             {
                 LateWarned = true;
                 Popup("늦었어요! 요금이 깎입니다", new Color(1f, 0.6f, 0.4f));
+            }
+
+            // 수다쟁이 손님은 가끔 말을 건다
+            if (Pax != null && Pax.chat != null && Pax.chat.Length > 0)
+            {
+                chatTimer -= dt;
+                if (chatTimer <= 0f && Time.unscaledTime >= ReactUntil)
+                {
+                    ReactText = PassengerCatalog.PickOne(Pax.chat);
+                    ReactIsChat = true;
+                    ReactUntil = Time.unscaledTime + 2.5f;
+                    chatTimer = Random.Range(10f, 16f);
+                }
+            }
+
+            // 멀미하는 손님: 핸들을 급하게 꺾는 시간이 쌓이면 요금이 깎인다
+            if (Pax != null && Pax.swerveSense > 0f && !turning)
+            {
+                if (sickCooldown > 0f) sickCooldown -= dt;
+                else
+                {
+                    sick = Mathf.Max(0f, sick + Mathf.Max(0f, latSpeed - 2.5f) * Pax.swerveSense * dt - 0.3f * dt);
+                    if (sick >= 1f)
+                    {
+                        sick = 0f;
+                        sickCooldown = 3f;
+                        FareMul = Mathf.Max(0.2f, FareMul - 0.1f);
+                        ReactText = PassengerCatalog.PickOne(Pax.react);
+                        ReactIsChat = false;
+                        ReactUntil = Time.unscaledTime + 1.6f;
+                        Popup("멀미! 요금 -10%", new Color(0.7f, 0.9f, 0.5f));
+                    }
+                }
             }
 
             // 회전 중에는 판정하지 않는다. 목적지 줄(r==0) 위에서만 도착/지나침을 본다.
@@ -195,8 +239,10 @@ public class TaxiManager
 
         // 제한 시간: 거리 ÷ (지금 순항 속도 × 평균 비율) × 손님 급함 + 여유. 속도가 오른 판 후반에도 시간이 맞게 짧아진다
         float avgSpeed = Mathf.Max(4f, cruiseSpeed * Mathf.Clamp(cfg.limitSpeedRatio, 0.2f, 1.5f));
-        TripLimit = TripMeters / avgSpeed * (Pax != null ? Pax.timeMul : 1f) + Mathf.Max(0f, cfg.timeBuffer);
+        TripLimit = TripMeters / avgSpeed * (Pax != null ? Pax.timeMul : 1f) + Mathf.Max(0f, cfg.timeBuffer) + TimeBonus;
         TripT = 0f;
+        sick = sickCooldown = 0f;
+        chatTimer = Random.Range(5f, 9f);
         LateWarned = false;
 
         peds.Remove(Caller);                                 // 손님은 차 안으로
@@ -239,6 +285,7 @@ public class TaxiManager
     {
         if (State != TaxiState.Carrying) return;
         ReactText = PassengerCatalog.PickOne(Pax != null ? Pax.react : PassengerCatalog.PaxTypes[0].react);
+        ReactIsChat = false;
         ReactUntil = Time.unscaledTime + 1.6f;
         float sense = Pax != null ? Pax.hitSense : 1f;
         float hitMul = Mathf.Clamp01(1f - (1f - cfg.hitFareMul) * sense);    // 유형이 민감할수록 더 깎는다
@@ -252,7 +299,7 @@ public class TaxiManager
     {
         float typeMul = Pax != null ? Pax.fareMul : 1f;
         float mul = Mathf.Max(0.2f, FareMul * LateMul());                  // 사고/지나침/지각 감액을 합쳐도 20% 밑으로는 안 내려간다
-        return Mathf.RoundToInt((cfg.baseFare + cfg.farePerMeter * TripMeters) * mul * typeMul / 10f) * 10;
+        return Mathf.RoundToInt((cfg.baseFare + cfg.farePerMeter * TripMeters) * mul * typeMul * FareBonusMul / 10f) * 10;
     }
 
     // 제한 시간을 넘긴 만큼 요금에 곱하는 값 (제한 안이면 1)
@@ -268,6 +315,6 @@ public class TaxiManager
         float left = TripLimit - TripT;
         if (left <= 0f || TripLimit <= 0f) return 0;
         float k = Mathf.Clamp01(left / (TripLimit * 0.5f));
-        return Mathf.RoundToInt(Mathf.Max(0, cfg.tipMax) * k * (Pax != null ? Pax.tipMul : 1f) / 10f) * 10;
+        return Mathf.RoundToInt(Mathf.Max(0, cfg.tipMax) * k * (Pax != null ? Pax.tipMul : 1f) * TipBonusMul / 10f) * 10;
     }
 }

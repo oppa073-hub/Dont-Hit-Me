@@ -29,6 +29,11 @@ public class PedestrianManager
     readonly List<Ped> peds = new List<Ped>();
     float nextSpawn;
 
+    // 난이도 배율 (DriveGame 이 레벨에 맞게 정해 준다. 기본값은 영향 없음)
+    public float IntervalMul = 1f;       // 생성 간격에 곱함 (작을수록 사람이 자주 나옴)
+    public float DartBonus = 0f;         // 갑자기 튀어나오는 사람 비율을 이만큼 늘림
+    public float DartSpeedMul = 1f;      // 튀어나오는 속도 배율
+
     /// <summary>차에 치였다. 쓰러지는 연출은 매니저가 하고, 점수/목숨/요금은 받는 쪽이 처리한다.</summary>
     public event System.Action<Ped> Hit;
     /// <summary>아슬아슬하게 피하고 지나갔다.</summary>
@@ -79,16 +84,18 @@ public class PedestrianManager
     }
 
     // 새 사람 한 명을 인도에 만든다. kind 를 -1 로 주면 비율대로 무작위 종류를 고른다.
-    public Ped Spawn(float spawnZ, int kind = -1, float z = -1f)
+    // forceSide 를 -1/1 로 주면 그쪽 인도에 만든다 (0 이면 무작위).
+    public Ped Spawn(float spawnZ, int kind = -1, float z = -1f, float forceSide = 0f)
     {
         if (kind < 0)
         {
             float r = Random.value;
-            kind = r < cfg.sidewalkerRatio ? 0 : (r < cfg.sidewalkerRatio + cfg.farCrossRatio ? 1 : 2);
+            float walkers = Mathf.Max(0.2f, cfg.sidewalkerRatio - DartBonus);
+            kind = r < walkers ? 0 : (r < walkers + cfg.farCrossRatio ? 1 : 2);
         }
         if (z < 0f) z = spawnZ + Random.Range(0f, 10f);
 
-        float side = Random.value < 0.5f ? -1f : 1f;
+        float side = forceSide != 0f ? Mathf.Sign(forceSide) : (Random.value < 0.5f ? -1f : 1f);
         var go = new GameObject("Ped");
         go.transform.SetParent(parent, false);
         var sr = go.AddComponent<SpriteRenderer>();
@@ -109,7 +116,7 @@ public class PedestrianManager
             z = z,
             curbX = side * (cfg.roadHalfWidth + 0.35f),
             walkZ = Random.Range(cfg.sidewalkWalkSpeed.x, cfg.sidewalkWalkSpeed.y) * (Random.value < 0.5f ? -1f : 1f),
-            walkSpeed = kind == 2 ? Random.Range(cfg.dartSpeed.x, cfg.dartSpeed.y) : Random.Range(cfg.crossSpeed.x, cfg.crossSpeed.y),
+            walkSpeed = kind == 2 ? Random.Range(cfg.dartSpeed.x, cfg.dartSpeed.y) * DartSpeedMul : Random.Range(cfg.crossSpeed.x, cfg.crossSpeed.y),
             triggerZ = kind == 1 ? Random.Range(cfg.farTrigger.x, cfg.farTrigger.y) : Random.Range(cfg.dartTrigger.x, cfg.dartTrigger.y),
             waitTime = kind == 2 ? Random.Range(cfg.curbWait.x, cfg.curbWait.y) : 0f,
             baseColor = c,
@@ -129,7 +136,7 @@ public class PedestrianManager
         if (elapsed >= nextSpawn && peds.Count < cfg.maxPeds)
         {
             Spawn(spawnZ);
-            float interval = Mathf.Max(cfg.minSpawnInterval, cfg.spawnInterval - elapsed * cfg.intervalRamp);
+            float interval = Mathf.Max(cfg.minSpawnInterval, cfg.spawnInterval - elapsed * cfg.intervalRamp) * IntervalMul;
             nextSpawn = elapsed + interval * Random.Range(0.6f, 1.4f);
         }
 

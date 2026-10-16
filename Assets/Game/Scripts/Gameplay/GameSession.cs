@@ -18,6 +18,13 @@ public class GameSession
     /// <summary>화면에 보이는 총점.</summary>
     public int TotalScore { get { return Score + Mathf.FloorToInt(DistScore); } }
 
+    // 업그레이드 효과 (DriveGame 이 판 시작 때 정해 준다)
+    public int ExtraLives;
+    public float InvulnBonus;
+
+    /// <summary>이번 판의 최대 목숨 (기본 + 업그레이드).</summary>
+    public int MaxLives { get { return cfg.maxLives + ExtraLives; } }
+
     public GameSession(DriveGame cfg)
     {
         this.cfg = cfg;
@@ -26,7 +33,7 @@ public class GameSession
     /// <summary>판을 새로 시작.</summary>
     public void Reset()
     {
-        Lives = cfg.maxLives;
+        Lives = MaxLives;
         Score = NearMisses = Hits = 0;
         DistScore = 0f;
         Invuln = HurtFlash = 0f;
@@ -66,7 +73,7 @@ public class GameSession
         if (Invuln > 0f) return false;
 
         Lives--;
-        Invuln = cfg.invulnTime;
+        Invuln = cfg.invulnTime + InvulnBonus;
         HurtFlash = 0.45f;
         if (Lives <= 0)
         {
