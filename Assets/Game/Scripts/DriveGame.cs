@@ -364,6 +364,10 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("비 올 때 핸들이 얼마나 미끄러운지 (조향 반응이 이만큼 느려진다)")]
     public float rainSlip = 0.35f;
 
+    [Header("UI (글자)")]
+    [Tooltip("비워 두면 기본 글꼴. 한글을 지원하는 ttf/otf 를 넣으면 모든 화면 글자에 적용된다")]
+    public Font uiFont;
+
     [Header("Options (설정 화면에서 바꾼다)")]
     public bool shakeEnabled = true;
 

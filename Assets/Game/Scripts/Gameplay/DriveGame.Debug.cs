@@ -82,7 +82,7 @@ public partial class DriveGame
     void DrawDebug(float W, float H, float u)
     {
         if (!debugOpen) return;
-        Fill(new Rect(14 * u, 326 * u, 300 * u, 284 * u), new Color(0f, 0f, 0f, 0.72f));
+        Panel(new Rect(14 * u, 326 * u, 300 * u, 284 * u), 0.78f);
         Label(new Rect(24 * u, 330 * u, 286 * u, 276 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
     }
 }

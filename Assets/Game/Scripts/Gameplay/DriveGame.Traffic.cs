@@ -46,7 +46,7 @@ public partial class DriveGame
     void OnLevelChanged(int lv)
     {
         ApplyDifficulty();
-        Popup("LEVEL " + lv, new Color(1f, 0.9f, 0.3f));
+        Popup("레벨 " + lv + " 상승!", new Color(1f, 0.9f, 0.3f));
         sound.PlayChime();
     }
 
@@ -65,14 +65,14 @@ public partial class DriveGame
             // 콘은 목숨은 안 깎고 속도만 잃는다
             speed *= 0.6f;
             shakeUntil = Time.unscaledTime + 0.2f;
-            Popup("BUMP!", new Color(1f, 0.7f, 0.3f));
+            Popup("덜컹!", new Color(1f, 0.7f, 0.3f));
             return;
         }
         speed *= o.kind == TrafficManager.Kaiju ? 0.2f : (o.kind == TrafficManager.Flame ? 0.5f : hitSpeedFactor);
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + (o.kind == TrafficManager.Kaiju ? 0.6f : 0.3f);
         taxi.OnPedHit();                      // 손님을 태운 채 사고가 나면 손님이 반응하고 요금이 깎인다
-        string what = o.kind == TrafficManager.Kaiju ? "괴수의 불길!" : (o.kind == TrafficManager.Flame ? "레이저 불길!" : "CRASH!");
+        string what = o.kind == TrafficManager.Kaiju ? "괴수의 불길!" : (o.kind == TrafficManager.Flame ? "레이저 불길!" : "충돌!");
         if (session.RegisterHit())
             Popup(what, new Color(1f, 0.4f, 0.4f));
     }
@@ -82,7 +82,7 @@ public partial class DriveGame
     {
         session.RegisterNearMiss(vehicleNearMissBonus);
         sound.PlayNearMiss();
-        Popup("CLOSE PASS +" + vehicleNearMissBonus, new Color(0.4f, 1f, 0.6f));
+        Popup("스치듯 통과!  +" + vehicleNearMissBonus, new Color(0.4f, 1f, 0.6f));
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.06f);
         rage.AddNearMiss();
     }

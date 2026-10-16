@@ -25,7 +25,7 @@ public partial class DriveGame
 
     void OnRageStarted()
     {
-        Popup("RAGE!!  무적 + 가속", new Color(1f, 0.3f, 0.2f));
+        Popup("분노 폭발!  무적 + 가속", new Color(1f, 0.3f, 0.2f));
         sound.PlayRoar();
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.25f);
     }
@@ -42,7 +42,7 @@ public partial class DriveGame
         sound.PlayBonk();
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.15f);
         session.AddScore(rageSmashScore);
-        Popup("SMASH! +" + rageSmashScore, new Color(1f, 0.45f, 0.3f));
+        Popup("박살!  +" + rageSmashScore, new Color(1f, 0.45f, 0.3f));
     }
 
     // 팔 색: 게이지가 찰수록 붉어지고, 분노 상태에서는 선명하게 깜빡인다 (매 프레임, 팔이 보일 때)

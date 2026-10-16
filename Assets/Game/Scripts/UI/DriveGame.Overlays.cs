@@ -72,12 +72,14 @@ public partial class DriveGame
     void DrawSettings(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.72f));
-        Label(new Rect(0, 70 * u, W, 70 * u), "설정", 52, new Color(1f, 0.85f, 0.3f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 70 * u, W, 70 * u), "설정", 52, UiGold, TextAnchor.MiddleCenter);
         for (int i = 0; i < settingsLines.Length; i++)
         {
             bool sel = i == settingsSel;
             Color c = sel ? new Color(1f, 0.92f, 0.4f) : new Color(1f, 1f, 1f, 0.8f);
-            Label(new Rect(W * 0.22f, (190 + i * 56) * u, W * 0.56f, 44 * u), (sel ? "> " : "   ") + settingsLines[i], 28, c, TextAnchor.MiddleLeft);
+            Panel(new Rect(W * 0.20f, (186 + i * 56) * u, W * 0.60f, 48 * u), sel ? 0.8f : 0.45f);
+            if (sel) Fill(new Rect(W * 0.20f - 3 * u, (186 + i * 56) * u, 7 * u, 48 * u), UiGold);
+            Label(new Rect(W * 0.22f, (190 + i * 56) * u, W * 0.56f, 44 * u), settingsLines[i], 27, c, TextAnchor.MiddleLeft);
         }
         Label(new Rect(0, 600 * u, W, 36 * u), "W / S 선택      A / D 또는 Enter 조절      Esc 또는 O 돌아가기", 22, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
     }
@@ -86,9 +88,10 @@ public partial class DriveGame
     {
         if (!tutorial.Active) return;
         // 왼쪽 목표 목록 아래 빈 자리에 둔다 (가운데 룸미러, 팝업, 교차로 안내와 겹치지 않게)
-        Fill(new Rect(14f * u, 196f * u, 380f * u, 116f * u), new Color(0f, 0f, 0f, 0.6f));
+        Panel(new Rect(14f * u, 202f * u, 340f * u, 112f * u), 0.6f);
+        Label(new Rect(24f * u, 206f * u, 340f * u, 20f * u), "안내", 14, UiGold, TextAnchor.UpperLeft);
         style.wordWrap = true;
-        Label(new Rect(22f * u, 200f * u, 364f * u, 108f * u), tutorial.Text, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        Label(new Rect(24f * u, 226f * u, 320f * u, 84f * u), tutorial.Text, 16, UiGreen, TextAnchor.UpperLeft);
         style.wordWrap = false;
     }
 }

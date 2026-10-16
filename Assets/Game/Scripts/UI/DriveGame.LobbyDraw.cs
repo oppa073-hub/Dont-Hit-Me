@@ -128,9 +128,9 @@ public partial class DriveGame
         }
 
         // 위쪽 정보와 아래쪽 조작 안내
-        Label(new Rect(20 * u, 14 * u, 400 * u, 40 * u), lobbyDayText, 30, new Color(1f, 0.92f, 0.5f), TextAnchor.UpperLeft);
+        Label(new Rect(20 * u, 14 * u, 400 * u, 40 * u), lobbyDayText, 30, UiGold, TextAnchor.UpperLeft);
         Label(new Rect(20 * u, 54 * u, 500 * u, 30 * u), shopCoinsText, 20, Color.white, TextAnchor.UpperLeft);
-        Label(new Rect(W - 760 * u, 18 * u, 740 * u, 28 * u), modeText, 18, new Color(1f, 0.92f, 0.5f), TextAnchor.UpperRight);
+        Label(new Rect(W - 760 * u, 18 * u, 740 * u, 28 * u), modeText, 18, UiGold, TextAnchor.UpperRight);
         Label(new Rect(0, H - 34 * u, W, 28 * u), "A / D 이동      Space 말 걸기 / 타기      O 설정      Esc 타이틀", 16, new Color(1f, 1f, 1f, 0.7f), TextAnchor.LowerCenter);
 
         if (lobby.InDialogue) DrawLobbyDialogue(W, H, u);
@@ -146,22 +146,22 @@ public partial class DriveGame
     void LobbyPrompt(float wx, float y, string text, float w)
     {
         var r = new Rect((wx - w * 0.5f - lbCam) * lbU, y * lbU, w * lbU, 34f * lbU);
-        Fill(r, new Color(0f, 0f, 0f, 0.65f));
-        Label(r, text, 18, new Color(0.7f, 1f, 0.8f), TextAnchor.MiddleCenter);
+        Panel(r, 0.75f);
+        Label(r, text, 18, UiGreen, TextAnchor.MiddleCenter);
     }
 
     void DrawLobbyDialogue(float W, float H, float u)
     {
         var box = new Rect(W * 0.08f, H * 0.05f, W * 0.84f, H * 0.26f);       // 위쪽에 둬서 캐릭터를 가리지 않는다
-        Fill(box, new Color(0.05f, 0.05f, 0.08f, 0.92f));
+        Panel(box, 0.92f);
         var fc = new Vector2(box.x + box.height * 0.55f, box.center.y);
         DrawFace(fc, box.height * 0.62f, NpcSkin, NpcHair, false);
         Dot(new Vector2(fc.x, box.yMax - box.height * 0.10f), box.height * 0.36f, NpcShirt);
         float tx = box.x + box.height * 1.15f;
-        Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), StoryCatalog.NpcName, 24, new Color(1f, 0.85f, 0.4f), TextAnchor.UpperLeft);
+        Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), StoryCatalog.NpcName, 24, UiGold, TextAnchor.UpperLeft);
         style.wordWrap = true;
         Label(new Rect(tx, box.y + 52 * u, box.width - box.height * 1.3f, box.height - 90 * u), lobby.Shown, 24, Color.white, TextAnchor.UpperLeft);
         style.wordWrap = false;
-        Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), lobby.LineDone ? "[Space] 계속" : "[Space] 빨리 보기", 18, new Color(0.7f, 0.9f, 1f), TextAnchor.LowerLeft);
+        Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), lobby.LineDone ? "[Space] 계속" : "[Space] 빨리 보기", 18, UiCyan, TextAnchor.LowerLeft);
     }
 }

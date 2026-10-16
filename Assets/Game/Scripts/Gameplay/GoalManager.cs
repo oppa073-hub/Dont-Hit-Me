@@ -21,7 +21,7 @@ public class GoalManager
     }
 
     // 종류별 문구와 목표값 후보(쉬움 → 어려움)
-    static readonly string[] Names = { "손님 {0}명 태우기", "아슬아슬하게 {0}번 피하기", "레벨 {0} 도달", "충돌 없이 {0}초 버티기", "점수 {0}점 달성", "요금 합계 {0}원 벌기" };
+    static readonly string[] Names = { "손님 {0}명 태우기", "니어미스 {0}번", "레벨 {0} 도달", "무사고 {0}초", "점수 {0}점", "요금 {0}원 벌기" };
     static readonly int[][] Targets =
     {
         new[] { 2, 3, 4 }, new[] { 5, 8, 12 }, new[] { 3, 4, 5 }, new[] { 45, 60, 90 }, new[] { 500, 1000, 1500 }, new[] { 5000, 8000, 12000 }
@@ -100,8 +100,8 @@ public class GoalManager
     void Refresh(Goal g, int cur)
     {
         string name = string.Format(Names[g.kind], g.target);
-        if (g.doneToday) g.Line = "[완료] " + name;
-        else g.Line = "[ ] " + name + " (" + Mathf.Min(cur, g.target) + "/" + g.target + ")  +" + g.reward;
+        if (g.doneToday) g.Line = "● " + name;
+        else g.Line = "○ " + name + "  (" + Mathf.Min(cur, g.target) + "/" + g.target + ")   +" + g.reward;
         g.lastShown = cur;
     }
 
