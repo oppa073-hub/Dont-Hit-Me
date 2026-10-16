@@ -35,6 +35,8 @@ public class PedestrianManager
     public float DartSpeedMul = 1f;      // 튀어나오는 속도 배율
     public float CrowdMul = 1f;          // 시작할 때 깔아 두는 사람 수 배율 (사람 많은 날)
     public float MaxMul = 1f;            // 동시에 있을 수 있는 사람 수 배율 (사람 많은 날)
+    public bool FanRush;                 // 팬 습격 중: 차 앞으로 튀어나오는 사람이 빠르게 계속 생긴다
+    float nextFan;
 
     /// <summary>차에 치였다. 쓰러지는 연출은 매니저가 하고, 점수/목숨/요금은 받는 쪽이 처리한다.</summary>
     public event System.Action<Ped> Hit;
@@ -58,6 +60,7 @@ public class PedestrianManager
         Clear();
         for (int i = 0, n = Mathf.RoundToInt(cfg.initialCrowd * CrowdMul); i < n; i++) Spawn(spawnZ, 0, Random.Range(6f, spawnZ));
         nextSpawn = 1.2f;
+        nextFan = 0f;
     }
 
     /// <summary>회전이 끝난 뒤: 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게).</summary>
@@ -143,6 +146,13 @@ public class PedestrianManager
     /// </summary>
     public void Tick(float dt, float elapsed, float advance, float carX, bool turning, float spawnZ)
     {
+        // 팬 습격: 연예인을 보고 몰려드는 사람들
+        if (FanRush && elapsed >= nextFan && peds.Count < Mathf.RoundToInt(cfg.maxPeds * MaxMul) + 25)
+        {
+            Spawn(spawnZ, 2);
+            nextFan = elapsed + 0.45f;
+        }
+
         // 스폰
         if (elapsed >= nextSpawn && peds.Count < Mathf.RoundToInt(cfg.maxPeds * MaxMul))
         {

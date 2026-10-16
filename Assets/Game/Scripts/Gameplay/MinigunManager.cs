@@ -71,7 +71,7 @@ public class MinigunManager
         {
             var o = traffic[i];
             int k = o.kind;
-            if (k == TrafficManager.Kaiju || k == TrafficManager.Smoke || k == TrafficManager.Boom) continue;     // 괴수와 장식은 제외
+            if (k == TrafficManager.Kaiju || k == TrafficManager.Smoke || k == TrafficManager.Boom || k == TrafficManager.Rival) continue;     // 괴수와 장식은 제외
             if (o.fallT >= 0f || o.z < MinZ || o.z > maxZ) continue;
             if (o.z < bestZ) { bestZ = o.z; bestObj = o; bestPed = null; }
         }

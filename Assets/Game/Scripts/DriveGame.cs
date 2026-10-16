@@ -283,6 +283,23 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("분노 중 부딪혔을 때 얻는 점수")]
     public int rageSmashScore = 30;
 
+    [Header("Encounters (랜덤 인카운트: 정전, 라이벌 택시, 팬 습격, 돼지 떼. 손님 유형별 사건은 PassengerCatalog)")]
+    public bool encountersOn = true;
+    [Tooltip("운전을 시작하고 첫 사건이 나올 때까지의 시간(초). 레벨 2부터 나온다")]
+    public float encounterFirstDelay = 45f;
+    [Tooltip("사건이 끝난 뒤 다음 사건까지의 시간(초) 범위")]
+    public Vector2 encounterInterval = new Vector2(35f, 60f);
+    [Tooltip("라이벌 택시가 손님 쪽으로 달려오는 속도(m/s)")]
+    public float rivalSpeed = 11f;
+    [Tooltip("폭탄 손님: 이 속도(m/s) 아래로 느려지면 도화선이 탄다")]
+    public float bombMinSpeed = 8f;
+    [Tooltip("폭탄 손님: 느린 동안 초당 줄어드는 도화선 (0.3이면 약 3.3초 만에 폭발)")]
+    public float bombDrain = 0.3f;
+    [Tooltip("욱한 손님: 조향이 반대로 먹히는 시간(초)")]
+    public float fighterFlipSeconds = 3f;
+    [Tooltip("돼지 그림. 비우면 코드로 그린 임시 그림")]
+    public Sprite pigSprite;
+
     [Header("Heist (랜덤 인카운트: 수상한 손님이 은행까지 가서 기다리게 하고, 나오면 경찰에게 쫓긴다)")]
     public bool heistOn = true;
     [Range(0f, 1f)]
@@ -441,6 +458,7 @@ public partial class DriveGame : MonoBehaviour
         peds.NearMiss += OnPedNearMiss;
         CreateTraffic();
         CreateEvents();
+        CreateEncounters();
         CreateRage();
         CreateMinigun();
         CreateMeta();
@@ -542,6 +560,7 @@ public partial class DriveGame : MonoBehaviour
         newsActive = false;
         ClearBlood();
         gun.Reset();
+        ResetEncounters();
         rage.Reset();
         ResetEvents();                       // 오늘이 어떤 날인지 먼저 정한다 (사람 많은 날은 시작 인원이 달라진다)
         peds.Reset(SpawnZ);                  // 시작부터 인도에 사람이 있다
@@ -655,6 +674,7 @@ public partial class DriveGame : MonoBehaviour
         // 조향 (관성)
         float input = (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f)
                     - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
+        if (taxi.SteerFlip && taxi.State == TaxiState.Carrying) input = -input;       // 욱한 손님이 핸들을 잡았다
         if (turning) input = 0f;                              // 회전 중에는 차가 알아서 교차로 중앙으로 간다
         lateralVel = Mathf.MoveTowards(lateralVel, input * maxLateral, lateralAccel * (1f - rainSlip * weather.Rain) * dt);
         float limit = roadHalfWidth - CarHalfWidth;
@@ -698,6 +718,7 @@ public partial class DriveGame : MonoBehaviour
         UpdateRage(dt);
         UpdateMinigun(dt);
         UpdatePolice(dt);
+        UpdateEncounters(dt);
         UpdateNews(dt, kb);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);

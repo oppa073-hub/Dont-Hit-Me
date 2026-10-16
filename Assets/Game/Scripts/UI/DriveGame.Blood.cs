@@ -10,7 +10,8 @@ public partial class DriveGame
 {
     struct Splat
     {
-        public float x, y, size, born, life, seed;      // 위치/크기는 화면에 대한 비율 (x 는 폭, y/size 는 높이 기준)
+        public float x, y, size, born, life, seed;
+        public int type;                                // 0 피, 1 부케      // 위치/크기는 화면에 대한 비율 (x 는 폭, y/size 는 높이 기준)
     }
 
     const int MaxSplats = 48;
@@ -56,6 +57,18 @@ public partial class DriveGame
         }
     }
 
+    // 결혼식 커플이 던진 부케가 앞유리에 철썩 붙는다
+    void AddBouquet()
+    {
+        float now = Time.unscaledTime;
+        for (int i = 0; i < 4; i++)
+        {
+            var s = new Splat { x = Random.Range(0.2f, 0.8f), y = Random.Range(0.15f, 0.6f), size = Random.Range(0.05f, 0.09f), born = now, life = 2.6f, seed = Random.value * 10f, type = 1 };
+            if (splats.Count >= MaxSplats) splats.RemoveAt(0);
+            splats.Add(s);
+        }
+    }
+
     // 매 프레임 (OnGUI, 앞유리 위에 그린다). 오래된 얼룩은 흐려지며 아래로 흘러내리고 사라진다.
     void DrawBlood(float W, float H, float u)
     {
@@ -83,6 +96,19 @@ public partial class DriveGame
             float cy = (s.y + age * 0.02f) * H;                                  // 천천히 흘러내린다
             float r = s.size * H * pop;
 
+            if (s.type == 1)
+            {
+                // 부케: 분홍/흰 꽃잎 여섯 장과 노란 중심, 초록 줄기
+                Color pet = new Color(1f, 0.55f, 0.75f, a), pet2 = new Color(1f, 0.95f, 0.95f, a);
+                for (int p = 0; p < 6; p++)
+                {
+                    float pa = p * 60f * Mathf.Deg2Rad + s.seed;
+                    Dot(new Vector2(cx + Mathf.Cos(pa) * r * 0.55f, cy + Mathf.Sin(pa) * r * 0.55f), r * 0.55f, p % 2 == 0 ? pet : pet2);
+                }
+                Dot(new Vector2(cx, cy), r * 0.4f, new Color(1f, 0.85f, 0.3f, a));
+                Fill(new Rect(cx - r * 0.06f, cy + r * 0.4f, r * 0.12f, r * 0.9f), new Color(0.3f, 0.75f, 0.35f, a));
+                continue;
+            }
             Color dark = new Color(BloodDark.r, BloodDark.g, BloodDark.b, a);
             Color light = new Color(BloodLight.r, BloodLight.g, BloodLight.b, a * 0.85f);
 

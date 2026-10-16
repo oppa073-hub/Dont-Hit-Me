@@ -97,6 +97,7 @@ public partial class DriveGame
         s.lamp = PixelSprite(lamp, 24f);
 
         // ---- 날짜 사건용 그림 (모두 코드로 그린 임시 그림. 인스펙터에서 진짜 스프라이트로 바꿀 수 있다) ----
+        s.pig = PixelSprite(MakePigTex(), 22f);             // 22x16 -> 1.0m x 0.73m
         s.kaiju = PixelSprite(MakeKaijuTex(), 5f);          // 64x80 -> 12.8m x 16m
         s.flame = PixelSprite(MakeFlameTex(), 11f);         // 16x24 -> 1.5m x 2.2m
         s.smoke = PixelSprite(MakeSmokeTex(), 5f);          // 16x48 -> 3.2m x 9.6m
@@ -117,6 +118,29 @@ public partial class DriveGame
         for (int y = Mathf.Max(0, Mathf.FloorToInt(cy - r)); y <= Mathf.Min(t.height - 1, Mathf.CeilToInt(cy + r)); y++)
             for (int x = Mathf.Max(0, Mathf.FloorToInt(cx - r)); x <= Mathf.Min(t.width - 1, Mathf.CeilToInt(cx + r)); x++)
                 if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) t.SetPixel(x, y, c);
+    }
+
+    // 오른쪽을 보고 뛰는 분홍 돼지
+    static Texture2D MakePigTex()
+    {
+        var t = NewPixelTex(22, 16);
+        Color pink = new Color(1f, 0.66f, 0.75f), dark = new Color(0.88f, 0.48f, 0.58f);
+        for (int y = 0; y < 16; y++)
+            for (int x = 0; x < 22; x++)
+            {
+                float dx = (x - 9f) / 8f, dy = (y - 7f) / 5.2f;
+                if (dx * dx + dy * dy <= 1f) t.SetPixel(x, y, pink);
+            }
+        PxDisc(t, 17f, 9f, 4.5f, pink);                      // 머리
+        PxRect(t, 20, 7, 21, 10, dark);                      // 코
+        PxRect(t, 14, 13, 16, 14, dark);                     // 귀
+        PxRect(t, 4, 0, 5, 3, dark);                         // 다리 네 개
+        PxRect(t, 8, 0, 9, 3, dark);
+        PxRect(t, 12, 0, 13, 3, dark);
+        PxRect(t, 15, 0, 16, 3, dark);
+        PxRect(t, 0, 8, 1, 10, dark);                        // 꼬리
+        PxRect(t, 18, 10, 19, 11, Color.black);              // 눈
+        return t;
     }
 
     // 정면을 보고 걸어오는 괴수: 초록 몸, 밝은 배, 뿔, 노란 눈, 크게 벌린 입, 등의 가시

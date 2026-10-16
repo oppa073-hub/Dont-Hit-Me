@@ -12,7 +12,7 @@ public class AudioManager
     readonly AudioSource sfx;
     readonly AudioSource bgm;
     readonly AudioSource rainSrc;
-    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy;
+    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy, oink, powerDown;
     bool lastBlinkOn;
 
     public AudioManager(DriveGame cfg, GameObject host, Camera cam)
@@ -52,6 +52,8 @@ public class AudioManager
         roar = MakeRoar();
         laser = MakeLaser();
         gunShot = MakeGunShot();
+        oink = MakeOink();
+        powerDown = MakePowerDown();
         deploy = Click(240f, 0.2f, 1f);
     }
 
@@ -63,6 +65,8 @@ public class AudioManager
     public void PlayAlarm() { Play(alarm, 0.7f); }       // 긴급 속보 사이렌
     public void PlayRoar() { Play(roar, 1f); }           // 괴수 울음
     public void PlayLaser() { Play(laser, 0.8f); }       // 히어로의 눈 레이저
+    public void PlayOink() { Play(oink, 0.8f); }         // 돼지
+    public void PlayPowerDown() { Play(powerDown, 0.8f); }     // 정전
     public void PlayGun() { Play(gunShot, 0.35f); }      // 미니건 한 발
     public void PlayDeploy() { Play(deploy, 1f); }       // 미니건이 튀어나오는 철컹
 
@@ -161,6 +165,35 @@ public class AudioManager
             d[i] = lp * env * 0.9f;
         }
         return Make("roar", d);
+    }
+
+    // 꿀꿀: 짧게 떨리며 올랐다 내려오는 소리
+    static AudioClip MakeOink()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 0.3f)];
+        float phase = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            float f = 260f + 140f * Mathf.Sin(t * Mathf.PI) + 30f * Mathf.Sin(t * 90f);
+            phase += f / Rate * Mathf.PI * 2f;
+            d[i] = (Mathf.Sin(phase) + 0.4f * Mathf.Sin(phase * 2f)) * Mathf.Sin(t * Mathf.PI) * 0.5f;
+        }
+        return Make("oink", d);
+    }
+
+    // 정전: 윙 하며 전원이 꺼지는 소리
+    static AudioClip MakePowerDown()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 0.9f)];
+        float phase = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            phase += Mathf.Lerp(700f, 45f, Mathf.Sqrt(t)) / Rate * Mathf.PI * 2f;
+            d[i] = Mathf.Sin(phase) * Mathf.Pow(1f - t, 1.5f) * Mathf.Min(1f, t * 30f) * 0.5f;
+        }
+        return Make("powerdown", d);
     }
 
     // 미니건 한 발: 짧은 잡음에 낮은 쿵이 섞인 소리

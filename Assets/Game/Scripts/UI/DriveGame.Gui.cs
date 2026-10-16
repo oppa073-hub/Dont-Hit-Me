@@ -244,13 +244,13 @@ public partial class DriveGame
                 hudDestName = taxi.DestName;
                 string timeStr = late ? "지각 " + (-timeKey) + "초" : "남은 시간 " + timeKey + "초";
                 string tipStr = tipNow > 0 ? " (팁 +" + tipNow + ")" : "";
-                hudTripText = taxi.PaxName + " → " + taxi.DestName + "    남은 거리 " + rem + " m" + (hudFlee ? "    경찰 추격!" : "");
+                hudTripText = taxi.PaxName + " → " + taxi.DestName + "    남은 거리 " + (taxi.AlienTrip ? "???" : rem.ToString()) + " m" + (hudFlee ? "    경찰 추격!" : "");
                 hudTripText2 = timeStr + "      요금 " + fareNow + "원" + tipStr;
             }
             Panel(new Rect(W * 0.5f - 285 * u, H * 0.20f - 6 * u, 570 * u, 100 * u), 0.55f);
             Label(new Rect(W * 0.5f - 277 * u, H * 0.20f - 2 * u, 554 * u, 32 * u), hudTripText, 20, Color.white, TextAnchor.MiddleCenter);
             Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 30 * u, 524 * u, 28 * u), hudTripText2, 18, late ? UiRed : UiGold, TextAnchor.MiddleCenter);
-            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 62 * u, 524 * u, 28 * u), hintText, 17, UiGreen, TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 62 * u, 524 * u, 28 * u), taxi.AlienTrip ? "UFO 빛줄기를 찾아 그 안에서 멈추세요!" : hintText, 17, UiGreen, TextAnchor.MiddleCenter);
         }
         else if (taxi.State == TaxiState.Waiting)
         {
@@ -289,8 +289,8 @@ public partial class DriveGame
             string bl = blinker < 0 ? "좌회전 예약" : (blinker > 0 ? "우회전 예약" : "직진 (Q / E 깜빡이)");
             hudInterText = "방향 " + HeadNames[heading] + "   ·   다음 교차로 " + dm + " m   ·   " + bl;
         }
-        Panel(new Rect(W * 0.5f - 270 * u, H * 0.34f - 1 * u, 540 * u, 26 * u), 0.4f);
-        Label(new Rect(0, H * 0.34f, W, 26 * u), hudInterText, 16, UiCyan, TextAnchor.MiddleCenter);
+        Panel(new Rect(W * 0.5f - 270 * u, H * 0.385f - 1 * u, 540 * u, 26 * u), 0.4f);
+        Label(new Rect(0, H * 0.385f, W, 26 * u), hudInterText, 16, UiCyan, TextAnchor.MiddleCenter);
 
 
         // 손님 대화 상자
@@ -432,6 +432,7 @@ public partial class DriveGame
         Label(new Rect(20 * u, H - 30 * u, W * 0.62f, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerLeft);   // 내비(오른쪽 아래)와 겹치지 않게 왼쪽 정렬
 
         if (!gameOver && flow != GameFlow.Paused) DrawTaxiGui(W, H, u);       // 게임오버/일시정지 글자와 겹치지 않게
+        if (!gameOver && flow != GameFlow.Paused) DrawQuirkHud(W, H, u);
 
         if (Time.unscaledTime < popupUntil && !gameOver)
         {
@@ -440,10 +441,10 @@ public partial class DriveGame
             float fadeP = Mathf.Clamp01((popupUntil - Time.unscaledTime) / 0.25f);           // 끝에서 부드럽게 사라진다
             Color pc = popupColor;
             pc.a *= fadeP;
-            Label(new Rect(0, H * 0.47f, W, 64 * u), popupText, Mathf.RoundToInt(38f * pop), pc, TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.53f, W, 64 * u), popupText, Mathf.RoundToInt(38f * pop), pc, TextAnchor.MiddleCenter);
         }
         if (!gameOver && (taxi.State == TaxiState.Cruise || taxi.State == TaxiState.Waiting) && Time.unscaledTime < taxi.ThanksUntil)
-            Label(new Rect(0, H * 0.34f + 32 * u, W, 34 * u), taxi.ThanksText, 22, new Color(1f, 1f, 1f, 0.95f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.385f + 30 * u, W, 34 * u), taxi.ThanksText, 22, new Color(1f, 1f, 1f, 0.95f), TextAnchor.MiddleCenter);
 
         // 회전 중 장면 교체 순간에 잠깐 어두워진다
         if (fade > 0f) Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, Mathf.Clamp01(fade)));

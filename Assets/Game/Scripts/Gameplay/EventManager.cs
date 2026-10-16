@@ -72,6 +72,13 @@ public class EventManager
         return DayType.Hero;
     }
 
+    /// <summary>화면 위쪽에 붉게 깜빡이는 긴급 속보를 띄운다 (랜덤 인카운트 안내용).</summary>
+    public void RaiseAlert(string text, float seconds)
+    {
+        AlertText = text;
+        AlertUntil = Time.unscaledTime + seconds;
+    }
+
     /// <summary>판이 시작된 직후: 사람 많은 날이면 알려 준다.</summary>
     public void Announce()
     {

@@ -110,7 +110,7 @@ public partial class DriveGame
         n = 0;
         int rem = -1;
         bool carrying = taxi.State == TaxiState.Carrying || taxi.State == TaxiState.Waiting;
-        if (carrying)
+        if (carrying && !taxi.AlienTrip)
         {
             DestRel(out int f, out int r, out float sd);
             rem = Mathf.RoundToInt(Mathf.Abs(sd) + Mathf.Abs(r) * period);   // 상단 HUD 와 같은 값
@@ -143,7 +143,8 @@ public partial class DriveGame
             navDest.localScale = new Vector3(cs * 0.5f, cs * 0.5f, 1f);
         }
         HideFrom(navRoute, n);
-        if (navDest.gameObject.activeSelf != carrying) navDest.gameObject.SetActive(carrying);
+        bool showDest = carrying && !taxi.AlienTrip;                 // 외계인 손님의 목적지는 지도에 안 나온다
+        if (navDest.gameObject.activeSelf != showDest) navDest.gameObject.SetActive(showDest);
 
         // 길가에서 기다리는 손님: 내 앞 몇 m 에 있는지 분홍 마름모로 보여 준다 (안내선은 없음)
         int callerM = -1;
@@ -172,12 +173,13 @@ public partial class DriveGame
             navHead = h;
             navHeadText.text = HeadNames[h];
         }
+        if (carrying && taxi.AlienTrip) rem = -77;
         int infoKey = carrying ? rem : (callerM >= 0 ? -10 - callerM * 2 - (callerRight ? 1 : 0) : -1);
         if (infoKey != navRem || (carrying && !ReferenceEquals(taxi.DestName, navDestShown)))
         {
             navRem = infoKey;
             navDestShown = taxi.DestName;
-            if (carrying) navInfoText.text = taxi.DestName + "  " + rem + "m";
+            if (carrying) navInfoText.text = taxi.DestName + (taxi.AlienTrip ? "  ???m" : "  " + rem + "m");
             else if (callerM >= 0) navInfoText.text = "손님 " + (callerRight ? "오른쪽 " : "왼쪽 ") + callerM + "m 앞";
             else navInfoText.text = "손님 찾는 중";
         }

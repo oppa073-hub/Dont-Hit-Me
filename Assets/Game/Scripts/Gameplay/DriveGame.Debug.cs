@@ -10,6 +10,8 @@ using UnityEngine.Rendering;
 public partial class DriveGame
 {
     bool debugOpen, debugGod;
+    int debugQuirk;
+    static readonly string[] DebugQuirkNames = { "무작위", "폭탄", "결혼식", "외계인", "레이서", "욱한" };
     string debugText = "";
 
     static readonly string[] DebugDayNames = { "무작위", "평범한 날", "사람 많은 날", "괴수 침공", "히어로와 빌런" };
@@ -47,6 +49,15 @@ public partial class DriveGame
         else if (kb.digit9Key.wasPressedThisFrame) rage.DebugFill();
         else if (kb.cKey.wasPressedThisFrame) { upgrades.AddCoins(5000); RefreshShop(); }
         else if (kb.vKey.wasPressedThisFrame) taxi.ForceHeistNext = true;
+        else if (kb.yKey.wasPressedThisFrame) enc.Force(EncounterType.Blackout, elapsed);
+        else if (kb.kKey.wasPressedThisFrame) enc.Force(EncounterType.Rival, elapsed);
+        else if (kb.lKey.wasPressedThisFrame) enc.Force(EncounterType.Fans, elapsed);
+        else if (kb.jKey.wasPressedThisFrame) enc.Force(EncounterType.Pigs, elapsed);
+        else if (kb.bKey.wasPressedThisFrame)
+        {
+            debugQuirk = (debugQuirk + 1) % DebugQuirkNames.Length;                  // 다음 손님 유형을 고정 (0 = 무작위)
+            taxi.ForcePaxType = debugQuirk == 0 ? null : PassengerCatalog.ByQuirk(debugQuirk);
+        }
         else if (kb.gKey.wasPressedThisFrame) debugGod = !debugGod;
         else changed = false;
         if (changed) RefreshDebug();
@@ -79,6 +90,8 @@ public partial class DriveGame
                   + "9  분노 바로 발동" + NL
                   + "C  코인 +5000" + NL
                   + "V  다음 손님을 은행 강도로" + NL
+                  + "Y 정전   K 라이벌   L 팬   J 돼지" + NL
+                  + "B  다음 손님: " + DebugQuirkNames[debugQuirk] + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
                   + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 4)];
     }
@@ -86,7 +99,7 @@ public partial class DriveGame
     void DrawDebug(float W, float H, float u)
     {
         if (!debugOpen) return;
-        Panel(new Rect(14 * u, 326 * u, 300 * u, 330 * u), 0.78f);
-        Label(new Rect(24 * u, 330 * u, 286 * u, 322 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        Panel(new Rect(14 * u, 326 * u, 300 * u, 374 * u), 0.78f);
+        Label(new Rect(24 * u, 330 * u, 286 * u, 366 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
     }
 }

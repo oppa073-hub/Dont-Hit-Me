@@ -164,7 +164,15 @@ public partial class DriveGame
             rendRot = turning;
             rendTheta = thetaA;
             rendPivotZ = pivotZ;
-            if (show) Place(destMarker, new Vector3(roadHalfWidth + 0.8f, Drop(mz) + 3f, mz), Quaternion.identity, new Vector3(0.4f, 6f, 0.4f));
+            if (show)
+            {
+                bool ufo = taxi.AlienTrip;                       // 외계인 손님: 길 한가운데에 높고 굵은 UFO 빛줄기
+                var want = ufo ? alienBeamMat : dashMat;
+                var mrd = destMarker.GetComponent<Renderer>();
+                if (mrd.sharedMaterial != want) mrd.sharedMaterial = want;
+                if (ufo) Place(destMarker, new Vector3(roadHalfWidth + 1.2f, Drop(mz) + 15f, mz), Quaternion.identity, new Vector3(2.2f, 30f, 2.2f));       // 길가에 높이 솟은 초록 빛줄기 (도로를 가리지 않게)
+                else Place(destMarker, new Vector3(roadHalfWidth + 0.8f, Drop(mz) + 3f, mz), Quaternion.identity, new Vector3(0.4f, 6f, 0.4f));
+            }
         }
 
         for (int pi = 0; pi < peds.Count; pi++)

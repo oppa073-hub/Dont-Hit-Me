@@ -63,6 +63,8 @@
   - Gameplay/MinigunManager.cs + Cabin/DriveGame.Minigun.cs : 미니건 개조 후 분노 폭발 때 운전석 양옆으로 미니건이 튀어나와 돌며 앞(3~55m)의 보행자/차/콘/공/불길을 초당 7개 쓸어버림. 괴수, 히어로, 길가의 손님은 쏘지 않음. 처치마다 점수, 분노가 끝나면 처치 수 팝업
   - 이야기 분위기는 병맛 막장(StoryCatalog 의 대사 톤을 유지할 것)
   - Gameplay/DriveGame.Heist.cs + TaxiManager(HeistStage) : 랜덤 인카운트 "은행 강도 손님"(heistChance). 수상한 손님을 태우면 은행(1)으로 가고, 도착하면 손님이 들어가고 heistWaitSeconds 동안 이 자리에서 기다려야 함(2, 벗어나면 실패, TaxiState.Waiting), 손님이 뛰어와 거절 불가로 타면(3) 비밀 아지트까지 빠듯한 시간 안에 도망(요금 heistFareMul 배, 경찰 바리케이드=TrafficManager.TickPolice/Police 종류, 사이렌, 화면 가장자리 경광). 디버그 V = 다음 손님을 강도로
+  - Gameplay/EncounterManager.cs + DriveGame.Encounters.cs : 랜덤 인카운트(레벨 2부터 45초 뒤, 이후 35~60초 간격으로 하나씩): 정전(Blackout01, 화면 어두워짐+헤드라이트), 라이벌 택시(TrafficManager.SpawnRival: 길가 손님을 가로챔, 먼저 태우면 못 가로챔), 팬 습격(PedestrianManager.FanRush: 튀어나오는 사람 연속+플래시), 돼지 떼(TrafficManager.TickPigs: 닿으면 속도만 감소)
+  - 손님 유별 사건(PaxType.quirk, TaxiManager.TickQuirk): 폭탄(속도 bombMinSpeed 아래면 도화선 소모, 터지면 목숨-1, 끝까지 가면 요금 x2) / 결혼식(급조향·급제동이면 부케가 앞유리에 붙고 행복도 하락, 행복하면 축의금) / 외계인(내비에 목적지 안 보임, UFO 빛줄기 기둥을 찾아 멈춤, 요금 x1.5) / 전직 레이서(시간 짧음, 평균 속도 빠를수록 요금 최대 x2, 사고 시 크게 감액) / 욱한 손님(몇 초마다 핸들을 잡아 조향 반전 3초, 0.9초 경고). HUD 표시는 UI/DriveGame.QuirkHud.cs. 디버그 B = 다음 손님 유형 고정, Y/K/L/J = 정전/라이벌/팬/돼지
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene

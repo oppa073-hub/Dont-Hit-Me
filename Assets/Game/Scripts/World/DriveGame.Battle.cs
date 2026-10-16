@@ -24,6 +24,7 @@ public partial class DriveGame
         beamHero.gameObject.SetActive(false);
         beamVillain = Block("VillainBeam");
         beamVillain.GetComponent<Renderer>().sharedMaterial = Unlit(new Color(0.75f, 0.3f, 1f));
+        alienBeamMat = Unlit(new Color(0.45f, 1f, 0.55f));         // 외계인 손님의 UFO 빛줄기
         beamVillain.gameObject.SetActive(false);
     }
 

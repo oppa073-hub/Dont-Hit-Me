@@ -69,6 +69,17 @@ public class TaxiManager
     public bool HeistLocked { get { return HeistStage == 3 && State == TaxiState.Talking; } }       // 도망 손님은 거절할 수 없다
     public event System.Action HeistFleeStarted, HeistWon;
 
+    // ---- 손님 유별 사건 (폭탄, 결혼식, 외계인, 레이서, 폭주) ----
+    public float Fuse { get; private set; }                // 폭탄 도화선 (1 안전 ~ 0 폭발)
+    public float Happy { get; private set; }               // 결혼식 행복도 (1 ~ 0)
+    public bool SteerFlip { get; private set; }            // 폭주 손님이 핸들을 잡고 있다 (조향 반대)
+    public float SteerFlipWarn { get; private set; }       // 핸들을 잡기 직전의 경고 시간
+    public float AvgSpeed { get { return TripT > 1f ? speedSum / TripT : 0f; } }
+    public bool AlienTrip { get { return State == TaxiState.Carrying && Pax != null && Pax.quirk == Quirk.Alien; } }
+    public PaxType ForcePaxType;                           // 시험용: 다음 손님 유형을 고정
+    public event System.Action BombExploded, BouquetThrown;
+    float speedSum, prevSpeed, ruffCool, flipEventT, flipT;
+
     public TaxiManager(DriveGame cfg, PedestrianManager peds, DestRelFn destRel)
     {
         this.cfg = cfg;
@@ -108,6 +119,7 @@ public class TaxiManager
         HeistStage = 0;
         WaitT = 0f;
         ForceHeistNext = false;
+        ClearQuirk();
     }
 
     /// <summary>회전이 끝나 사람들을 다시 깔았다: 기다리던 손님도 사라졌으니 잊고 다음 손님을 기다린다.</summary>
@@ -202,6 +214,11 @@ public class TaxiManager
 
             // 회전 중에는 판정하지 않는다. 목적지 줄(r==0) 위에서만 도착/지나침을 본다.
             destRel(DestX, DestY, out int f, out int r, out float sd);
+            bool nearDest = r == 0 && Mathf.Abs(sd) <= Mathf.Max(1f, cfg.arriveRadius) * 2.5f;
+            float decel = dt > 0.0001f ? (prevSpeed - speed) / dt : 0f;
+            prevSpeed = speed;
+            speedSum += speed * dt;
+            if (Pax != null && Pax.quirk != Quirk.None) TickQuirk(dt, speed, latSpeed, decel, turning, nearDest);
             if (!turning && r == 0)
             {
                 float radius = Mathf.Max(1f, cfg.arriveRadius);
@@ -221,6 +238,112 @@ public class TaxiManager
         }
     }
 
+    void ClearQuirk()
+    {
+        Fuse = 1f;
+        Happy = 1f;
+        SteerFlip = false;
+        SteerFlipWarn = 0f;
+        ruffCool = 0f;
+        speedSum = 0f;
+        prevSpeed = 0f;
+        flipEventT = Random.Range(6f, 10f);
+    }
+
+    // 손님 유별 사건 한 프레임 (태우고 가는 동안). 목적지 근처와 교차로 회전 중에는 봐준다.
+    void TickQuirk(float dt, float speed, float latSpeed, float decel, bool turning, bool nearDest)
+    {
+        switch (Pax.quirk)
+        {
+            case Quirk.Bomb:
+                if (turning || nearDest) break;
+                if (speed < cfg.bombMinSpeed)
+                {
+                    Fuse -= dt * cfg.bombDrain;
+                    if (Fuse <= 0f)
+                    {
+                        Fuse = 1f;
+                        FareMul = Mathf.Max(0.2f, FareMul * 0.6f);
+                        Popup("쾅!  폭탄이 터졌다…", new Color(1f, 0.4f, 0.3f));
+                        if (BombExploded != null) BombExploded();
+                    }
+                }
+                else Fuse = Mathf.Min(1f, Fuse + dt * 0.15f);
+                break;
+
+            case Quirk.Wedding:
+                if (ruffCool > 0f) { ruffCool -= dt; break; }
+                if (!turning && !nearDest && (latSpeed > 5.2f || decel > 30f))       // 거의 최대로 꺾거나 부딪혀서 확 서면 (평소 브레이크는 감속 20)
+                {
+                    ruffCool = 1.6f;
+                    Happy = Mathf.Max(0f, Happy - 0.25f);
+                    ReactText = PassengerCatalog.PickOne(Pax.react);
+                    ReactIsChat = false;
+                    ReactUntil = Time.unscaledTime + 1.6f;
+                    Popup("부케가 날아갔다!", new Color(1f, 0.6f, 0.8f));
+                    if (BouquetThrown != null) BouquetThrown();
+                }
+                break;
+
+            case Quirk.Fighter:
+                if (turning) break;
+                if (SteerFlip)
+                {
+                    flipT -= dt;
+                    if (flipT <= 0f)
+                    {
+                        SteerFlip = false;
+                        flipEventT = Random.Range(10f, 16f);
+                    }
+                }
+                else if (SteerFlipWarn > 0f)
+                {
+                    SteerFlipWarn -= dt;
+                    if (SteerFlipWarn <= 0f)
+                    {
+                        SteerFlip = true;
+                        flipT = Mathf.Max(1f, cfg.fighterFlipSeconds);
+                        Popup("손님이 핸들을 잡았다!!  조향 반전!", new Color(1f, 0.4f, 0.3f));
+                    }
+                }
+                else
+                {
+                    flipEventT -= dt;
+                    if (flipEventT <= 0f)
+                    {
+                        SteerFlipWarn = 0.9f;
+                        ReactText = PassengerCatalog.PickOne(Pax.react);
+                        ReactIsChat = false;
+                        ReactUntil = Time.unscaledTime + 1.2f;
+                    }
+                }
+                break;
+        }
+    }
+
+    // 손님 유별 요금 배율: 폭탄 x2(장난감), 외계인 x1.5, 레이서는 평균 속도가 빠를수록 최대 x2
+    float QuirkFareMul()
+    {
+        if (Pax == null) return 1f;
+        switch (Pax.quirk)
+        {
+            case Quirk.Bomb: return 2f;
+            case Quirk.Alien: return 1.5f;
+            case Quirk.Racer: return 1f + Mathf.Clamp01((AvgSpeed - 14f) / 16f);
+            default: return 1f;
+        }
+    }
+
+    /// <summary>라이벌 택시가 이 손님을 가로챘다. 아직 태우기 전이면 손님이 사라지고 true.</summary>
+    public bool StealCaller(PedestrianManager.Ped p)
+    {
+        if (State != TaxiState.Cruise || Caller == null || Caller != p) return false;
+        peds.Remove(p);
+        Caller = null;
+        ResetCallerTimer();
+        return true;
+    }
+
     void MakeCaller(float spawnZ)
     {
         var p = peds.Spawn(spawnZ, 0, cfg.callerDistance);
@@ -237,6 +360,11 @@ public class TaxiManager
         bool heist = HeistAllowed && HeistStage == 0 && (ForceHeistNext || Random.value < cfg.heistChance);       // 가끔 수상한 손님
         ForceHeistNext = false;
         Pax = heist ? PassengerCatalog.Heist : PassengerCatalog.PickType();
+        if (ForcePaxType != null)
+        {
+            Pax = ForcePaxType;                              // 시험용 고정
+            ForcePaxType = null;
+        }
         PaxName = PassengerCatalog.PickOne(Pax.names);
         DestName = PassengerCatalog.PickOne(Pax.dests);
         PaxLine = string.Format(PassengerCatalog.PickOne(Pax.hello), DestName);
@@ -306,6 +434,7 @@ public class TaxiManager
         int rh = (h + 1) & 3;
         int f = Random.Range(0, Mathf.Max(0, cfg.destMaxAhead) + 1);
         int r = Random.Range(-Mathf.Max(0, cfg.destMaxSide), Mathf.Max(0, cfg.destMaxSide) + 1);
+        if (Pax != null && Pax.quirk == Quirk.Alien) r = 0;                          // 외계인 손님: UFO 빛줄기가 지금 달리는 길 위에서 보이게
         if (f == 0 && r == 0) f = 1;
         DestX = gx + DriveGame.HeadX[h] + f * DriveGame.HeadX[h] + r * DriveGame.HeadX[rh];
         DestY = gy + DriveGame.HeadY[h] + f * DriveGame.HeadY[h] + r * DriveGame.HeadY[rh];
@@ -319,6 +448,7 @@ public class TaxiManager
         sick = sickCooldown = 0f;
         chatTimer = Random.Range(5f, 9f);
         LateWarned = false;
+        ClearQuirk();
         if (Pax != null && Pax.heist && HeistStage == 0) HeistStage = 1;              // 수상한 손님을 태웠다: 먼저 은행으로
         bool fleeing = HeistStage == 3;
         if (fleeing) TripLimit *= Mathf.Max(0.2f, cfg.heistTimeMul);                  // 도망 중이라 시간이 빠듯하다
@@ -357,6 +487,7 @@ public class TaxiManager
         Popup(escaped ? "도주 성공!  +" + (fare + tip) + "원" : (tip > 0 ? "도착! +" + fare + "원  (팁 +" + tip + ")" : "도착! +" + fare + "원"), new Color(1f, 0.85f, 0.3f));
         State = TaxiState.Cruise;
         HeistStage = 0;
+        ClearQuirk();
         ResetCallerTimer();
         if (escaped && HeistWon != null) HeistWon();
         if (Arrived != null) Arrived(fare + tip);
@@ -391,7 +522,7 @@ public class TaxiManager
         float typeMul = Pax != null ? Pax.fareMul : 1f;
         float mul = Mathf.Max(0.2f, FareMul * LateMul());                  // 사고/지나침/지각 감액을 합쳐도 20% 밑으로는 안 내려간다
         float heistMul = HeistStage == 3 ? Mathf.Max(1f, cfg.heistFareMul) : 1f;       // 도망 중인 손님은 요금이 몇 배
-        return Mathf.RoundToInt((cfg.baseFare + cfg.farePerMeter * TripMeters) * mul * typeMul * heistMul * FareBonusMul / 10f) * 10;
+        return Mathf.RoundToInt((cfg.baseFare + cfg.farePerMeter * TripMeters) * mul * typeMul * heistMul * QuirkFareMul() * FareBonusMul / 10f) * 10;
     }
 
     // 제한 시간을 넘긴 만큼 요금에 곱하는 값 (제한 안이면 1)
@@ -407,6 +538,8 @@ public class TaxiManager
         float left = TripLimit - TripT;
         if (left <= 0f || TripLimit <= 0f) return 0;
         float k = Mathf.Clamp01(left / (TripLimit * 0.5f));
-        return Mathf.RoundToInt(Mathf.Max(0, cfg.tipMax) * k * (Pax != null ? Pax.tipMul : 1f) * TipBonusMul / 10f) * 10;
+        int tip = Mathf.RoundToInt(Mathf.Max(0, cfg.tipMax) * k * (Pax != null ? Pax.tipMul : 1f) * TipBonusMul / 10f) * 10;
+        if (Pax != null && Pax.quirk == Quirk.Wedding) tip += Mathf.RoundToInt(1200f * Happy / 10f) * 10;       // 행복하게 도착하면 축의금
+        return tip;
     }
 }

@@ -16,6 +16,8 @@ public partial class DriveGame
         taxi.Arrived += OnTaxiArrived;
         taxi.HeistFleeStarted += OnHeistFlee;
         taxi.HeistWon += OnHeistWon;
+        taxi.BombExploded += OnBombExploded;
+        taxi.BouquetThrown += OnBouquetThrown;
     }
 
     void UpdateTaxi(float dt)

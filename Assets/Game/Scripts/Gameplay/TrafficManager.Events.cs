@@ -6,7 +6,11 @@ using UnityEngine;
 //  레이저: 경고(얇은 빛) 뒤 한쪽 차선을 멀리서부터 쓸어 오며 불길을 남긴다. 반대쪽 차선으로 비켜 가면 안전하다.
 public partial class TrafficManager
 {
-    float nextKaiju, nextStrike, strikeT, flameAcc, nextBlock;
+    float nextKaiju, nextStrike, strikeT, flameAcc, nextBlock, nextPig;
+    PedestrianManager.Ped rivalTarget;
+
+    /// <summary>라이벌 택시가 손님 앞에 도착했다 (손님을 가로챈다).</summary>
+    public event System.Action<PedestrianManager.Ped> RivalArrived;
 
     /// <summary>레이저 상태: 0 없음, 1 경고, 2 쓸어 오는 중.</summary>
     public int StrikeState;
@@ -30,9 +34,58 @@ public partial class TrafficManager
         for (int i = objs.Count - 1; i >= 0; i--)
         {
             int k = objs[i].kind;
-            if (k == Kaiju || k == Flame || k == Smoke || k == Boom || k == Police) RemoveAt(i);
+            if (k == Kaiju || k == Flame || k == Smoke || k == Boom || k == Police || k == Pig || k == Rival) RemoveAt(i);
         }
         StrikeState = 0;
+    }
+
+    // ---- 돼지 떼 / 라이벌 택시 (랜덤 인카운트) ----
+
+    /// <summary>돼지 떼 사건 중이면 돼지가 줄줄이 도로를 건넌다.</summary>
+    public void TickPigs(float elapsed, bool active, bool turning, float spawnZ)
+    {
+        if (!active || turning || elapsed < nextPig) return;
+        nextPig = elapsed + 0.6f;
+        float side = Random.value < 0.5f ? -1f : 1f;
+        var o = MakeSpriteObj("Pig", Pig, cfg.pigSprite != null ? cfg.pigSprite : sprites.pig);
+        o.halfW = 0.45f;
+        o.dir = -side;
+        o.rollSpeed = Random.Range(2.5f, 4.5f);
+        o.x = side * (cfg.roadHalfWidth + 0.4f);
+        o.z = Mathf.Min(spawnZ - 6f, Random.Range(26f, 60f));
+        o.body.flipX = o.dir < 0f;                           // 그림은 오른쪽을 본다
+    }
+
+    /// <summary>라이벌 택시: 멀리서 달려와 target(길가의 손님) 앞에 서서 손님을 가로채려 한다.</summary>
+    public void SpawnRival(PedestrianManager.Ped target, float spawnZ, float playerSpeed)
+    {
+        if (target == null) return;
+        rivalTarget = target;
+        float side = target.x >= 0f ? 1f : -1f;
+        bool useCustom = cfg.carSprite != null;
+        var o = MakeSpriteObj("RivalTaxi", Rival, useCustom ? cfg.carSprite : sprites.carBody);
+        o.x = side * 2.6f;
+        o.z = Mathf.Min(spawnZ - 3f, target.z + 45f);
+        // 플레이어가 지금 속도로 손님에게 가는 시간보다 3초 늦게 도착하도록 속도를 맞춘다 (바로 서면 이길 수 있다)
+        float tPlayer = target.z / Mathf.Max(6f, playerSpeed);
+        float dist = Mathf.Max(5f, o.z - target.z);
+        o.speed = -Mathf.Clamp(dist / (tPlayer + 3f), 3f, Mathf.Max(5f, cfg.rivalSpeed) * 1.5f);       // 손님 쪽으로 다가온다 (월드 기준 속도)
+        o.body.color = useCustom ? Color.white : new Color(1f, 0.82f, 0.1f);
+        if (!useCustom)
+        {
+            var dgo = new GameObject("Detail");
+            dgo.transform.SetParent(o.t, false);
+            dgo.transform.localPosition = new Vector3(0f, 0f, -0.02f);
+            o.detail = dgo.AddComponent<SpriteRenderer>();
+            o.detail.sprite = sprites.carDetail;
+        }
+        var lgo = new GameObject("Sign");                    // 지붕 TAXI 표시등
+        lgo.transform.SetParent(o.t, false);
+        lgo.transform.localPosition = new Vector3(0f, o.body.sprite.bounds.max.y - 0.04f, -0.04f);
+        lgo.transform.localScale = Vector3.one * 1.6f;
+        var lsr = lgo.AddComponent<SpriteRenderer>();
+        lsr.sprite = sprites.lamp;
+        lsr.color = new Color(1f, 1f, 0.8f);
     }
 
     // ---- 경찰 바리케이드 (은행 강도 손님을 태우고 도망칠 때) ----

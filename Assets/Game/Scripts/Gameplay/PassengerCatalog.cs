@@ -3,6 +3,12 @@ using UnityEngine;
 // 손님 유형 한 종류의 데이터. 값은 PassengerCatalog.PaxTypes 표에서 고친다.
 // 손님 유형 표: 여기만 고치면 이름/대사/목적지/요금이 바뀐다. hello 의 {0} 은 목적지 이름.
 // 조사 때문에 {0} 뒤에는 "까지"처럼 받침과 상관없는 말만 쓴다 (예: "{0}까지 가 주세요").
+// 손님 유별 사건 종류 (PaxType.quirk)
+public static class Quirk
+{
+    public const int None = 0, Bomb = 1, Wedding = 2, Alien = 3, Racer = 4, Fighter = 5;
+}
+
 public class PaxType
 {
     public string[] names, dests, hello, react, thanks;
@@ -15,6 +21,7 @@ public class PaxType
     public string[] chat;            // 타고 가는 동안 가끔 걸어 오는 말 (없으면 조용한 손님)
     public float swerveSense = 0f;   // 급하게 핸들을 꺾을 때 멀미하는 정도 (0 = 상관없음, 클수록 쉽게 멀미)
     public bool heist;               // 은행 강도 손님 (랜덤 인카운트로만 나온다. weight 는 0)
+    public int quirk;                // 손님 유별 사건 (Quirk 상수: 폭탄, 결혼식, 외계인, 레이서, 폭주)
 }
 
 // 손님 데이터 표: 여기만 고치면 이름/대사/목적지/요금이 바뀐다. (대사를 늘리려면 이 파일만 열면 된다)
@@ -118,6 +125,73 @@ public static class PassengerCatalog
             thanks = new[] { "(헉헉) 고마워요! 이건 비밀 팁이에요. 우리 만난 적 없죠?", "도주 성공! 이 돈은… 음, 세탁해야겠네요." },
             fareMul = 1.2f, hitSense = 1.0f, tipMul = 3f, weight = 0, heist = true
         },
+        new PaxType   // 폭탄 손님: 속도가 느려지면 가방의 도화선이 탄다. 끝까지 터지지 않으면 "장난감"이라며 요금을 두 배로 준다
+        {
+            names = new[] { "째깍 손님", "붉은 전선 손님" },
+            dests = new[] { "시청", "공항", "중앙역" },
+            hello = new[]
+            {
+                "{0}까지요. 이 가방에서 째깍째깍 소리가 나는데, 시계예요. 속도가 느려지면 알람이 울릴 거예요. …아마도요.",
+                "{0}까지 가 주세요. 절대 속도를 늦추지 마세요. 이유는 묻지 말고요!",
+            },
+            react = new[] { "으아악 터진다!!", "더 밟아요 더!!", "도화선이 타요 도화선이!" },
+            thanks = new[] { "농담이에요! 장난감이었어요! 놀랐죠? 요금은 두 배로 드릴게요.", "이거 폭죽이었어요. 근데 아슬아슬했죠? 헤헤." },
+            fareMul = 1.0f, hitSense = 1.0f, tipMul = 1.2f, weight = 1, quirk = Quirk.Bomb
+        },
+        new PaxType   // 결혼식 커플: 부드럽게 달려야 한다. 급하게 꺾거나 서면 부케가 앞유리로 날아온다
+        {
+            names = new[] { "신랑 신부", "웨딩 커플" },
+            dests = new[] { "호텔", "공원 입구", "시청" },
+            hello = new[]
+            {
+                "{0}까지요! 결혼식에 늦었어요! 단, 부케가 날아갈 정도로 흔들면 안 돼요!",
+                "{0}까지 부탁해요. 오늘이 우리 인생 최고의 날이니까 부드럽게요!",
+            },
+            react = new[] { "꺄악 부케!!", "내 드레스!!", "여보 괜찮아?! 부케는?!" },
+            thanks = new[] { "결혼해 주셔서… 아니 태워 주셔서 감사해요!", "축의금 드릴게요! 안 받으면 서운해요!" },
+            fareMul = 1.2f, hitSense = 1.2f, tipMul = 1.0f, weight = 1, quirk = Quirk.Wedding, hair = 1
+        },
+        new PaxType   // 외계인 손님: 목적지가 지도에 안 나온다. UFO 빛줄기를 찾아서 그 안에서 멈춰야 한다
+        {
+            names = new[] { "지구인(자칭)", "초록 손님" },
+            dests = new[] { "지구 밖 주차장" },
+            hello = new[]
+            {
+                "{0}까지요. 좌표는 지구 기준으로 안 되니 UFO 빛줄기를 따라오세요. 지불은 우리 별 코인으로.",
+                "{0}으로 가 주세요. 아, 저는 지구인입니다. 평범한 지구인이에요. 삐빅.",
+            },
+            react = new[] { "삐빅! 지구인 운전 미숙!", "중력 이상 감지!", "이 별의 택시는 위험하다!" },
+            thanks = new[] { "이 별의 택시는 훌륭하다. 보상으로 우주 코인을 주겠다.", "다음에는 은하계 요금으로 계산하겠다." },
+            fareMul = 1.5f, hitSense = 1.0f, tipMul = 1.5f, weight = 1, quirk = Quirk.Alien, hair = 2
+        },
+        new PaxType   // 전직 레이서: 시간이 아주 짧고 빠를수록 요금이 오르지만, 사고가 나면 크게 깎인다
+        {
+            names = new[] { "전직 레이서", "질주 아저씨" },
+            dests = new[] { "공항", "서킷 입구", "중앙역" },
+            hello = new[]
+            {
+                "{0}까지 최고 속도로! 더 밟아요 더! 느리면 내가 내려서 뛸 거예요!",
+                "{0}까지요. 코너는 안쪽으로 파고드는 거 알죠? 시간 없어요, 출발!",
+            },
+            react = new[] { "그걸 박아요?! 레이서 자존심이!", "그게 운전이에요?!", "사고라니, 말도 안 돼!" },
+            thanks = new[] { "좋은 주행이었어요! 이 팁은 우승 상금이에요!", "포디움 올랐다! 고마워요, 기사님!" },
+            chat = new[] { "더 밟아요 더!!", "코너는 안쪽으로 파고들라고요!", "이 정도 속도로 서킷 가면 꼴찌예요!" },
+            fareMul = 1.0f, hitSense = 2.5f, timeMul = 0.55f, tipMul = 3.5f, weight = 1, quirk = Quirk.Racer
+        },
+        new PaxType   // 욱한 손님: 가끔 핸들을 잡아서 몇 초 동안 조향이 반대로 먹힌다
+        {
+            names = new[] { "욱한 손님", "성질 급한 손님" },
+            dests = new[] { "시장", "중앙역", "대학병원" },
+            hello = new[]
+            {
+                "{0}까지요! 저 오늘 기분이 안 좋아서 핸들을 잡을 수도 있어요. 그냥 참고하세요.",
+                "{0}까지. 운전이 맘에 안 들면 제가 할게요. 농담이에요. 반쯤은요.",
+            },
+            react = new[] { "내가 운전할래!!", "그쪽 말고 이쪽이라고!!", "비켜 봐요 내가 할게!!" },
+            thanks = new[] { "아까는 미안해요… 팁 드릴게요.", "내가 운전한 것보다 낫네요. 인정!" },
+            chat = new[] { "그쪽 말고 이쪽으로!", "내가 더 잘해!!" },
+            fareMul = 1.0f, hitSense = 1.0f, tipMul = 1.3f, weight = 1, quirk = Quirk.Fighter
+        },
     };
 
     // 은행 강도 인카운트 대사
@@ -135,6 +209,13 @@ public static class PassengerCatalog
         "금방 올게요! 여기서 꼼짝 말고 기다려 주세요!",
         "5분이면 돼요. 아, 시동은 끄지 마시고요.",
     };
+
+    /// <summary>손님 유별 사건 종류(Quirk 상수)에 해당하는 유형. 없으면 null.</summary>
+    public static PaxType ByQuirk(int quirk)
+    {
+        foreach (var t in PaxTypes) if (t.quirk == quirk) return t;
+        return null;
+    }
 
     /// <summary>은행 강도 손님 유형.</summary>
     public static PaxType Heist

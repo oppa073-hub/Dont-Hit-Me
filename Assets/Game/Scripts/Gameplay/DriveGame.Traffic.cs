@@ -68,6 +68,15 @@ public partial class DriveGame
             Popup("덜컹!", new Color(1f, 0.7f, 0.3f));
             return;
         }
+        if (o.kind == TrafficManager.Pig)
+        {
+            // 돼지는 목숨은 안 깎고 속도만 잃는다
+            speed *= 0.75f;
+            shakeUntil = Time.unscaledTime + 0.15f;
+            sound.PlayOink();
+            Popup("꿀꿀!  돼지를 쳤다", new Color(1f, 0.65f, 0.75f));
+            return;
+        }
         speed *= o.kind == TrafficManager.Kaiju ? 0.2f : (o.kind == TrafficManager.Flame ? 0.5f : hitSpeedFactor);
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + (o.kind == TrafficManager.Kaiju ? 0.6f : 0.3f);

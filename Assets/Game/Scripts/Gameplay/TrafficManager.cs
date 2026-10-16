@@ -8,12 +8,13 @@ using UnityEngine;
 public class TrafficSprites
 {
     public Sprite carBody, carDetail, cone, ball, lamp;
+    public Sprite pig;
     public Sprite kaiju, flame, smoke, hero, villain;       // 날짜 사건용 (괴수, 불길, 연기 기둥, 히어로, 빌런)
 }
 
 public partial class TrafficManager
 {
-    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7, Boom = 8, Police = 9;
+    public const int Sedan = 0, Truck = 1, Broken = 2, Cones = 3, Ball = 4, Kaiju = 5, Flame = 6, Smoke = 7, Boom = 8, Police = 9, Rival = 10, Pig = 11;
 
     public class Obj
     {
@@ -69,6 +70,8 @@ public partial class TrafficManager
         nextHazard = 6f;
         nextKaiju = 0f;
         nextStrike = 3f;
+        nextPig = 0f;
+        rivalTarget = null;
     }
 
     public void Clear()
@@ -78,7 +81,9 @@ public partial class TrafficManager
         StrikeState = 0;
         nextKaiju = Mathf.Max(nextKaiju, lastElapsed + 6f);
         nextStrike = Mathf.Max(nextStrike, lastElapsed + 3f);
-        nextBlock = Mathf.Max(nextBlock, lastElapsed + 2.5f);          // 회전 직후에는 경찰 바리케이드도 잠깐 쉰다
+        nextBlock = Mathf.Max(nextBlock, lastElapsed + 2.5f);
+        nextPig = Mathf.Max(nextPig, lastElapsed + 1f);
+        rivalTarget = null;          // 회전 직후에는 경찰 바리케이드도 잠깐 쉰다
         nextVehicle = Mathf.Max(nextVehicle, lastElapsed + 3f);       // 회전 직후에는 잠깐 비워 둔다
         nextHazard = Mathf.Max(nextHazard, lastElapsed + 4f);
     }
@@ -100,7 +105,7 @@ public partial class TrafficManager
         int blockers = 0;
         for (int i = 0; i < objs.Count; i++)
         {
-            if (objs[i].kind == Ball || objs[i].kind == Smoke || objs[i].kind == Boom) continue;
+            if (objs[i].kind == Ball || objs[i].kind == Smoke || objs[i].kind == Boom || objs[i].kind == Pig || objs[i].kind == Rival) continue;
             blockers++;
             if (objs[i].z > spawnZ - 35f) return false;
         }
@@ -166,6 +171,21 @@ public partial class TrafficManager
                 if (o.life <= 0f) { RemoveAt(i); continue; }
             }
 
+            if (o.kind == Rival)
+            {
+                // 라이벌 택시: 충돌하지 않는다. 손님 앞에 서서 가로채고 유유히 떠난다.
+                if (rivalTarget != null && !peds.Contains(rivalTarget)) rivalTarget = null;
+                if (rivalTarget != null && o.speed < 0f && o.z <= rivalTarget.z + 1.5f)
+                {
+                    o.speed = 9f;
+                    var tgt = rivalTarget;
+                    rivalTarget = null;
+                    if (RivalArrived != null) RivalArrived(tgt);
+                }
+                if (o.z < -6f || o.z > spawnZ + 40f) RemoveAt(i);
+                continue;
+            }
+
             if (o.fallT >= 0f)
             {
                 o.fallT += dt;
@@ -174,7 +194,13 @@ public partial class TrafficManager
                 continue;
             }
 
-            if (o.kind == Ball)
+            if (o.kind == Pig)
+            {
+                // 돼지: 도로를 가로질러 뛴다 (닿으면 덜컹, 목숨은 안 깎임)
+                o.x += o.dir * o.rollSpeed * dt;
+                if (o.dir * o.x > cfg.roadHalfWidth + 3f) { RemoveAt(i); continue; }
+            }
+            else if (o.kind == Ball)
             {
                 o.x += o.dir * o.rollSpeed * dt;
                 o.angle -= o.dir * 420f * dt;
