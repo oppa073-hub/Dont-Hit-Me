@@ -31,6 +31,8 @@
 
 씬을 새로 만들려면 메뉴 `Game → Create Drive Scene`을 사용합니다.
 
+조작: A/D 조향, S 브레이크, Q/E 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작. 실행하면 타이틀 화면이 뜨고 Space 또는 Enter 로 시작합니다.
+
 ## 에셋
 라이선스상 재배포가 금지되어 저장소에는 포함하지 않았습니다.
 - GandalfHardcore City Tiles (도시 타일, 배경)

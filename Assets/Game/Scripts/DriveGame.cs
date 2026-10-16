@@ -315,6 +315,7 @@ public partial class DriveGame : MonoBehaviour
         peds = new PedestrianManager(this, transform, MakePedSprite());
         peds.Hit += OnPedHit;
         peds.NearMiss += OnPedNearMiss;
+        LoadBest();
         CreateSession();
         CreateRoad();
         CreateTaxi();
@@ -409,6 +410,7 @@ public partial class DriveGame : MonoBehaviour
         speed = baseSpeed;
         dist = elapsed = 0f;
         session.Reset();
+        ResetFlowState();
         popupUntil = 0f;
 
         taxi.Reset();
@@ -423,14 +425,35 @@ public partial class DriveGame : MonoBehaviour
 
     void Update()
     {
-        Time.timeScale = (!gameOver && Time.unscaledTime < hitStopUntil) ? 0f : 1f;
+        Time.timeScale = (!gameOver && flow == GameFlow.Playing && Time.unscaledTime < hitStopUntil) ? 0f : 1f;
         var kb = Keyboard.current;
         if (kb == null) return;
 
+        // 타이틀: 월드는 멈춰 있고 Space/Enter 로 시작한다
+        if (flow == GameFlow.Title)
+        {
+            Time.timeScale = 0f;
+            if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) StartGame();
+            UpdateWorldVisuals();
+            return;
+        }
+
+        // 일시정지: Esc 또는 P (게임오버 화면에서는 쓰지 않는다)
+        if (!gameOver && (kb.escapeKey.wasPressedThisFrame || kb.pKey.wasPressedThisFrame))
+            flow = flow == GameFlow.Paused ? GameFlow.Playing : GameFlow.Paused;
+        if (flow == GameFlow.Paused)
+        {
+            Time.timeScale = 0f;
+            if (kb.rKey.wasPressedThisFrame) StartGame();
+            UpdateWorldVisuals();
+            return;
+        }
+
         if (gameOver)
         {
+            SaveResultOnce();
             road.ClearFade();                // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
-            if (kb.rKey.wasPressedThisFrame) ResetGame();
+            if (kb.rKey.wasPressedThisFrame) StartGame();
             UpdateWorldVisuals();
             return;
         }
@@ -493,7 +516,7 @@ public partial class DriveGame : MonoBehaviour
     void LateUpdate()
     {
         if (cam == null) return;
-        sound.Tick(speed, maxSpeed, road.Blinker, gameOver);
+        sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
         Vector3 off = Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;

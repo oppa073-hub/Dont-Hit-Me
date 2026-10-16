@@ -279,6 +279,12 @@ public partial class DriveGame
 
         DrawCabin();
 
+        if (flow == GameFlow.Title)
+        {
+            DrawTitle(W, H, u);                       // 타이틀 화면에서는 HUD 를 그리지 않는다
+            return;
+        }
+
         // 문자열은 값이 바뀔 때만 새로 만든다 (OnGUI 는 프레임당 여러 번 불려서 매번 만들면 GC 쓰레기가 쌓인다)
         if (lives != hudLives || maxLives != hudMaxLives)
         {
@@ -317,11 +323,7 @@ public partial class DriveGame
         // 회전 중 장면 교체 순간에 잠깐 어두워진다
         if (fade > 0f) Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, Mathf.Clamp01(fade)));
 
-        if (gameOver)
-        {
-            Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.5f));
-            Label(new Rect(0, H * 0.33f, W, 80 * u), "GAME OVER", 56, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleCenter);
-            Label(new Rect(0, H * 0.33f + 80 * u, W, 40 * u), "score " + total + "   near miss " + nearMisses + "   time " + elapsed.ToString("0") + "s   — R 로 재시작", 24, Color.white, TextAnchor.MiddleCenter);
-        }
+        if (gameOver) DrawGameOver(W, H, u);
+        else if (flow == GameFlow.Paused) DrawPause(W, H, u);
     }
 }
