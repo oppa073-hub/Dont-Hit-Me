@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 572437491}
   - component: {fileID: 572437490}
   m_Layer: 0
-  m_Name: ProtoDrive
+  m_Name: DriveGame
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -147,7 +147,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5a7d3e91c2b84f0e9a16d4b8c3e72f55, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProtoDrive
+  m_EditorClassIdentifier: Assembly-CSharp::DriveGame
   buildingTiles: {fileID: 2800000, guid: c80bd9f93b0cff541878173d9d418230, type: 3}
   decoTiles: {fileID: 2800000, guid: a7fdd0e114edd5b4ea7fb3ab22b59022, type: 3}
   cityBackground: {fileID: 2800000, guid: e3816c413e43197469ce2db4804835f2, type: 3}

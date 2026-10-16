@@ -27,9 +27,9 @@
 ## 실행 방법
 1. Unity 6 (6000.3.5f2)로 프로젝트를 엽니다. URP, 새 Input System을 사용합니다.
 2. 아래 **에셋** 항목의 파일을 `Assets/_External/`에 넣습니다. (없어도 도형으로 대체되어 실행은 됩니다)
-3. `Assets/Prototype3/DriveScene.unity`를 열고 Play를 누릅니다.
+3. `Assets/Game/Scenes/DriveScene.unity`를 열고 Play를 누릅니다.
 
-씬을 새로 만들려면 메뉴 `Prototype → Create Drive Scene`을 사용합니다.
+씬을 새로 만들려면 메뉴 `Game → Create Drive Scene`을 사용합니다.
 
 ## 에셋
 라이선스상 재배포가 금지되어 저장소에는 포함하지 않았습니다.
@@ -37,9 +37,10 @@
 - 3D 팔 모델 `arms.fbx`와 `arm_albedo_*.png`
 
 ## 구조
-- `Assets/Prototype3/ProtoDrive.cs`: 게임 전체 로직 (프로토타입이라 한 파일)
-- `Assets/Prototype3/Editor/ProtoDriveSceneCreator.cs`: 씬 생성 메뉴
-- `Assets/Prototype3/DriveScene.unity`: 플레이용 씬
+- `Assets/Game/Scripts/DriveGame.cs`: 게임의 뼈대(설정 값, 생명주기). 나머지는 같은 클래스를 역할별로 나눈 `DriveGame.*.cs`
+  - `World/` 도로·건물 만들기와 표시, `Gameplay/` 택시·교차로·안내·보행자, `Cabin/` 3D 운전석·내비·팔, `UI/` HUD
+- `Assets/Game/Scripts/Editor/DriveSceneCreator.cs`: 씬 생성 메뉴
+- `Assets/Game/Scenes/DriveScene.unity`: 플레이용 씬
 
 ## 알려진 한계
 - 3D 팔 IK 자세와 주먹 모양은 아직 화면에서 충분히 검증되지 않았습니다.

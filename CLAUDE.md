@@ -1,6 +1,6 @@
 ## 한 줄 소개
 운전석 1인칭 시점의 PC 아케이드 게임. 둥글게 휜 도시 도로에서 무단횡단자를 조향으로 피한다.
-혼자 한 달 안에 소규모로 완성하는 것이 목표. 지금은 프로토타입 단계.
+혼자 한 달 안에 소규모로 완성하는 것이 목표. 프로토타입은 끝났고, 지금은 코드 구조 정리와 제작 단계.
 
 ## 작업 규칙
 - 코드를 짜기 전에 계획부터 설명하고 확인받을 것.
@@ -21,9 +21,20 @@
 - 도시: 상자 건물 몸통에 타일 스프라이트를 붙임. 건물 스프라이트는 월드에 고정(사람처럼 카메라를 쳐다보지 않음).
 
 ## 구조
-- Assets/Prototype3/ProtoDrive.cs : 게임 전체 로직(한 파일)
-- Assets/Prototype3/Editor/ProtoDriveSceneCreator.cs : 메뉴 Prototype → Create Drive Scene
-- Assets/Prototype3/DriveScene.unity : 에셋 참조가 연결된 씬
+- Assets/Game/Scripts/DriveGame.cs : 게임의 뼈대(인스펙터 설정 값 public 필드 전부, 공통 상수/상태, Awake/Update/LateUpdate/ResetGame). 클래스 `DriveGame`은 partial 이고 아래 파일들에 역할별로 나뉨(MonoBehaviour 는 이 하나, 씬에 붙은 것도 이것)
+  - World/DriveGame.WorldBuild.cs : 타일/배경/텍스처에서 스프라이트·재질·도로/건물 오브젝트 만들기
+  - World/DriveGame.WorldView.cs : 도로 구간/건물을 매 프레임 배치, 회전 연출, 건물 해시(월드 좌표 기준)
+  - Gameplay/DriveGame.Intersection.cs : 교차로, 깜빡이 회전, 격자 좌표(gx, gy)/방향 추적
+  - Gameplay/DriveGame.Guidance.cs : 목적지를 앞/옆 칸수로 바꾸고 안내 문장 만들기
+  - Gameplay/DriveGame.Taxi.cs : 손님 호출/대화/탑승/도착, 요금·팁·제한 시간, 손님 유형 표(PaxTypes)
+  - Gameplay/DriveGame.Pedestrians.cs : 보행자 생성/이동/횡단/충돌
+  - Cabin/DriveGame.Cabin.cs : 3D 운전석 부품과 배치(LayoutCabin)
+  - Cabin/DriveGame.Navigator.cs : 대시보드 위 내비 화면
+  - Cabin/DriveGame.Arms.cs : 3D 팔 IK, 손가락
+  - UI/DriveGame.Gui.cs : IMGUI(HUD, 앞유리, 룸미러, 택시 UI)
+- Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene
+- Assets/Game/Scenes/DriveScene.unity : 에셋 참조가 연결된 씬
+- 씬이 스크립트를 GUID 로 참조하므로 DriveGame.cs 와 .meta 는 항상 함께 움직일 것. 외부 에셋은 Assets/_External/ 그대로.
 - 에셋: GandalfHardcore City Tiles, arms.fbx, arm_albedo_*.png
 
 ## 기술 환경
@@ -61,7 +72,7 @@
    - **3-1 커밋됨(d2a01f4, 푸시 전)**.
    - **3-2 요금/시간 제한: 코드 작성 + qa 반영 완료, 커밋됨(화면 확인 전)**. 탑승 시 `tripLimit = 거리 ÷ (그 순간 순항 속도 × limitSpeedRatio) × pax.timeMul + timeBuffer`(속도 반영: 씬의 baseSpeed가 20이라 고정 초는 너무 널널했음), 안에 도착하면 팁(`CurrentTip`, 최대 `tipMax`×유형 `tipMul`, HUD에도 예상 팁 표시), 넘기면 초당 `lateDropPerSec`씩 감액. 사고/지나침/지각 감액을 합쳐도 요금은 기본의 20% 밑으로 안 내려감. 늦게 도착하면 지각용 감사 대사. 시간 초과는 감액만(목숨 감소 없음). 밸런스는 플레이로 맞출 것.
    - **3-3 건물 일관성: 코드 작성 완료(화면 확인 전, 커밋 전)**. `citySalt` 제거. 건물 해시를 "두 교차로 사이 구간의 월드 좌표(양의 방향 기준으로 통일) + 구간 안 위치 + 좌우"로(`UpdateBuilding`의 `segKey`/`hidx`, `UpdateWorldVisuals`가 `rendNodeX/Y/K`, `rendHead` 설정). 반대 방향으로 지나면 위치와 좌우를 뒤집어 같은 건물이 나오게 함. 회전 후 새 도로는 K=RebaseBlocks. **화면 확인 필수**: (1) 한 바퀴 돌아 같은 길로 돌아오면 건물이 같은지 (2) 반대 방향에서 같은 건물이 반대쪽에 보이는지 (3) 회전 장면 교체/완료 때 건물이 튀지 않는지. 이상하면 이 커밋만 되돌릴 것(격자 좌표 추적이 틀려 있으면 건물이 어긋남).
-- 설계 검토에서 정한 원칙: 일반 그래프 경로탐색 금지, 처음부터 3D 대시보드 미니맵 금지, 파일 분할 리팩터링은 하지 않음(필요하면 새 코드만 partial class로).
+- 설계 검토에서 정한 원칙: 일반 그래프 경로탐색 금지, 처음부터 3D 대시보드 미니맵 금지, 파일 분할은 partial class 로 완료(동작 변경 없이 나눔). 이후 매니저 클래스 분리는 별도 단계로 설계 후 진행.
 
 ## 알려진 한계 / 확인 필요
 - 3D 팔: arms.fbx의 socket 본(주먹 안 쥐는 점)에 림을 넣고, 손가락은 림에 닿을 때까지 굽힘. 사용자가 인스펙터에서 직접 맞춘 값이 씬(DriveScene.unity)에 저장되어 있음(Grip Roll, Thumb Up, Grip Nudge, Finger Pad, Hand Angle, Shoulder Center, Arm Length).
