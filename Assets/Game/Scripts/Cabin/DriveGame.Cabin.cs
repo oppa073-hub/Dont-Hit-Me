@@ -10,7 +10,7 @@ public partial class DriveGame
     Transform viewRoot, wheelSpin;
 
     // 운전석 부품 (LayoutCabin 이 public 값으로 위치를 맞춘다)
-    Transform dashBody, dashLip, hood, clusterRoot, clusterFace, navStand, navScreen, navBezel, navBg, navBar, navCar, navDest, pillarL, pillarR, roof;
+    Transform dashBody, dashLip, hood, clusterRoot, clusterFace, navStand, navScreen, navBezel, navBg, navBar, navCar, navDest, navCaller, pillarL, pillarR, roof;
 
     Shader unlitShader;
 
@@ -142,6 +142,7 @@ public partial class DriveGame
         navRoadHiMat = Unlit(new Color(0.78f, 0.82f, 0.86f));
         navRouteMat = Unlit(new Color(0.30f, 0.95f, 0.45f));
         navDest = CabinPart("NavDest", PrimitiveType.Quad, navScreen, Unlit(new Color(1f, 0.82f, 0.2f)));
+        navCaller = CabinPart("NavCaller", PrimitiveType.Quad, navScreen, Unlit(new Color(1f, 0.35f, 0.8f)));      // 길가에서 기다리는 손님 (분홍 마름모)
         navCar = CabinPart("NavCar", PrimitiveType.Quad, navScreen, Unlit(Color.white));
         navCar.GetComponent<MeshFilter>().sharedMesh = ArrowMesh();
         navHeadText = CabinText("NavHead", navScreen, 0.016f, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.85f));

@@ -136,6 +136,25 @@ public partial class DriveGame
         HideFrom(navRoute, n);
         if (navDest.gameObject.activeSelf != carrying) navDest.gameObject.SetActive(carrying);
 
+        // 길가에서 기다리는 손님: 내 앞 몇 m 에 있는지 분홍 마름모로 보여 준다 (안내선은 없음)
+        int callerM = -1;
+        bool callerRight = false;
+        var cp = taxi.Caller;
+        bool callerShown = !carrying && !turning && taxi.State == TaxiState.Cruise && cp != null && cp.t != null;
+        if (callerShown)
+        {
+            float cy = carY + cp.z * cs / period;
+            callerRight = cp.x >= 0f;
+            float mc = cs * 0.3f;
+            float barTop2 = -hh + hgt * 0.18f;
+            float pulse = 1f + 0.2f * Mathf.Sin(Time.unscaledTime * 8f);
+            navCaller.localPosition = new Vector3((callerRight ? 1f : -1f) * lw * 2.5f, Mathf.Clamp(cy, barTop2 + mc, hh - mc), -0.0026f);
+            navCaller.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            navCaller.localScale = new Vector3(cs * 0.38f * pulse, cs * 0.38f * pulse, 1f);
+            callerM = Mathf.Max(0, Mathf.RoundToInt(cp.z / 5f) * 5);
+        }
+        if (navCaller.gameObject.activeSelf != callerShown) navCaller.gameObject.SetActive(callerShown);
+
         navCar.localPosition = new Vector3(0f, carY, -0.003f);
         navCar.localScale = new Vector3(cs * 0.7f, cs * 0.8f, 1f);
 
@@ -144,11 +163,14 @@ public partial class DriveGame
             navHead = h;
             navHeadText.text = HeadNames[h];
         }
-        if (rem != navRem || (carrying && !ReferenceEquals(taxi.DestName, navDestShown)))
+        int infoKey = carrying ? rem : (callerM >= 0 ? -10 - callerM * 2 - (callerRight ? 1 : 0) : -1);
+        if (infoKey != navRem || (carrying && !ReferenceEquals(taxi.DestName, navDestShown)))
         {
-            navRem = rem;
+            navRem = infoKey;
             navDestShown = taxi.DestName;
-            navInfoText.text = carrying ? taxi.DestName + "  " + rem + "m" : "손님 찾는 중";
+            if (carrying) navInfoText.text = taxi.DestName + "  " + rem + "m";
+            else if (callerM >= 0) navInfoText.text = "손님 " + (callerRight ? "오른쪽 " : "왼쪽 ") + callerM + "m 앞";
+            else navInfoText.text = "손님 찾는 중";
         }
     }
 }
