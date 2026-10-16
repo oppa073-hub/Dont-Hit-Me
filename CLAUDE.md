@@ -25,7 +25,7 @@
 - Assets/Game/Scripts/DriveGame.cs : 게임의 뼈대(인스펙터 설정 값 public 필드 전부, 공통 상수/상태, Awake/Update/LateUpdate/ResetGame). 클래스 `DriveGame`은 partial 이고 아래 파일들에 역할별로 나뉨(MonoBehaviour 는 이 하나, 씬에 붙은 것도 이것)
   - World/DriveGame.WorldBuild.cs : 타일/배경/텍스처에서 스프라이트·재질·도로/건물 오브젝트 만들기
   - World/DriveGame.WorldView.cs : 도로 구간/건물을 매 프레임 배치, 회전 연출, 건물 해시(월드 좌표 기준)
-  - Gameplay/DriveGame.Intersection.cs : 교차로, 깜빡이 회전, 격자 좌표(gx, gy)/방향 추적
+  - Gameplay/DriveGame.Intersection.cs : 교차로 연결부(IntersectionManager 상태를 blinker/heading/gx/gy/turning 등 읽기 전용 속성으로 보여 주고, 회전이 끝나면 차·사람·구간을 정리)
   - Gameplay/DriveGame.Guidance.cs : 목적지를 앞/옆 칸수로 바꾸고 안내 문장 만들기
   - Gameplay/DriveGame.Taxi.cs : 택시 연결부(TaxiManager 이벤트를 받아 차 세우기/시점/점수/팝업에 반영)
   - Gameplay/DriveGame.Pedestrians.cs : 보행자 연결부(치임/니어미스 결과를 목숨·점수·손님 리액션에 반영)
@@ -36,6 +36,7 @@
 - **매니저(일반 C# 클래스, MonoBehaviour 아님. 설정 값은 씬에 저장된 DriveGame public 필드를 읽음)**
   - Gameplay/PedestrianManager.cs : 보행자 목록/생성 시점/이동/횡단/충돌·니어미스 판정. 이벤트 Hit, NearMiss 로 결과를 알림
   - Gameplay/TaxiManager.cs : 손님 호출→대화→탑승→도착 흐름, 목적지, 요금·팁·제한 시간. 이벤트 PopupRequested, TalkStarted, Arrived. 전역 enum TaxiState 도 여기
+  - Gameplay/IntersectionManager.cs : 깜빡이, 교차로 회전(시간 기준 90도), 격자 좌표(gx, gy)/방향(heading) 추적, NavState. 이벤트 TurnSwapped, TurnCompleted(새 dist), PopupRequested
   - Gameplay/PassengerCatalog.cs : 손님 유형 표(PaxType, PaxTypes), 대사, 피부/머리색. 대사·요금 배율은 이 파일만 고치면 됨
   - 새 매니저를 만들 때: 클래스는 DriveGame 설정(public 필드)을 생성자로 받고, 게임 결과(점수/목숨/팝업)는 이벤트로 알리며, 차 상태(속도, 위치)는 Tick 인자로 받는다.
 - Assets/Game/Scripts/Editor/DriveSceneCreator.cs : 메뉴 Game → Create Drive Scene
@@ -78,7 +79,7 @@
    - **3-1 커밋됨(d2a01f4, 푸시 전)**.
    - **3-2 요금/시간 제한: 코드 작성 + qa 반영 완료, 커밋됨(화면 확인 전)**. 탑승 시 `tripLimit = 거리 ÷ (그 순간 순항 속도 × limitSpeedRatio) × pax.timeMul + timeBuffer`(속도 반영: 씬의 baseSpeed가 20이라 고정 초는 너무 널널했음), 안에 도착하면 팁(`CurrentTip`, 최대 `tipMax`×유형 `tipMul`, HUD에도 예상 팁 표시), 넘기면 초당 `lateDropPerSec`씩 감액. 사고/지나침/지각 감액을 합쳐도 요금은 기본의 20% 밑으로 안 내려감. 늦게 도착하면 지각용 감사 대사. 시간 초과는 감액만(목숨 감소 없음). 밸런스는 플레이로 맞출 것.
    - **3-3 건물 일관성: 코드 작성 완료(화면 확인 전, 커밋 전)**. `citySalt` 제거. 건물 해시를 "두 교차로 사이 구간의 월드 좌표(양의 방향 기준으로 통일) + 구간 안 위치 + 좌우"로(`UpdateBuilding`의 `segKey`/`hidx`, `UpdateWorldVisuals`가 `rendNodeX/Y/K`, `rendHead` 설정). 반대 방향으로 지나면 위치와 좌우를 뒤집어 같은 건물이 나오게 함. 회전 후 새 도로는 K=RebaseBlocks. **화면 확인 필수**: (1) 한 바퀴 돌아 같은 길로 돌아오면 건물이 같은지 (2) 반대 방향에서 같은 건물이 반대쪽에 보이는지 (3) 회전 장면 교체/완료 때 건물이 튀지 않는지. 이상하면 이 커밋만 되돌릴 것(격자 좌표 추적이 틀려 있으면 건물이 어긋남).
-- 설계 검토에서 정한 원칙: 일반 그래프 경로탐색 금지, 처음부터 3D 대시보드 미니맵 금지, 파일 분할은 partial class 로 완료(동작 변경 없이 나눔). 매니저 분리는 보행자, 택시까지 완료. 다음 후보: 3D 운전석/내비 뷰, HUD 뷰, 교차로/격자 추적. 한 번에 하나씩 분리하고 매 단계 qa 로 확인.
+- 설계 검토에서 정한 원칙: 일반 그래프 경로탐색 금지, 처음부터 3D 대시보드 미니맵 금지, 파일 분할은 partial class 로 완료(동작 변경 없이 나눔). 매니저 분리는 보행자, 택시, 교차로까지 완료. 3D 운전석/내비/팔과 HUD(IMGUI)는 매니저가 아니라 화면 표시라서 partial 파일로 둠(필요해지면 View 클래스로 분리). 새 매니저는 한 번에 하나씩 분리하고 매 단계 Tools/check-compile.ps1 + qa 로 확인.
 
 ## 알려진 한계 / 확인 필요
 - 3D 팔: arms.fbx의 socket 본(주먹 안 쥐는 점)에 림을 넣고, 손가락은 림에 닿을 때까지 굽힘. 사용자가 인스펙터에서 직접 맞춘 값이 씬(DriveScene.unity)에 저장되어 있음(Grip Roll, Thumb Up, Grip Nudge, Finger Pad, Hand Angle, Shoulder Center, Arm Length).

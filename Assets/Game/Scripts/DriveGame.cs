@@ -271,9 +271,9 @@ public partial class DriveGame : MonoBehaviour
 
     const float RimTube = 0.018f;            // 핸들 림 단면 반지름(m)
 
-    const int RebaseBlocks = 16;             // 회전이 끝나면 도로 좌표를 이 번째 교차로로 옮긴다(구간 번호가 음수가 되지 않게, float 정밀도를 위해 작게)
+    public const int RebaseBlocks = 16;             // 회전이 끝나면 도로 좌표를 이 번째 교차로로 옮긴다(구간 번호가 음수가 되지 않게, float 정밀도를 위해 작게)
 
-    const float StripLen = 4f;
+    public const float StripLen = 4f;
 
     const int StripCount = 40;
 
@@ -311,6 +311,7 @@ public partial class DriveGame : MonoBehaviour
         peds = new PedestrianManager(this, transform, MakePedSprite());
         peds.Hit += OnPedHit;
         peds.NearMiss += OnPedNearMiss;
+        CreateRoad();
         CreateTaxi();
         litShader = Shader.Find("Universal Render Pipeline/Lit");
         if (litShader == null) litShader = Shader.Find("Standard");
@@ -411,17 +412,9 @@ public partial class DriveGame : MonoBehaviour
         taxi.Reset();
         camYaw = camYawTarget = 0f;
         hudTimeLeft = int.MinValue;
-        blinker = 0;
-        heading = 0;
-        gx = 0;
-        gy = 0;
-        turning = retargeted = false;
+        road.Reset();
         hintF = int.MinValue;
         hudRem = -1;
-        lastKNext = int.MinValue;
-        turnAlpha = 0f;
-        retargetFadeT = -1f;
-        fade = 0f;
         foreach (var s in strips) if (s != null) s.lastIdx = int.MinValue;
         if (destMarker != null) destMarker.gameObject.SetActive(false);
     }
@@ -434,7 +427,7 @@ public partial class DriveGame : MonoBehaviour
 
         if (gameOver)
         {
-            fade = 0f;                       // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
+            road.ClearFade();                // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
             if (kb.rKey.wasPressedThisFrame) ResetGame();
             UpdateWorldVisuals();
             return;
@@ -484,11 +477,8 @@ public partial class DriveGame : MonoBehaviour
         distScore += (dist - prevDist) * 0.1f;
 
         // 깜빡이: Q 좌 / E 우 (다시 누르면 해제)
-        if (!turning)
-        {
-            if (kb.qKey.wasPressedThisFrame) blinker = blinker == -1 ? 0 : -1;
-            if (kb.eKey.wasPressedThisFrame) blinker = blinker == 1 ? 0 : 1;
-        }
+        if (kb.qKey.wasPressedThisFrame) road.ToggleBlinker(-1);
+        if (kb.eKey.wasPressedThisFrame) road.ToggleBlinker(1);
 
         invuln = Mathf.Max(0f, invuln - dt);
         hurtFlash = Mathf.Max(0f, hurtFlash - dt);

@@ -12,24 +12,13 @@ public partial class DriveGame
 
     bool hintNear;
 
-    // 목적지를 "다음 교차로 N 기준" 앞 f칸 / 오른쪽 r칸(왼쪽은 음수)으로 바꾼다. sd 는 목적지 줄(r==0)에서 차→목적지 앞쪽 거리(m).
-    // (gx,gy)는 방금 지난 교차로, N = (gx,gy)+진행방향. 회전 중이면 회전이 끝난 뒤의 상태로 계산해 CompleteTurn 때 값이 튀지 않게 한다.
+    // 안내 기준 상태 (회전 중이면 회전이 끝난 뒤의 상태). 계산은 IntersectionManager 가 한다.
     void NavState(out int bx, out int by, out int h, out float zE)
     {
-        float period = Period;
-        bx = gx;
-        by = gy;
-        h = heading;
-        zE = nextInterDist;
-        if (turning)
-        {
-            bx += HeadX[h];
-            by += HeadY[h];
-            h = (h + turnDir + 4) % 4;
-            zE = Mathf.Max(0f, turnCenterRoad - (dist + 8f)) + period;   // 회전하는 교차로 중심까지 + 한 칸
-        }
+        road.NavState(dist, out bx, out by, out h, out zE);
     }
 
+    // 목적지를 "다음 교차로 N 기준" 앞 f칸 / 오른쪽 r칸(왼쪽은 음수)으로 바꾼다. sd 는 목적지 줄(r==0)에서 차→목적지 앞쪽 거리(m).
     void DestRel(out int f, out int r, out float sd)
     {
         DestRel(taxi.DestX, taxi.DestY, out f, out r, out sd);      // 지금 태운 손님의 목적지
