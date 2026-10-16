@@ -264,7 +264,7 @@ public partial class TrafficManager
                 if (vehicle && o.minLat < hitDist + cfg.vehicleNearMissMargin && NearMiss != null) NearMiss(o);
             }
 
-            if (o.z < -6f || o.z > spawnZ + 40f) RemoveAt(i);
+            if (o.z < -6f || (o.z > spawnZ + 40f && o.kind != Kaiju)) RemoveAt(i);          // 괴수는 먼 곳에 서 있어도 지우지 않는다
         }
     }
 

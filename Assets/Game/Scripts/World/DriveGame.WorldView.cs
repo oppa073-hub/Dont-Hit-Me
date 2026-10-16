@@ -255,7 +255,9 @@ public partial class DriveGame
                 sy = 1f + 0.05f * Mathf.Sin(elapsed * 3f + o.phase);
                 o.t.localScale = new Vector3(1f, sy, 1f);
             }
-            o.t.position = new Vector3(ox, Drop(oz) + o.centerY * sy, oz);
+            // 괴수와 연기 기둥은 도로가 휘어 사라지는 거리 밖에 있어도 지평선 위로 보이게, 휘어짐(Drop)은 도로 끝 거리까지만 적용한다
+            float dropZ = (o.kind == TrafficManager.Kaiju || o.kind == TrafficManager.Smoke) ? Mathf.Min(oz, SpawnZ) : oz;
+            o.t.position = new Vector3(ox, Drop(dropZ) + o.centerY * sy, oz);
             float tilt = o.angle;                                           // 공: 구르는 각도
             if (o.fallT >= 0f) tilt = -o.kickDir * Mathf.Min(o.fallT * 4f, 1f) * 35f;   // 부딪힌 차/콘: 옆으로 기울며 밀려난다
             o.t.rotation = Quaternion.Euler(0f, 0f, tilt);

@@ -240,9 +240,8 @@ public partial class TrafficManager
     public void TickKaiju(float elapsed, float speed, bool active, float nextInterDist, float period, bool turning, float spawnZ)
     {
         if (!active || turning || elapsed < nextKaiju || HasKaiju) return;
-        if (nextInterDist < Mathf.Max(28f, speed * 2.2f)) return;     // 교차로가 너무 가까우면(약 2초 안) 돌 시간이 없으니 다음 교차로를 기다린다
-        float zk = nextInterDist + 16f;
-        if (zk > spawnZ - 4f) return;                           // 아직 도로가 보이는 거리 밖이다
+        if (nextInterDist < Mathf.Min(Mathf.Max(28f, speed * 2.2f), 70f)) return;     // 교차로가 너무 가까우면(약 2초 안) 돌 시간이 없으니 다음 교차로를 기다린다
+        float zk = nextInterDist + 16f;                         // 교차로 바로 뒤에 선다. 도로가 보이는 거리(spawnZ) 밖이어도 먼 곳에 거대한 모습이 보인다
 
         var o = MakeSpriteObj("Kaiju", Kaiju, cfg.kaijuSprite != null ? cfg.kaijuSprite : sprites.kaiju);
         o.halfW = 4.5f;                                         // 도로 전체를 막는다
