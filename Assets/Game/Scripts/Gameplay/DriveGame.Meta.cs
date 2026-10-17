@@ -14,7 +14,7 @@ public partial class DriveGame
     // 상점 화면 글자 (열 때와 살 때만 새로 만든다). 상점은 두 쪽: 0 = 업그레이드, 1 = 택시 개조
     string[] shopLines = new string[0];
     string[] shopProjNames = new string[ProjectManager.Defs.Length], shopProjDescs = new string[ProjectManager.Defs.Length];
-    string shopCoinsText = "", shopTitleText = "", shopMsg = "", lobbyProjText = "";
+    string shopCoinsText = "", shopTitleText = "", shopMsg = "", lobbyProjText = "", lobbyHeatText = "";
     float shopMsgUntil;
     int shopPage;
 
@@ -44,10 +44,10 @@ public partial class DriveGame
         ApplyProjectPerks();
         session.ExtraLives = upgrades.ExtraLives;
         session.InvulnBonus = upgrades.InvulnBonus;
-        taxi.FareBonusMul = upgrades.FareMul * projects.FareMul;
+        taxi.FareBonusMul = upgrades.FareMul * projects.FareMul * (1f + heatFareBonus * heat);       // 도시 위험도 위험수당
         taxi.TipBonusMul = upgrades.TipMul;
         taxi.TimeBonus = upgrades.TimeBonus;
-        session.HealTimeMul = upgrades.HealMul;
+        session.HealTimeMul = upgrades.HealMul * (1f + heatHealSlow * heat);       // 도시 위험도가 높으면 회복이 느리다
     }
 
     void UpdateGoals()
@@ -95,6 +95,7 @@ public partial class DriveGame
         shopTitleText = shopCoinsText + "      O  설정";
         lobbyDayText = "Day " + dayEvents.Day;
         lobbyProjText = "택시 개조  " + projects.DoneCount + " / " + projects.Count;
+        lobbyHeatText = "도시 위험도  " + HeatStars(HeatFor(dayEvents.Day)) + (HeatFor(dayEvents.Day) > 0 ? "   (요금 +" + Mathf.RoundToInt(heatFareBonus * 100f * HeatFor(dayEvents.Day)) + "%)" : "");
         if (shopLines.Length != upgrades.Count) shopLines = new string[upgrades.Count];
         for (int i = 0; i < upgrades.Count; i++)
         {

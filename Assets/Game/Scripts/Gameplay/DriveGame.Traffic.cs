@@ -27,6 +27,7 @@ public partial class DriveGame
         peds.IntervalMul = difficulty.PedIntervalMul * dayEvents.PedIntervalMul;
         peds.DartBonus = difficulty.DartBonus;
         peds.DartSpeedMul = difficulty.DartSpeedMul;
+        peds.CrossersBonus = difficulty.CrossersBonus;
         traffic.Level = difficulty.Level;
     }
 

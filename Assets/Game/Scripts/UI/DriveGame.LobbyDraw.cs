@@ -166,6 +166,7 @@ public partial class DriveGame
         Label(new Rect(20 * u, 14 * u, 400 * u, 40 * u), lobbyDayText, 30, UiGold, TextAnchor.UpperLeft);
         Label(new Rect(20 * u, 54 * u, 500 * u, 30 * u), shopCoinsText, 20, Color.white, TextAnchor.UpperLeft);
         Label(new Rect(20 * u, 80 * u, 500 * u, 28 * u), lobbyProjText, 17, UiCyan, TextAnchor.UpperLeft);
+        Label(new Rect(20 * u, 104 * u, 500 * u, 28 * u), lobbyHeatText, 17, new Color(1f, 0.62f, 0.45f), TextAnchor.UpperLeft);
         Label(new Rect(W - 760 * u, 18 * u, 740 * u, 28 * u), modeText, 18, UiGold, TextAnchor.UpperRight);
         Label(new Rect(0, H - 34 * u, W, 28 * u), "A / D 이동      Space 말 걸기 / 타기      O 설정      Esc 타이틀", 16, new Color(1f, 1f, 1f, 0.7f), TextAnchor.LowerCenter);
 

@@ -8,7 +8,7 @@
 # 시험은 저장 데이터(PlayerPrefs)를 지우고 시작하므로, 실행 전에 레지스트리를 백업하고 끝나면 되돌린다.
 # 결과: SimReports/simbot-*.txt (보고서), SimReports/editor-*.log (Unity 로그)
 param(
-    [int]$Days = 5, [int]$Skill = 1, [switch]$Cover, [switch]$Endless, [switch]$NoShop, [switch]$NoGraphics, [switch]$Dbg, [switch]$Ending, [switch]$NoUnav, [string]$Set = "", [int]$DayType = -1,
+    [int]$Days = 5, [int]$Skill = 1, [switch]$Cover, [switch]$Endless, [switch]$NoShop, [switch]$NoGraphics, [switch]$Dbg, [switch]$Ending, [switch]$Full, [int]$StartDay = 1, [switch]$NoUnav, [string]$Set = "", [int]$DayType = -1,
     [int]$Seed = 1234, [int]$MaxSec = 1500,
     [string]$UnityExe = "C:\unityproject\6000.3.5f2\Editor\Unity.exe"
 )
@@ -43,6 +43,8 @@ if ($NoShop) { $args2 += "-simnoshop" }
 if ($NoGraphics) { $args2 += "-nographics" }
 if ($Dbg) { $args2 += "-simdbg" }
 if ($Ending) { $args2 += "-simending" }
+if ($Full) { $args2 += "-simfull" }
+if ($StartDay -gt 1) { $args2 += @("-simday", $StartDay) }
 if ($NoUnav) { $args2 += "-simnounav" }
 if ($Set -ne "") { $args2 += @("-simset", "`"$Set`"") }
 if ($DayType -ge 0) { $args2 += @("-simdaytype", $DayType) }

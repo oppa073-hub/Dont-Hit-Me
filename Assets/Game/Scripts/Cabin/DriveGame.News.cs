@@ -63,7 +63,7 @@ public partial class DriveGame
     // 운전을 시작할 때: 오늘의 뉴스를 방송한다
     void StartNews()
     {
-        var beats = NewsCatalog.Script(dayEvents.Type, dayEvents.Day, shiftMode, Mathf.RoundToInt(shiftSeconds), dayEvents.LastType, weather.Rain, weather.Darkness, projects.DoneCount);
+        var beats = NewsCatalog.Script(dayEvents.Type, dayEvents.Day, shiftMode, Mathf.RoundToInt(shiftSeconds), dayEvents.LastType, weather.Rain, weather.Darkness, projects.DoneCount, HeatFor(dayEvents.Day));
         BeginNews(beats, dayEvents.Type, false, false);
         sound.PlayArrive();                  // 손님 호출음(차임)과 다른 소리
     }

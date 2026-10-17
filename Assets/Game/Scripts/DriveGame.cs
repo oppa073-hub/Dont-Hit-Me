@@ -356,6 +356,26 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("화면 흔들림 세기 배율 (0이면 흔들리지 않음)")]
     public float endingShake = 1f;
 
+    [Header("Heat (도시 위험도 0~5: Day 가 오를수록 어려워지고, 대신 요금에 위험수당이 붙는다)")]
+    [Tooltip("이 Day 부터 위험도가 1, 2, 3, 4, 5 단계가 된다")]
+    public int[] heatDays = { 6, 12, 18, 26, 36 };
+    [Tooltip("위험도 한 단계마다 판을 시작하는 레벨이 이만큼 올라간다 (차와 장애물이 일찍 나온다)")]
+    public float heatLevelPerStep = 0.8f;
+    [Tooltip("위험도가 이 단계 오를 때마다 동시에 건너는 사람 수 상한이 1 늘어난다")]
+    public int heatCrossersStep = 2;
+    [Tooltip("위험도 한 단계마다 랜덤 인카운트 간격이 이 비율만큼 짧아진다")]
+    public float heatEncounterCut = 0.07f;
+    [Tooltip("위험도 한 단계마다 사건이 있는 날(괴수, 히어로, 좀비)이 나올 확률이 이만큼 늘어난다")]
+    public float heatEventBonus = 0.03f;
+    [Tooltip("위험도 한 단계마다 보행자 생성 간격이 이만큼 짧아진다 (사람이 더 자주 나온다)")]
+    public float heatPedCut = 0.08f;
+    [Tooltip("위험도 한 단계마다 갑자기 튀어나오는 사람 비율이 이만큼 늘어난다")]
+    public float heatDartBonus = 0.03f;
+    [Tooltip("위험도 한 단계마다 체력(하트) 회복이 이 비율만큼 느려진다")]
+    public float heatHealSlow = 0.25f;
+    [Tooltip("위험도 한 단계마다 요금에 붙는 위험수당 비율")]
+    public float heatFareBonus = 0.06f;
+
     [Header("Night (밤의 헤드라이트: 진짜 스포트라이트 + 사람/차/건물 그림은 같은 빛 모양으로 색을 어둡게 칠함)")]
     [Tooltip("헤드라이트 켜기 (끄면 밤에 아주 어둡다)")]
     public bool headlightOn = true;
@@ -634,6 +654,7 @@ public partial class DriveGame : MonoBehaviour
 
     void ResetGame()
     {
+        UpdateHeat();                        // 맨 먼저: 오늘의 도시 위험도 (다른 초기화가 쓴다)
         newsActive = false;
         ClearBlood();
         gun.Reset();

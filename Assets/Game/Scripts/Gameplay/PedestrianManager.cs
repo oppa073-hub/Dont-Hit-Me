@@ -43,6 +43,7 @@ public class PedestrianManager
     float nextFan;
     public bool RageSurge;               // 분노 폭발 중: 박살 낼 사람들이 더 많이 몰려든다 (분노는 보상이라서)
     float nextSurge;
+    public int CrossersBonus;             // 도시 위험도에 따라 늘어나는 동시 횡단 인원
     public bool ZombieMode;              // 좀비 사태 중: 새 보행자가 좀비/생존자가 되고 좀비가 추가로 몰려나온다
     float nextZombie;
     public float PlayerSpeed = 20f;      // 지금 차의 속도 (건너기 시작하는 거리를 속도에 맞추는 데 쓴다)
@@ -289,7 +290,7 @@ public class PedestrianManager
                 {
                     // 차가 도착하기 몇 초 전에 건너기 시작한다 (빠를수록 더 멀리서). 동시에 건너는 사람 수에는 상한이 있다.
                     float trig = p.triggerT > 0f ? p.triggerT * Mathf.Max(PlayerSpeed, 12f) : p.triggerZ;
-                    if (p.z < trig && (p.bypassCap || crossersNow < cfg.maxCrossers))
+                    if (p.z < trig && (p.bypassCap || crossersNow < cfg.maxCrossers + CrossersBonus))
                     {
                         p.st = 1;
                         crossersNow++;

@@ -253,7 +253,7 @@ public static class NewsCatalog
     }
 
     /// <summary>운전을 시작할 때 나오는 아침 뉴스 원고. 인사 -> 헤드라인 -> (사건 날) 현장 연결 -> 곁들이 이야기 -> 마무리.</summary>
-    public static NewsBeat[] Script(DayType type, int day, bool shift, int shiftSeconds, DayType lastDay, float rain, float darkness, int projectsDone)
+    public static NewsBeat[] Script(DayType type, int day, bool shift, int shiftSeconds, DayType lastDay, float rain, float darkness, int projectsDone, int heat)
     {
         var kit = Kit(type);
         var list = new System.Collections.Generic.List<NewsBeat>();
@@ -280,6 +280,18 @@ public static class NewsCatalog
         else if (projectsDone >= 3) list.Add(new NewsBeat(0, "속보! 지붕에 미니건|단 택시가 목격|경찰은 못 본 척!"));
         else list.Add(new NewsBeat(2, Pick(Ads)));
 
+        if (heat >= 1)
+        {
+            string[] heatLines =
+            {
+                "도시 위험도 1단계.|차가 슬슬|늘어납니다.",
+                "도시 위험도 2단계.|무단횡단이|늘고 있어요.",
+                "도시 위험도 3단계.|사건 사고 주의!|위험수당 지급.",
+                "도시 위험도 4단계.|운전대 꽉 잡으세요|살아서 만납시다.",
+                "도시 위험도 최고!|이 도시에서 운전은|목숨을 겁니다.",
+            };
+            list.Add(new NewsBeat(0, heatLines[Mathf.Clamp(heat, 1, 5) - 1]));
+        }
         list.Add(new NewsBeat(0, Pick(kit.closing)));
         if (shift) list.Add(new NewsBeat(0, "오늘 영업은|" + shiftSeconds + "초입니다.|월세를 위해!"));
         return list.ToArray();

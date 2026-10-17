@@ -221,8 +221,8 @@ MonoBehaviour:
   dashTopY: -0.55
   hoodTopY: -0.3
   roofY: 0.52
-  navPos: {x: 0.48, y: -0.38, z: 0.7}
-  navSize: {x: 0.26, y: 0.16}
+  navPos: {x: 0.48, y: -0.364, z: 0.7}
+  navSize: {x: 0.312, y: 0.192}
   miniMapRange: 3
   pillarLBase: {x: -0.9, y: -0.56, z: 0.95}
   pillarLTop: {x: -0.56, y: 0.55, z: 0.5}

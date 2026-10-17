@@ -19,6 +19,7 @@ public class EventManager
     public bool Active { get; private set; }                       // 괴수/히어로 사건이 진행 중
     public bool KaijuActive { get { return Active && Type == DayType.Kaiju; } }
     public bool HeroActive { get { return Active && Type == DayType.Hero; } }
+    public int Heat;                                               // 도시 위험도: 높을수록 사건이 있는 날이 더 자주 나온다
     public bool ZombieActive { get { return Active && Type == DayType.Zombie; } }
     public string DayLabel { get; private set; }                   // 화면 오른쪽에 보이는 "Day 3 · 괴수 침공!"
     public string AlertText { get; private set; }                  // 화면에 붉게 깜빡이는 긴급 속보
@@ -75,10 +76,14 @@ public class EventManager
         if (cfg.forceDayType >= 0) return (DayType)Mathf.Clamp(cfg.forceDayType, 0, 4);
         if (Day <= 1) return DayType.Normal;                       // 첫날은 평범하게
         float r = Random.value;
-        if (r < 0.34f) return DayType.Normal;
-        if (r < 0.50f) return DayType.Crowded;
-        if (r < 0.67f) return DayType.Kaiju;
-        if (r < 0.84f) return DayType.Hero;
+        // 사건이 있는 날(괴수/히어로/좀비)은 위험도 단계마다 확률이 늘고, 그만큼 평범한 날이 줄어든다
+        float normal = Mathf.Max(0.12f, 0.34f - cfg.heatEventBonus * 3f * Heat);
+        float crowded = normal + 0.16f;
+        float each = (1f - crowded) / 3f;
+        if (r < normal) return DayType.Normal;
+        if (r < crowded) return DayType.Crowded;
+        if (r < crowded + each) return DayType.Kaiju;
+        if (r < crowded + each * 2f) return DayType.Hero;
         return DayType.Zombie;
     }
 
@@ -165,6 +170,6 @@ public class EventManager
         else if (KaijuActive) extra = "  ·  괴수 침공!";
         else if (HeroActive) extra = "  ·  히어로 vs 빌런";
         else if (ZombieActive) extra = "  ·  좀비 사태!";
-        DayLabel = "Day " + Day + extra;
+        DayLabel = "Day " + Day + extra + (Heat > 0 ? "  \u00b7  \uc704\ud5d8 " + Heat : "");
     }
 }

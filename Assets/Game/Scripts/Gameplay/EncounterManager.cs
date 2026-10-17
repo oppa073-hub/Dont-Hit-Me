@@ -11,6 +11,7 @@ public class EncounterManager
 {
     readonly DriveGame cfg;
     float nextAt, endAt;
+    public float IntervalMul = 1f;           // 도시 위험도가 높을수록 작다 (사건이 더 자주 터진다)
 
     public EncounterType Active { get; private set; }
     /// <summary>정전의 어두운 정도 (0 ~ 1, 천천히 어두워졌다 밝아진다).</summary>
@@ -29,7 +30,7 @@ public class EncounterManager
         Active = EncounterType.None;
         Blackout01 = 0f;
         endAt = 0f;
-        nextAt = elapsed + Mathf.Max(5f, cfg.encounterFirstDelay);
+        nextAt = elapsed + Mathf.Max(5f, cfg.encounterFirstDelay) * IntervalMul;
     }
 
     static float Duration(EncounterType t)
@@ -58,7 +59,7 @@ public class EncounterManager
             if (elapsed >= endAt)
             {
                 Active = EncounterType.None;
-                nextAt = elapsed + Random.Range(cfg.encounterInterval.x, cfg.encounterInterval.y);
+                nextAt = elapsed + Random.Range(cfg.encounterInterval.x, cfg.encounterInterval.y) * IntervalMul;
             }
             return;
         }

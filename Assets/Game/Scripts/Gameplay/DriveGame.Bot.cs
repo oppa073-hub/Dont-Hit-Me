@@ -32,6 +32,7 @@ public partial class DriveGame
             // 저장 데이터를 비운 뒤 장면을 다시 불러와서, 모든 매니저가 처음 설치한 것처럼 시작하게 한다
             botWiped = true;
             PlayerPrefs.DeleteAll();
+            PlayerPrefs.SetInt("DontHitMe.Day", SimBot.StartDayArg);          // -simday: 후반 난이도를 바로 시험하려고 Day 번호를 정해 둔다
             PlayerPrefs.Save();
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
             return;
@@ -117,6 +118,8 @@ public partial class DriveGame
         int forceIdx, quirkIdx;
 
         public static bool Requested { get { return Has("-simbot"); } }
+
+        public static int StartDayArg { get { return Mathf.Max(1, ArgInt("-simday", 1)); } }
 
         static bool Has(string name)
         {
@@ -256,6 +259,14 @@ public partial class DriveGame
             g.forceDayType = cover ? CoverDay(day) : dayType;
             g.debugGod = cover;
             Random.InitState(seed * 1000 + day);
+            if (day == 1 && Has("-simfull"))
+            {
+                // 후반 시험: 업그레이드를 모두 끝까지 사고 개조도 날개 전까지(엔딩 제외) 끝낸 채로 시작한다
+                g.upgrades.AddCoins(300000);
+                for (int pass = 0; pass < 8; pass++) for (int id = 0; id < g.upgrades.Count; id++) g.upgrades.TryBuy(id);
+                for (int i = 0; i < g.projects.Count - 1; i++) g.projects.Buy(i, g.upgrades);
+                g.ApplyProjectPerks();
+            }
             if (day == 1 && Has("-simending"))
             {
                 // 엔딩 시험: 코인을 잔뜩 주고 택시 개조를 모두 끝낸 채로 시작한다
