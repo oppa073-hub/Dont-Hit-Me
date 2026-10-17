@@ -64,7 +64,7 @@ public class MinigunManager
         for (int i = 0; i < peds.Count; i++)
         {
             var p = peds[i];
-            if (p.caller || p.fallT >= 0f || p.z < MinZ || p.z > maxZ) continue;       // 손님(기다리는 사람)은 쏘지 않는다
+            if (p.caller || p.survivor || p.fallT >= 0f || p.z < MinZ || p.z > maxZ) continue;       // 손님(기다리는 사람)은 쏘지 않는다
             if (p.z < bestZ) { bestZ = p.z; bestPed = p; bestObj = null; }
         }
         for (int i = 0; i < traffic.Count; i++)

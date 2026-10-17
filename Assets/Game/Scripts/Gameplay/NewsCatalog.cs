@@ -3,7 +3,7 @@ using UnityEngine;
 // 내비 뉴스의 데이터: 날 종류(DayType)마다 "뉴스 한 벌"(배경, 머리 띠, 앵커 연기, 원고 풀, 하단 자막)을 한 표에 모아 둔다.
 // 새 날 종류(새 이벤트)를 만들면 Kits 표에 한 줄(그리고 필요하면 풀)만 추가하면 뉴스 연출이 같이 생긴다.
 // 원고의 | 는 줄바꿈이다. 한 줄은 12글자 안팎, 최대 4줄(내비 화면이 작다).
-public enum NewsBg { City, Fire, Storm, Festival }
+public enum NewsBg { City, Fire, Storm, Festival, Zombie }
 public enum NewsMood { Sleepy, Panic, Dazzled, Squeezed }
 
 /// <summary>뉴스 한 토막. kind: 0 앵커, 1 현장 연결, 2 광고, 3 긴급 속보(운전 중 끼어들기).</summary>
@@ -161,6 +161,40 @@ public static class NewsCatalog
                 "층간소음 분쟁 하늘로 확대", "시민 '레이저로 라면 끓이고 싶다'", "하늘 전투 중계권 협상 중",
             },
         },
+        // 좀비 사태
+        new NewsKit
+        {
+            badge = "긴급 속보  좀비 출현", badgeColor = new Color(0.2f, 0.65f, 0.15f), blink = true, mood = NewsMood.Panic, bg = NewsBg.Zombie,
+            studio = new Color(0.03f, 0.09f, 0.06f),
+            headline = new[]
+            {
+                "도심에 좀비 출현!|원인은 불명,|월요일일 가능성.",
+                "좀비 떼가 도로로|쏟아지고 있습니다!|초록색을 보면 쓸어!",
+                "시민 여러분 침착!|좀비는 걷는 게|느립니다.(운전 중엔)",
+            },
+            field = new[]
+            {
+                "현장의 박 기자!|좀비들이 몰려…|으어… 어? 저도|배가 고픈데…",
+                "박 기자입니다.|좀비가 제 마이크를|뺏어…|으어어어어.",
+                "좀비 앞입니다!|사람처럼 보이지만|초록이 좀비…|…제 손이 초록?",
+            },
+            closing = new[]
+            {
+                "초록색은 쳐도 되고|주황색 생존자는|절대 치지 마세요!",
+                "좀비는 쓸어버리고|생존자는 피하세요.|구분이 어렵다고요?",
+                "분노가 차면 미니건!|좀비 보너스|맛있게 드세요.",
+            },
+            bulletin = new[]
+            {
+                "긴급 속보!|좀비 출현!|초록색은 쓸어버리세요|생존자는 주황색!",
+                "속보입니다!|좀비가 도로로!|침착하게 밟으세요.",
+            },
+            ticker = new[]
+            {
+                "좀비 '으어' 한 마디 발언", "생존자 '살려주세요 주황색이에요'", "병원 앞 좀비 줄 3km",
+                "정부 '좀비는 월세를 안 냅니다'", "편의점 '뇌 모양 젤리' 품절", "시민 '택시 타고 도망가고 싶다'",
+            },
+        },
     };
 
     // 광고 (평범한 날에 끼어든다): 병맛
@@ -176,6 +210,7 @@ public static class NewsCatalog
     // 어제의 후일담
     static readonly string[] AfterKaiju = { "어제 괴수가 남긴|발자국이 관광지가|됐습니다. 3천 원!", "괴수가 떠난 자리에|편의점이 새로|문을 열었습니다." };
     static readonly string[] AfterHero = { "어제 하늘 전투는|무승부! 합의금|협상 중입니다.", "히어로와 빌런이|화해했습니다.|도시는 그대로." };
+    static readonly string[] AfterZombie = { "어제 좀비 사태의|후유증으로 시내|목 보호대가 품절.", "좀비들이 사라졌습니다.|…어디로 갔을까요?|(출근했을지도)" };
     static readonly string[] AfterCrowded = { "어제 축제의 쓰레기|산이 아직도|남아 있습니다.", "어제 축제 인파|기록 갱신!|발은 괜찮으신가요." };
 
     public static NewsKit Kit(DayType t) { return Kits[Mathf.Clamp((int)t, 0, Kits.Length - 1)]; }
@@ -207,7 +242,7 @@ public static class NewsCatalog
         if (type == DayType.Normal && r < 0.45f) list.Add(new NewsBeat(2, Pick(Ads)));
         else if (rain > 0.5f) list.Add(new NewsBeat(0, "오늘은 비가 옵니다.|와이퍼를 믿으세요.|(믿지 마세요)"));
         else if (darkness > 0.6f) list.Add(new NewsBeat(0, "지금은 한밤중.|헤드라이트를 켜세요.|…이미 켰네요."));
-        else if (lastDay != DayType.Normal && day > 1 && r < 0.7f) list.Add(new NewsBeat(0, Pick(lastDay == DayType.Kaiju ? AfterKaiju : (lastDay == DayType.Hero ? AfterHero : AfterCrowded))));
+        else if (lastDay != DayType.Normal && day > 1 && r < 0.7f) list.Add(new NewsBeat(0, Pick(lastDay == DayType.Kaiju ? AfterKaiju : (lastDay == DayType.Hero ? AfterHero : (lastDay == DayType.Zombie ? AfterZombie : AfterCrowded)))));
         else if (projectsDone >= 4) list.Add(new NewsBeat(0, "날개 달린 택시 목격!|새다 비행기다|…아니 택시다!"));
         else if (projectsDone >= 3) list.Add(new NewsBeat(0, "속보! 지붕에 미니건|단 택시가 목격|경찰은 못 본 척!"));
         else list.Add(new NewsBeat(2, Pick(Ads)));

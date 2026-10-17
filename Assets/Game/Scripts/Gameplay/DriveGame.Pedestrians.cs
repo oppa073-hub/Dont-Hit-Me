@@ -11,6 +11,7 @@ public partial class DriveGame
     // 차에 치였다: 속도 감소, 히트스톱, 흔들림, 손님 리액션/요금 감액, 목숨. (쓰러지는 연출은 매니저가 한다)
     void OnPedHit(PedestrianManager.Ped p)
     {
+        if (p.zombie) { OnZombieHit(p); return; }
         AddBlood();                                         // 앞유리에 피가 튄다 (분노 중이든 무적 중이든)
         if (rage.Active) { RageSmash(); return; }          // 분노 중에는 목숨/요금이 그대로
         speed *= hitSpeedFactor;
@@ -20,7 +21,26 @@ public partial class DriveGame
         sound.PlayBonk();
         taxi.OnPedHit();                      // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
         if (session.RegisterHit())            // 무적이 아니면 목숨이 줄고, 마지막 목숨이면 게임오버
-            Popup("쾅!", new Color(1f, 0.4f, 0.4f));
+            Popup(p.survivor ? "생존자를 쳤다!" : "쾅!", new Color(1f, 0.4f, 0.4f));
+    }
+
+    float zombieCheerT;
+
+    // 좀비를 쳤다: 사고가 아니라 보상. 점수와 분노 게이지가 차오르고, 앞유리에 초록 얼룩이 튀며, 손님이 환호한다
+    void OnZombieHit(PedestrianManager.Ped p)
+    {
+        AddZombieSplat();
+        speed *= 0.95f;
+        shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.12f);
+        sound.PlaySplat();
+        session.AddScore(zombieScore);
+        rage.AddBonus(zombieRageGain);
+        Popup("좀비 처치!  +" + zombieScore, new Color(0.55f, 1f, 0.4f));
+        if (Time.unscaledTime >= zombieCheerT && taxi.State == TaxiState.Carrying)
+        {
+            zombieCheerT = Time.unscaledTime + 4f;
+            taxi.Say(StoryCatalog.ZombieCheer(), 1.8f);
+        }
     }
 
     // 아슬아슬하게 피했다: 니어미스 보너스

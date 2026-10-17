@@ -15,7 +15,7 @@ public partial class DriveGame
     string debugText = "";
     float debugResetUntil;                                 // Del 을 한 번 눌렀다: 이 시각 안에 한 번 더 누르면 저장 데이터를 지운다
 
-    static readonly string[] DebugDayNames = { "무작위", "평범한 날", "사람 많은 날", "괴수 침공", "히어로와 빌런" };
+    static readonly string[] DebugDayNames = { "무작위", "평범한 날", "사람 많은 날", "괴수 침공", "히어로와 빌런", "좀비 사태" };
 
     static bool DebugAllowed { get { return Application.isEditor || Debug.isDebugBuild; } }
 
@@ -47,6 +47,7 @@ public partial class DriveGame
         else if (kb.digit3Key.wasPressedThisFrame) DebugSetDay(DayType.Crowded);
         else if (kb.digit4Key.wasPressedThisFrame) DebugSetDay(DayType.Normal);
         else if (kb.digit5Key.wasPressedThisFrame) forceDayType = -1;
+        else if (kb.digit0Key.wasPressedThisFrame) DebugSetDay(DayType.Zombie);
         else if (kb.digit6Key.wasPressedThisFrame)
         {
             if (!weatherOn) weatherOn = true;
@@ -109,6 +110,7 @@ public partial class DriveGame
                   + "3  사람 많은 날" + NL
                   + "4  평범한 날 (사건 끝)" + NL
                   + "5  날 종류 무작위로" + NL
+                  + "0  좀비 사태" + NL
                   + "6  비 켜기 / 끄기" + NL
                   + "7  시각 +3시간" + NL
                   + "8  레벨 +1" + NL
@@ -120,14 +122,14 @@ public partial class DriveGame
                   + "F4  엔딩 바로 보기" + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
                   + "Del 두 번  저장 데이터 전부 초기화" + NL
-                  + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 4)];
+                  + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 5)];
     }
 
     void DrawDebug(float W, float H, float u)
     {
         if (!debugOpen) return;
-        Panel(new Rect(14 * u, 296 * u, 320 * u, 418 * u), 0.78f);
-        Label(new Rect(24 * u, 300 * u, 306 * u, 410 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        Panel(new Rect(14 * u, 276 * u, 320 * u, 438 * u), 0.78f);
+        Label(new Rect(24 * u, 280 * u, 306 * u, 430 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
         if (Time.unscaledTime < debugResetUntil)
             Label(new Rect(0, H * 0.6f, W, 36 * u), "한 번 더 Del 을 누르면 저장 데이터가 모두 지워집니다!", 24, UiRed, TextAnchor.MiddleCenter);
     }

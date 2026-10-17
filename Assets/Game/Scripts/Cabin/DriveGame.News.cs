@@ -242,6 +242,25 @@ public partial class DriveGame
                 }
                 break;
             }
+            case NewsBg.Zombie:
+            {
+                SetCol(newsStudio, new Color(0.03f, 0.09f, 0.06f));
+                NDeco(ref n, w * 0.38f, h * 0.20f, h * 0.15f, h * 0.15f, new Color(0.78f, 0.95f, 0.55f));                       // 초록빛 달
+                float[] bh = { 0.30f, 0.44f, 0.26f, 0.5f, 0.34f, 0.28f, 0.4f };
+                for (int i = 0; i < bh.Length; i++)
+                    NDeco(ref n, -w * 0.46f + i * w * 0.15f, floorY + h * bh[i] * 0.5f, w * 0.12f, h * bh[i], new Color(0.05f, 0.12f, 0.09f));
+                NDeco(ref n, 0f, floorY + h * 0.05f, w, h * 0.14f, new Color(0.1f, 0.28f, 0.16f));                                // 바닥 안개
+                for (int i = 0; i < 6; i++)
+                {
+                    // 비틀거리며 다가오는 좀비 실루엣 (팔을 앞으로 뻗는다)
+                    float zx = -w * 0.42f + i * w * 0.17f + Mathf.Sin(t * 1.4f * spd + i * 2.1f) * w * 0.015f;
+                    float bob = Mathf.Abs(Mathf.Sin(t * 3.2f * spd + i * 1.7f)) * h * 0.02f;
+                    NDeco(ref n, zx, floorY + h * 0.11f + bob, w * 0.04f, h * 0.15f, new Color(0.25f, 0.5f, 0.25f));                  // 몸
+                    NDeco(ref n, zx, floorY + h * 0.215f + bob, w * 0.04f, h * 0.06f, new Color(0.45f, 0.78f, 0.4f));                 // 머리
+                    NDeco(ref n, zx + w * 0.035f, floorY + h * 0.16f + bob, w * 0.045f, h * 0.018f, new Color(0.45f, 0.78f, 0.4f));   // 뻗은 팔
+                }
+                break;
+            }
             default: // Festival
             {
                 SetCol(newsStudio, new Color(0.5f, 0.5f, 0.92f));

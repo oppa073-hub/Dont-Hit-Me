@@ -1,9 +1,9 @@
 using UnityEngine;
 
-public enum DayType { Normal, Crowded, Kaiju, Hero }
+public enum DayType { Normal, Crowded, Kaiju, Hero, Zombie }
 
 // 날짜/사건 매니저: 하루(= 한 판)마다 날의 종류를 무작위로 정한다.
-//  평범한 날 / 사람 많은 날(처음부터 보행자와 손님이 많음) / 괴수 침공(갑자기) / 히어로와 빌런의 전투(갑자기).
+//  평범한 날 / 사람 많은 날(처음부터 보행자와 손님이 많음) / 괴수 침공(갑자기) / 히어로와 빌런의 전투(갑자기) / 좀비 사태(갑자기: 좀비는 치면 보상, 주황 생존자는 치면 사고).
 // 괴수와 히어로 날은 시작할 때는 평범해 보이다가, 하루 중 무작위 시각에 "긴급 속보"와 함께 사건이 터진다.
 // 괴수와 레이저로 실제 장애물을 만드는 건 TrafficManager, 하늘의 히어로 연출은 DriveGame 이 한다. 이 클래스는 일정과 글자만 안다.
 public class EventManager
@@ -19,6 +19,7 @@ public class EventManager
     public bool Active { get; private set; }                       // 괴수/히어로 사건이 진행 중
     public bool KaijuActive { get { return Active && Type == DayType.Kaiju; } }
     public bool HeroActive { get { return Active && Type == DayType.Hero; } }
+    public bool ZombieActive { get { return Active && Type == DayType.Zombie; } }
     public string DayLabel { get; private set; }                   // 화면 오른쪽에 보이는 "Day 3 · 괴수 침공!"
     public string AlertText { get; private set; }                  // 화면에 붉게 깜빡이는 긴급 속보
     public float AlertUntil { get; private set; }
@@ -33,7 +34,7 @@ public class EventManager
     {
         this.cfg = cfg;
         Day = Mathf.Max(1, PlayerPrefs.GetInt(DayKey, 1));
-        LastType = (DayType)Mathf.Clamp(PlayerPrefs.GetInt(DayKey + ".LastType", 0), 0, 3);
+        LastType = (DayType)Mathf.Clamp(PlayerPrefs.GetInt(DayKey + ".LastType", 0), 0, 4);
         DayLabel = "Day " + Day;
         AlertText = "";
     }
@@ -57,19 +58,25 @@ public class EventManager
 
         float window = Mathf.Max(60f, cfg.shiftSeconds);
         startAt = Random.Range(0.25f, 0.55f) * window;
-        endAt = startAt + (Type == DayType.Kaiju ? cfg.kaijuDuration : cfg.heroDuration);
+        endAt = startAt + Duration(Type);
         RefreshLabel();
+    }
+
+    float Duration(DayType t)
+    {
+        return t == DayType.Kaiju ? cfg.kaijuDuration : (t == DayType.Zombie ? cfg.zombieDuration : cfg.heroDuration);
     }
 
     DayType PickType()
     {
-        if (cfg.forceDayType >= 0) return (DayType)Mathf.Clamp(cfg.forceDayType, 0, 3);
+        if (cfg.forceDayType >= 0) return (DayType)Mathf.Clamp(cfg.forceDayType, 0, 4);
         if (Day <= 1) return DayType.Normal;                       // 첫날은 평범하게
         float r = Random.value;
-        if (r < 0.40f) return DayType.Normal;
-        if (r < 0.60f) return DayType.Crowded;
-        if (r < 0.80f) return DayType.Kaiju;
-        return DayType.Hero;
+        if (r < 0.34f) return DayType.Normal;
+        if (r < 0.50f) return DayType.Crowded;
+        if (r < 0.67f) return DayType.Kaiju;
+        if (r < 0.84f) return DayType.Hero;
+        return DayType.Zombie;
     }
 
     /// <summary>화면 위쪽에 붉게 깜빡이는 긴급 속보를 띄운다 (랜덤 인카운트 안내용).</summary>
@@ -89,7 +96,7 @@ public class EventManager
 
     public void Tick(float elapsed)
     {
-        if (Type != DayType.Kaiju && Type != DayType.Hero) return;
+        if (Type != DayType.Kaiju && Type != DayType.Hero && Type != DayType.Zombie) return;
         if (!Active && elapsed >= startAt && elapsed < endAt) Begin();
         else if (Active && elapsed >= endAt)
         {
@@ -103,7 +110,9 @@ public class EventManager
         Active = true;
         AlertText = Type == DayType.Kaiju
             ? "긴급 속보! 괴수가 나타났습니다 — 다음 교차로에서 돌아가세요!"
-            : "긴급 속보! 히어로와 빌런이 하늘에서 전투 중 — 레이저를 피하세요!";
+            : (Type == DayType.Zombie
+                ? "긴급 속보! 좀비 출현 — 초록색은 쓸어버리고, 주황색 생존자는 피하세요!"
+                : "긴급 속보! 히어로와 빌런이 하늘에서 전투 중 — 레이저를 피하세요!");
         AlertUntil = Time.unscaledTime + 6f;
         RefreshLabel();
         if (Started != null) Started(Type);
@@ -130,7 +139,7 @@ public class EventManager
             CallerDelayMul = 0.6f;
         }
         startAt = elapsed;
-        endAt = elapsed + (t == DayType.Kaiju ? cfg.kaijuDuration : cfg.heroDuration);
+        endAt = elapsed + Duration(t);
         RefreshLabel();
     }
 
@@ -151,6 +160,7 @@ public class EventManager
         if (Type == DayType.Crowded) extra = "  ·  사람 많은 날";
         else if (KaijuActive) extra = "  ·  괴수 침공!";
         else if (HeroActive) extra = "  ·  히어로 vs 빌런";
+        else if (ZombieActive) extra = "  ·  좀비 사태!";
         DayLabel = "Day " + Day + extra;
     }
 }

@@ -12,7 +12,7 @@ public class AudioManager
     readonly AudioSource sfx;
     readonly AudioSource bgm;
     readonly AudioSource rainSrc;
-    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy, oink, powerDown, rocket;
+    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy, oink, powerDown, rocket, splat;
     bool lastBlinkOn;
 
     public AudioManager(DriveGame cfg, GameObject host, Camera cam)
@@ -56,6 +56,7 @@ public class AudioManager
         powerDown = MakePowerDown();
         deploy = Click(240f, 0.2f, 1f);
         rocket = MakeRocket();
+        splat = MakeSplat();
     }
 
     // ---- 사건 효과음 ----
@@ -71,6 +72,7 @@ public class AudioManager
     public void PlayPowerDown() { Play(powerDown, 0.8f); }     // 정전
     public void PlayGun() { Play(gunShot, 0.35f); }      // 미니건 한 발
     public void PlayDeploy() { Play(deploy, 1f); }
+    public void PlaySplat() { Play(splat, 0.9f); }       // 좀비를 칠 때 철퍽
     public void PlayRocket() { Play(rocket, 1f); }       // 엔딩: 날개 택시가 로켓처럼 치솟는 소리       // 미니건이 튀어나오는 철컹
 
     void Play(AudioClip clip, float volume)
@@ -355,6 +357,23 @@ public class AudioManager
             d[i] = (Mathf.Sin(phase) * Mathf.Pow(1f - t, 2f) + noise) * 0.9f;
         }
         return Make("bonk", d);
+    }
+
+    // 철퍽: 낮은 음이 툭 떨어지고 젖은 잡음이 짧게 번진다
+    static AudioClip MakeSplat()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 0.28f)];
+        var rnd = new System.Random(31);
+        float phase = 0f, lp = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            phase += Mathf.Lerp(190f, 55f, Mathf.Sqrt(t)) / Rate * Mathf.PI * 2f;
+            float n = (float)rnd.NextDouble() * 2f - 1f;
+            lp += (n - lp) * 0.18f;
+            d[i] = (Mathf.Sin(phase) * 0.5f + lp * 0.9f) * Mathf.Pow(1f - t, 3f);
+        }
+        return Make("splat", d);
     }
 
     // 엔딩 로켓: 낮은 울림이 점점 높아지는 소리 + 거친 잡음 (3.5초)

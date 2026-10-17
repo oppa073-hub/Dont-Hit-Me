@@ -22,6 +22,7 @@ public partial class DriveGame
     float lastBloodT = -100f;
 
     static readonly Color BloodDark = new Color(0.50f, 0.02f, 0.03f), BloodLight = new Color(0.82f, 0.1f, 0.1f);
+    static readonly Color ZombieDark = new Color(0.16f, 0.45f, 0.1f), ZombieLight = new Color(0.6f, 0.9f, 0.3f);
     static readonly Color MudDark = new Color(0.82f, 0.38f, 0.5f), MudLight = new Color(1f, 0.76f, 0.82f);
 
     void ClearBlood()
@@ -65,6 +66,18 @@ public partial class DriveGame
         for (int i = 0; i < 3; i++)
         {
             var s = new Splat { x = i == 0 ? Random.Range(0.35f, 0.65f) : Random.Range(0.1f, 0.9f), y = Random.Range(0.2f, 0.6f), size = Random.Range(0.06f, 0.1f), born = now, life = 2.8f, seed = Random.value * 10f, type = 2 };
+            if (splats.Count >= MaxSplats) splats.RemoveAt(0);
+            splats.Add(s);
+        }
+    }
+
+    // 좀비를 쳤다: 초록 점액이 앞유리에 튄다
+    void AddZombieSplat()
+    {
+        float now = Time.unscaledTime;
+        for (int i = 0; i < 3; i++)
+        {
+            var s = new Splat { x = i == 0 ? Random.Range(0.3f, 0.7f) : Random.Range(0.08f, 0.92f), y = Random.Range(0.15f, 0.62f), size = Random.Range(0.06f, 0.11f), born = now, life = 2.6f, seed = Random.value * 10f, type = 3 };
             if (splats.Count >= MaxSplats) splats.RemoveAt(0);
             splats.Add(s);
         }
@@ -122,7 +135,7 @@ public partial class DriveGame
                 Fill(new Rect(cx - r * 0.06f, cy + r * 0.4f, r * 0.12f, r * 0.9f), new Color(0.3f, 0.75f, 0.35f, a));
                 continue;
             }
-            Color bd = s.type == 2 ? MudDark : BloodDark, bl = s.type == 2 ? MudLight : BloodLight;
+            Color bd = s.type == 3 ? ZombieDark : (s.type == 2 ? MudDark : BloodDark), bl = s.type == 3 ? ZombieLight : (s.type == 2 ? MudLight : BloodLight);
             Color dark = new Color(bd.r, bd.g, bd.b, a);
             Color light = new Color(bl.r, bl.g, bl.b, a * 0.85f);
 

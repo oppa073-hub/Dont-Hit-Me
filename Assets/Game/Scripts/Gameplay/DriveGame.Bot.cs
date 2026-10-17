@@ -286,10 +286,11 @@ public partial class DriveGame
 
         static int CoverDay(int d)
         {
-            switch ((d - 1) % 4)
+            switch ((d - 1) % 5)
             {
                 case 0: return (int)DayType.Kaiju;
                 case 1: return (int)DayType.Hero;
+                case 4: return (int)DayType.Zombie;
                 case 2: return (int)DayType.Crowded;
                 default: return (int)DayType.Normal;
             }
@@ -496,7 +497,7 @@ public partial class DriveGame
             for (int i = 0; i < peds.Count; i++)
             {
                 var p = peds[i];
-                if (p.kind == 0 || p.st == 0 || p.fallT >= 0f || p.caller) continue;
+                if (p.kind == 0 || p.st == 0 || p.fallT >= 0f || p.caller || p.zombie) continue;           // 좀비는 쳐도 되니 피하지 않는다
                 if (p.z < -1f || p.z > sight) continue;
                 float tStart = 0f;
                 if (p.st == 1) tStart = Mathf.Abs(p.x - p.curbX) / (p.kind == 2 ? Mathf.Max(0.5f, p.walkSpeed) : 2.2f) + p.waitTime;

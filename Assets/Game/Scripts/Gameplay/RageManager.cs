@@ -75,6 +75,14 @@ public class RageManager
         if (Gauge >= 1f && canActivate) Begin();
     }
 
+    /// <summary>좀비를 쳤다: 게이지가 조금 찬다.</summary>
+    public void AddBonus(float gain)
+    {
+        if (!cfg.rageOn || Active) return;
+        Gauge = Mathf.Min(1f, Gauge + gain);
+        if (Gauge >= 1f && canActivate) Begin();
+    }
+
     /// <summary>시험용: 게이지를 가득 채워 바로 발동한다.</summary>
     public void DebugFill()
     {

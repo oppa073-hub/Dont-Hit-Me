@@ -206,7 +206,7 @@ public partial class DriveGame
             p.t.position = new Vector3(px, Drop(pz) + h, pz);
             // 옆 시점으로 손님을 볼 때는 손님이 카메라를 향하게 돌린다 (평소 보행자는 정면 고정)
             float faceYaw = (taxi.State == TaxiState.Talking && p == taxi.Caller) ? camYaw : 0f;
-            p.t.rotation = Quaternion.Euler(0f, faceYaw, fallen ? -p.dir * 85f : 0f);
+            p.t.rotation = Quaternion.Euler(0f, faceYaw, fallen ? -p.dir * 85f : (p.zombie ? Mathf.Sin((elapsed + p.phase) * 3f) * 9f : 0f));         // 좀비는 비틀거린다
             if (p.pauseLeft > 0f) p.sr.color = Color.Lerp(p.baseColor, Color.white, 0.5f);
             else if (!fallen) p.sr.color = p.baseColor;
         }

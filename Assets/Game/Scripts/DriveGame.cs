@@ -356,6 +356,22 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("화면 흔들림 세기 배율 (0이면 흔들리지 않음)")]
     public float endingShake = 1f;
 
+    [Header("Zombie (좀비의 날: 초록 좀비는 치면 보상, 주황 생존자는 치면 사고)")]
+    [Tooltip("좀비 사태가 이어지는 시간(초)")]
+    public float zombieDuration = 45f;
+    [Tooltip("사태 중 새로 생기는 보행자 중 좀비가 되는 비율")]
+    public float zombieRatio = 0.5f;
+    [Tooltip("사태 중 새로 생기는 보행자 중 생존자(치면 안 됨)가 되는 비율")]
+    public float zombieSurvivorRatio = 0.14f;
+    [Tooltip("사태 중 도로로 나오는 좀비가 추가로 생기는 간격(초)")]
+    public float zombieInterval = 0.6f;
+    [Tooltip("좀비가 걷는 속도 배율 (작을수록 느림)")]
+    public float zombieSlow = 0.6f;
+    [Tooltip("좀비를 칠 때 얻는 점수")]
+    public int zombieScore = 30;
+    [Tooltip("좀비를 칠 때 차오르는 분노 게이지 (1 = 가득)")]
+    public float zombieRageGain = 0.04f;
+
     [Header("Events (날짜와 돌발 사건: 평범한 날 / 사람 많은 날 / 괴수 침공 / 히어로와 빌런)")]
     [Tooltip("시험용. -1 = 무작위, 0 평범, 1 사람 많은 날, 2 괴수 침공, 3 히어로와 빌런. 플레이 중 F2 = 괴수, F3 = 히어로를 바로 시작")]
     public int forceDayType = -1;

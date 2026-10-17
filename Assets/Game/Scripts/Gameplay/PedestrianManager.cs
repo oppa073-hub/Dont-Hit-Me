@@ -21,6 +21,8 @@ public class PedestrianManager
         public float triggerT;            // 건너기 시작하는 시점: 차가 도착하기 이만큼(초) 전에 (속도가 빨라도 같은 여유 시간). 0 이면 triggerZ(m) 를 쓴다
         public bool bypassCap;            // 동시 횡단 인원 제한을 받지 않는다 (팬 습격, 분노 때 몰려든 사람)
         public bool caller;               // 택시를 부르는 손님 (머리 위에 !)
+        public bool zombie;               // 좀비: 치면 보상 (좀비의 날)
+        public bool survivor;             // 생존자: 좀비의 날에 섞여 나오는, 치면 안 되는 사람
     }
 
     const float PedHalfWidth = 0.3f;
@@ -41,6 +43,8 @@ public class PedestrianManager
     float nextFan;
     public bool RageSurge;               // 분노 폭발 중: 박살 낼 사람들이 더 많이 몰려든다 (분노는 보상이라서)
     float nextSurge;
+    public bool ZombieMode;              // 좀비 사태 중: 새 보행자가 좀비/생존자가 되고 좀비가 추가로 몰려나온다
+    float nextZombie;
     public float PlayerSpeed = 20f;      // 지금 차의 속도 (건너기 시작하는 거리를 속도에 맞추는 데 쓴다)
     int crossersNow;                     // 지금 건너는 중이거나 건너려고 연석에 나온 사람 수
 
@@ -68,6 +72,8 @@ public class PedestrianManager
         nextSpawn = 1.2f;
         nextFan = 0f;
         nextSurge = 0f;
+        nextZombie = 0f;
+        ZombieMode = false;
     }
 
     /// <summary>회전이 끝난 뒤: 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게).</summary>
@@ -145,7 +151,40 @@ public class PedestrianManager
             phase = Random.value * 6f
         };
         peds.Add(p);
+        if (ZombieMode) Infect(p, false);
         return p;
+    }
+
+    static readonly Color SurvivorColor = new Color(1f, 0.62f, 0.12f);
+
+    // 좀비 사태: 보행자를 좀비(초록, 느리게 비틀거림)나 생존자(주황, 치면 안 됨)로 바꾼다. preferZombie 면 생존자가 아니면 거의 좀비
+    void Infect(Ped p, bool preferZombie)
+    {
+        float roll = Random.value;
+        if (p.kind >= 1 && roll < cfg.zombieSurvivorRatio)
+        {
+            p.survivor = true;
+            p.baseColor = SurvivorColor;
+        }
+        else if (preferZombie || roll < cfg.zombieSurvivorRatio + cfg.zombieRatio)
+        {
+            p.zombie = true;
+            p.baseColor = new Color(Random.Range(0.35f, 0.55f), Random.Range(0.75f, 0.95f), Random.Range(0.3f, 0.5f));
+            p.walkSpeed *= p.kind == 2 ? Mathf.Lerp(1f, cfg.zombieSlow, 0.6f) : cfg.zombieSlow;
+        }
+        p.sr.color = p.baseColor;
+    }
+
+    /// <summary>좀비 사태가 끝났다: 남은 좀비와 생존자는 평범한 시민으로 돌아간다.</summary>
+    public void EndZombies()
+    {
+        foreach (var p in peds)
+        {
+            if (!p.zombie && !p.survivor) continue;
+            p.zombie = p.survivor = false;
+            p.baseColor = Random.ColorHSV(0f, 1f, 0.5f, 0.7f, 0.8f, 1f);
+            if (p.sr != null) p.sr.color = p.baseColor;
+        }
     }
 
     /// <summary>
@@ -173,6 +212,15 @@ public class PedestrianManager
             var sp = Spawn(spawnZ, Random.value < 0.5f ? 1 : 2);
             sp.bypassCap = true;
             nextSurge = elapsed + Mathf.Max(0.08f, cfg.rageSurgeInterval);
+        }
+
+        // 좀비 사태: 도로로 나오는 좀비가 계속 추가로 생긴다 (치면 보상)
+        if (ZombieMode && elapsed >= nextZombie && peds.Count < Mathf.RoundToInt(cfg.maxPeds * MaxMul) + 30)
+        {
+            var zp = Spawn(spawnZ, Random.value < 0.6f ? 1 : 2);
+            if (!zp.zombie && !zp.survivor) Infect(zp, true);
+            zp.bypassCap = true;
+            nextZombie = elapsed + Mathf.Max(0.15f, cfg.zombieInterval) * Random.Range(0.7f, 1.3f);
         }
 
         // 스폰
@@ -222,7 +270,7 @@ public class PedestrianManager
                 else if (p.z <= -0.6f && !p.scored)
                 {
                     p.scored = true;
-                    if (p.minLat < cfg.nearMissDist && NearMiss != null) NearMiss(p);
+                    if (p.minLat < cfg.nearMissDist && !p.zombie && NearMiss != null) NearMiss(p);
                 }
             }
 

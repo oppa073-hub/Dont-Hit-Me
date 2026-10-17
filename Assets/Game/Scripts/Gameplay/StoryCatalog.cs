@@ -41,6 +41,23 @@ public static class StoryCatalog
         "축제였다던데 난 초대장 못 받았어. 서운해.",
     };
 
+    static readonly string[] GreetAfterZombie =
+    {
+        "어제 좀비 나왔다며? 우리 정비소에도 하나 들어왔길래 스패너로 돌려보냈지.",
+        "좀비 때문에 어제 타이어 주문이 폭주했어. 장사는 잘 됐네, 기분은 별로지만.",
+    };
+
+    static readonly string[] ZombieCheers =
+    {
+        "와 좀비다!! 더 밟아요!!",
+        "기사님 좀비는 쳐도 돼요!!",
+        "으어어 소리 들려요! 철퍽!",
+        "저 오늘 이 택시 타길 잘했어요!",
+        "생존자는 치지 마세요! 생존자는요!",
+    };
+
+    public static string ZombieCheer() { return Pick(ZombieCheers); }
+
     // 택시 개조를 끝낸 횟수별 인사 (1~4)
     static readonly string[] GreetProject =
     {
@@ -133,6 +150,7 @@ public static class StoryCatalog
                 case DayType.Kaiju: first = Pick(GreetAfterKaiju); break;
                 case DayType.Hero: first = Pick(GreetAfterHero); break;
                 case DayType.Crowded: first = Pick(GreetAfterCrowded); break;
+                case DayType.Zombie: first = Pick(GreetAfterZombie); break;
                 default: first = Pick(GreetNormal); break;
             }
         }
