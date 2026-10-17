@@ -35,6 +35,7 @@ public class RageManager
         Gauge = 0f;
         Active = false;
         TimeLeft = 0f;
+        canActivate = false;
     }
 
     /// <summary>분노가 얼마나 남았는가 (발동 직후 1 → 끝날 때 0). 분노 중이 아니면 0.</summary>

@@ -668,7 +668,7 @@ public partial class DriveGame : MonoBehaviour
             Time.timeScale = 0f;
             if (kb.rKey.wasPressedThisFrame)
             {
-                GrantRunCoins();             // 일시정지에서 다시 시작해도 이번 판에 번 코인은 받는다
+                SaveResultOnce();            // 일시정지에서 다시 시작해도 이번 판의 코인, 최고 점수, 날짜 기록은 남긴다
                 StartGame();
             }
             else if (kb.oKey.wasPressedThisFrame) OpenSettings(GameFlow.Paused);
@@ -679,6 +679,7 @@ public partial class DriveGame : MonoBehaviour
         if (gameOver)
         {
             SaveResultOnce();
+            if (rage.Active) rage.Reset();   // 분노/미니건 중에 끝나도 결과 화면에 붉은 손과 미니건이 남지 않게
             road.ClearFade();                // 회전 장면 교체 중에 끝나도 GAME OVER 화면이 어둡게 남지 않게
             if (kb.rKey.wasPressedThisFrame) StartGame();
             else if (kb.uKey.wasPressedThisFrame) EnterLobby();
@@ -750,11 +751,14 @@ public partial class DriveGame : MonoBehaviour
         UpdateGoals();
         UpdateAmbience(dt);
         UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
-        UpdateEvents(dt, turning ? worldMove : speed * dt);
+        if (!gameOver) UpdateEvents(dt, turning ? worldMove : speed * dt);
         UpdateRage(dt);
-        UpdateMinigun(dt);
-        UpdatePolice(dt);
-        UpdateEncounters(dt);
+        if (!gameOver)
+        {
+            UpdateMinigun(dt);           // 같은 프레임에 끝났으면 새 사건/처치가 더 일어나지 않게
+            UpdatePolice(dt);
+            UpdateEncounters(dt);
+        }
         UpdateNews(dt, kb);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);

@@ -79,6 +79,7 @@ public class TaxiManager
     float fightT;
     public float AvgSpeed { get { return TripT > 1f ? speedSum / TripT : 0f; } }
     public bool AlienTrip { get { return State == TaxiState.Carrying && Pax != null && Pax.quirk == Quirk.Alien; } }
+    public bool NoPenalty;                                 // 분노 중: 폭탄/부케로 요금이 깎이지 않는다 (DriveGame 이 매 프레임 알려 준다)
     public PaxType ForcePaxType;                           // 시험용: 다음 손님 유형을 고정
     public event System.Action BombExploded, BouquetThrown, WheelGrabbed;
     float speedSum, prevSpeed, ruffCool, flipEventT;
@@ -268,7 +269,7 @@ public class TaxiManager
                     if (Fuse <= 0f)
                     {
                         Fuse = 1f;
-                        FareMul = Mathf.Max(0.2f, FareMul * 0.6f);
+                        if (!NoPenalty) FareMul = Mathf.Max(0.2f, FareMul * 0.6f);
                         Popup("쾅!  폭탄이 터졌다…", new Color(1f, 0.4f, 0.3f));
                         if (BombExploded != null) BombExploded();
                     }
@@ -278,7 +279,7 @@ public class TaxiManager
 
             case Quirk.Wedding:
                 if (ruffCool > 0f) { ruffCool -= dt; break; }
-                if (!turning && !nearDest && (latSpeed > 5.2f || decel > 30f))       // 거의 최대로 꺾거나 부딪혀서 확 서면 (평소 브레이크는 감속 20)
+                if (!turning && !nearDest && !NoPenalty && (latSpeed > 5.2f || decel > 30f))       // 거의 최대로 꺾거나 부딪혀서 확 서면 (평소 브레이크는 감속 20)
                 {
                     ruffCool = 1.6f;
                     Happy = Mathf.Max(0f, Happy - 0.25f);

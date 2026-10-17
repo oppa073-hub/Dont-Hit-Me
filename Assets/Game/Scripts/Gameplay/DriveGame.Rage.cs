@@ -21,6 +21,7 @@ public partial class DriveGame
     void UpdateRage(float dt)
     {
         if (!gameOver) rage.Tick(dt, taxi.State == TaxiState.Carrying);
+        taxi.NoPenalty = rage.Active && !gameOver;
         peds.RageSurge = rage.Active && !gameOver;                  // 분노 중에는 시민이 더 몰려든다 (박살 낼 보상)       // 분노는 손님을 태웠을 때만 발동한다
     }
 

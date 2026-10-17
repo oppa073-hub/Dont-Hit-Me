@@ -362,7 +362,7 @@ public partial class DriveGame
             return;
         }
 
-        if (hurtFlash > 0f) Fill(new Rect(0, 0, W, H), new Color(1f, 0f, 0f, hurtFlash * 0.6f));
+        if (hurtFlash > 0f && flow == GameFlow.Playing && !gameOver) Fill(new Rect(0, 0, W, H), new Color(1f, 0f, 0f, hurtFlash * 0.6f));
 
         DrawCabin();
         DrawWeatherOverlay(W, H, u);

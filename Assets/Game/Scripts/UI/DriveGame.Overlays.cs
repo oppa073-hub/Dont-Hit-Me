@@ -22,8 +22,10 @@ public partial class DriveGame
 
         // 정전: 도시가 암흑에 빠진다 (아래 대시보드는 그대로). 팬 습격: 파파라치 플래시가 터진다.
         float bk = enc.Blackout01;
+        bool live = flow == GameFlow.Playing && !gameOver;          // 일시정지/결과 화면에는 사건 연출을 남기지 않는다
+        if (!live) bk = 0f;
         if (bk > 0.01f) Fill(full, new Color(0f, 0f, 0.03f, 0.55f * bk * (1f - 0.5f * weather.Darkness)));       // 밤과 겹치면 덜 어둡게
-        if (enc.Active == EncounterType.Fans && Mathf.Repeat(Time.unscaledTime, 0.9f) < 0.05f) Fill(full, new Color(1f, 1f, 1f, 0.22f));
+        if (live && enc.Active == EncounterType.Fans && Mathf.Repeat(Time.unscaledTime, 0.9f) < 0.05f) Fill(full, new Color(1f, 1f, 1f, 0.22f));
 
         // 밤에는 앞길을 비추는 헤드라이트 빛 (겹쳐 그려서 가운데가 더 밝아 보이게)
         float dk = Mathf.Max(weather.Darkness, bk);
