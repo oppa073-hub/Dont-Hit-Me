@@ -52,8 +52,23 @@ public partial class DriveGame
 
     // ---------- 월드 표현 ----------
 
+    bool wvTint, wvWasTinted;                // 이번 프레임에 스프라이트 색을 밤 조명으로 칠하는가 (낮이 되면 한 번 더 칠해 원래대로)
+
+    static Color Lit(Color c, float k) { return new Color(c.r * k, c.g * k, c.b * k * 1.06f, c.a); }       // 밤빛은 살짝 푸르게
+
+    void TintBuilding(Side sd, float x, float z)
+    {
+        float k = NightLight(x, z);
+        var c = Lit(Color.white, k);
+        sd.upper.color = c; sd.ground.color = c; sd.cornice.color = c;
+        sd.fUpper.color = c; sd.fGround.color = c; sd.fCornice.color = c; sd.door.color = c;       // 가로등 같은 소품은 스스로 빛나니 그대로 둔다
+    }
+
     void UpdateWorldVisuals()
     {
+        bool nightNow = NightK > 0.003f;
+        wvTint = nightNow || wvWasTinted;
+        wvWasTinted = nightNow;
         float frac = dist % StripLen;
         int baseIdx = Mathf.FloorToInt(dist / StripLen);
         float rw = roadHalfWidth;
@@ -207,8 +222,9 @@ public partial class DriveGame
             // 옆 시점으로 손님을 볼 때는 손님이 카메라를 향하게 돌린다 (평소 보행자는 정면 고정)
             float faceYaw = (taxi.State == TaxiState.Talking && p == taxi.Caller) ? camYaw : 0f;
             p.t.rotation = Quaternion.Euler(0f, faceYaw, fallen ? -p.dir * 85f : (p.zombie ? Mathf.Sin((elapsed + p.phase) * 3f) * 9f : 0f));         // 좀비는 비틀거린다
-            if (p.pauseLeft > 0f) p.sr.color = Color.Lerp(p.baseColor, Color.white, 0.5f);
-            else if (!fallen) p.sr.color = p.baseColor;
+            float pk = wvTint ? NightLight(p.x, p.z) : 1f;
+            if (p.pauseLeft > 0f) p.sr.color = Lit(Color.Lerp(p.baseColor, Color.white, 0.5f), pk);
+            else if (!fallen) p.sr.color = Lit(p.baseColor, pk);
         }
 
         // 다른 차와 돌발 장애물 (사람처럼 정면 고정 스프라이트)
@@ -261,6 +277,14 @@ public partial class DriveGame
             float tilt = o.angle;                                           // 공: 구르는 각도
             if (o.fallT >= 0f) tilt = -o.kickDir * Mathf.Min(o.fallT * 4f, 1f) * 35f;   // 부딪힌 차/콘: 옆으로 기울며 밀려난다
             o.t.rotation = Quaternion.Euler(0f, 0f, tilt);
+
+            // 밤: 차와 장애물 그림은 헤드라이트가 닿는 만큼만 환하다 (불길, 폭발, 괴수, 연기, 구급차는 스스로 빛나니 제외)
+            if (wvTint && o.body != null && o.kind != TrafficManager.Flame && o.kind != TrafficManager.Boom && o.kind != TrafficManager.Kaiju && o.kind != TrafficManager.Smoke && o.kind != TrafficManager.Ambulance && o.kind != TrafficManager.Police)
+            {
+                var lc = Lit(o.baseColor, NightLight(o.x, o.z));
+                lc.a = o.body.color.a;
+                o.body.color = lc;
+            }
         }
 
         UpdateBattleVisuals();
@@ -383,6 +407,8 @@ public partial class DriveGame
             sd.door.gameObject.SetActive(near && sd.wantDoor);
             sd.prop.gameObject.SetActive(near && sd.wantProp);
         }
+
+        if (wvTint) TintBuilding(sd, faceX, zc);
 
         // 도로 쪽 정면 (법선이 +-x)
         var faceRot = pitchRot * Quaternion.Euler(0f, sgn * 90f, 0f);

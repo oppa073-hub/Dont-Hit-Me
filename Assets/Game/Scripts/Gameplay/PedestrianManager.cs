@@ -169,7 +169,7 @@ public class PedestrianManager
         else if (preferZombie || roll < cfg.zombieSurvivorRatio + cfg.zombieRatio)
         {
             p.zombie = true;
-            p.baseColor = new Color(Random.Range(0.35f, 0.55f), Random.Range(0.75f, 0.95f), Random.Range(0.3f, 0.5f));
+            p.baseColor = new Color(Random.Range(0.12f, 0.28f), Random.Range(0.6f, 0.8f), Random.Range(0.08f, 0.22f));       // 진한 초록
             p.walkSpeed *= p.kind == 2 ? Mathf.Lerp(1f, cfg.zombieSlow, 0.6f) : cfg.zombieSlow;
         }
         p.sr.color = p.baseColor;

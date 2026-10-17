@@ -40,6 +40,7 @@ public partial class DriveGame
         if (gunsOwned && gunKills > 0) Popup("난사 " + gunKills + "마리 처치!  +" + gunScoreSum, UiGold);
         else Popup("분노가 가라앉았다", new Color(0.9f, 0.9f, 0.9f));
         session.ExtendInvuln(0.6f);                 // 겹친 채 끝나도 바로 다치지 않게 잠깐 더 무적
+        StartBloodWipe();                           // 분노 중에 튄 피를 와이퍼가 한 번 닦는다
     }
 
     // 분노 중 부딪혔다: 목숨/요금/속도는 그대로, 점수만 얻고 시원하게 날려 버린다

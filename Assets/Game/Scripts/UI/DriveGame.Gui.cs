@@ -377,6 +377,7 @@ public partial class DriveGame
         DrawPoliceOverlay(W, H);
         DrawAmbulanceOverlay(W, H);
         DrawBlood(W, H, u);
+        DrawBloodWiper(W, H, u);
 
         if (flow == GameFlow.Title)
         {
@@ -469,6 +470,7 @@ public partial class DriveGame
 
         Label(new Rect(20 * u, H - 30 * u, W * 0.62f, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerLeft);   // 내비(오른쪽 아래)와 겹치지 않게 왼쪽 정렬
 
+        if (!gameOver && flow == GameFlow.Playing) DrawNewsSubtitle(W, H, u);
         if (!gameOver && flow != GameFlow.Paused) DrawTaxiGui(W, H, u);       // 게임오버/일시정지 글자와 겹치지 않게
         if (!gameOver && flow != GameFlow.Paused) DrawQuirkHud(W, H, u);
 

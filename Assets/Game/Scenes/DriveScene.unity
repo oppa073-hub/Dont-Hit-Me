@@ -156,7 +156,20 @@ MonoBehaviour:
   use3DArms: 1
   curvature: 0.002
   roadHalfWidth: 4
+  lodDistance: 70
   camHeight: 1.2
+  intersectionEvery: 20
+  intersectionLen: 2
+  crossStreetLength: 30
+  turnCenterTolerance: 1.5
+  turnDuration: 1.1
+  turnSlowDistance: 22
+  swapFadeTime: 0.3
+  swapFadeDarkness: 0.7
+  turnCenteringSpeed: 4
+  postTurnInvuln: 0.5
+  turnCruiseSpeed: 9
+  turnSwapAngle: 38
   baseSpeed: 20
   maxSpeed: 40
   speedRamp: 0.2
@@ -167,13 +180,55 @@ MonoBehaviour:
   minSpawnInterval: 0.35
   intervalRamp: 0.012
   maxPeds: 30
+  initialCrowd: 16
+  sidewalkerRatio: 0.6
+  farCrossRatio: 0.15
+  sidewalkOffset: {x: 0.6, y: 3.5}
+  sidewalkWalkSpeed: {x: 0.5, y: 1.4}
+  dartTrigger: {x: 16, y: 30}
+  curbWait: {x: 0.5, y: 0.9}
+  dartSpeed: {x: 4, y: 6}
+  farTrigger: {x: 45, y: 80}
+  crossSpeed: {x: 1.8, y: 3}
   nearMissDist: 2.2
   nearMissBonus: 50
+  callerDelay: {x: 3, y: 7}
+  callerDistance: 60
+  pickupSpeed: 1.5
+  pickupLateral: 3.6
+  destMaxAhead: 3
+  destMaxSide: 2
+  tripMinBlocks: 6
+  tripMaxBlocks: 11
+  tripSideBlocks: 4
+  arriveRadius: 9
+  limitSpeedRatio: 0.7
+  timeBuffer: 12
+  lateDropPerSec: 0.02
+  lateMinMul: 0.3
+  tipMax: 1500
+  baseFare: 2000
+  farePerMeter: 3
+  hitFareMul: 0.8
+  sideFov: 42
+  yawSpeed: 220
   maxLives: 3
   invulnTime: 1
+  healSeconds: 35
   hitSpeedFactor: 0.4
   hitStop: 0.08
   shakeHit: 0.15
+  dashTopY: -0.55
+  hoodTopY: -0.3
+  roofY: 0.52
+  navPos: {x: 0.48, y: -0.38, z: 0.7}
+  navSize: {x: 0.26, y: 0.16}
+  miniMapRange: 3
+  pillarLBase: {x: -0.9, y: -0.56, z: 0.95}
+  pillarLTop: {x: -0.56, y: 0.55, z: 0.5}
+  pillarRBase: {x: 1.1, y: -0.56, z: 1}
+  pillarRTop: {x: 0.85, y: 0.55, z: 0.6}
+  pillarThickness: 0.07
   wheelCenter: {x: 0, y: -0.36, z: 0.55}
   wheelRadius: 0.17
   wheelMaxAngle: 100
@@ -188,6 +243,100 @@ MonoBehaviour:
   thumbCurl: {x: -18, y: 45, z: 35}
   minCurl: 0.55
   fingerPad: 0.008
+  rageOn: 1
+  rageFillSeconds: 60
+  rageDuration: 8
+  rageSpeedMul: 1.35
+  rageNearMissGain: 0.15
+  rageSmashScore: 30
+  encountersOn: 1
+  encounterFirstDelay: 45
+  encounterInterval: {x: 35, y: 60}
+  rivalSpeed: 11
+  bombMinSpeed: 8
+  bombDrain: 0.3
+  fighterYankSeconds: 0.7
+  fighterFlipSeconds: 4
+  pigSprite: {fileID: 0}
+  ambulanceSprite: {fileID: 0}
+  ambulanceSpeedAdd: 14
+  heistOn: 1
+  heistChance: 0.12
+  heistWaitSeconds: 9
+  heistTimeMul: 0.6
+  heistFareMul: 3
+  roadblockInterval: 6
+  cruiseCap: 24
+  maxCrossers: 3
+  dartLeadTime: {x: 2.6, y: 3.6}
+  farLeadTime: {x: 4, y: 5.5}
+  rageSurgeInterval: 0.22
+  gunKillsPerSec: 7
+  gunRange: 55
+  gunKillScore: 10
+  endingLaunchAt: 2.5
+  endingLandAt: 24
+  endingShake: 1
+  headlightOn: 1
+  headlightRange: 60
+  headlightAngle: 55
+  headlightSpacing: 2
+  headlightConverge: 9.7
+  headlightSideLight: 0
+  headlightIntensity: 900
+  nightMinLight: 0.06
+  cabinGlow: 0.03
+  zombieDuration: 45
+  zombieRatio: 0.5
+  zombieSurvivorRatio: 0.14
+  zombieInterval: 0.6
+  zombieSlow: 0.6
+  zombieScore: 30
+  zombieRageGain: 0.04
+  forceDayType: -1
+  kaijuDuration: 50
+  kaijuSpeedCap: 12
+  heroDuration: 45
+  laserInterval: 4.5
+  laserFlameLife: 7
+  kaijuSprite: {fileID: 0}
+  heroSprite: {fileID: 0}
+  villainSprite: {fileID: 0}
+  flameSprite: {fileID: 0}
+  smokeSprite: {fileID: 0}
+  shiftSeconds: 180
+  shiftOvertimeMax: 60
+  accidentFine: 500
+  shiftStar1: 6000
+  shiftStar2: 15000
+  shiftStar3: 28000
+  levelSeconds: 30
+  maxLevel: 10
+  vehicleStartLevel: 2
+  hazardStartLevel: 2
+  vehicleInterval: 9
+  hazardInterval: 11
+  minTrafficInterval: 4
+  vehicleSpeed: {x: 3, y: 7}
+  maxTraffic: 6
+  vehicleNearMissMargin: 0.35
+  vehicleNearMissBonus: 25
+  carSprite: {fileID: 0}
+  truckSprite: {fileID: 0}
+  coneSprite: {fileID: 0}
+  ballSprite: {fileID: 0}
+  bgmClip: {fileID: 0}
+  bgmVolume: 0.35
+  weatherOn: 1
+  dayLength: 300
+  startTimeOfDay: 0.33
+  rainChance: 0.5
+  rainSlip: 0.35
+  uiFont: {fileID: 0}
+  shakeEnabled: 1
+  soundOn: 1
+  masterVolume: 0.6
+  engineVolume: 0.25
 --- !u!4 &572437491
 Transform:
   m_ObjectHideFlags: 0

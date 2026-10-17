@@ -96,6 +96,9 @@ public partial class DriveGame
         navBezel.localPosition = new Vector3(0f, 0f, 0.012f);
         navBezel.localScale = new Vector3(w + 0.03f, h + 0.03f, 0.02f);
         navBg.localScale = new Vector3(w, h, 1f);
+        float ts = w / 0.26f;                                                    // 화면 크기에 비례해 글자도 키운다 (0.26 = 원래 크기)
+        navHeadText.transform.localScale = Vector3.one * ts;
+        navInfoText.transform.localScale = Vector3.one * ts;
         navBar.localPosition = new Vector3(0f, -h * 0.41f, -0.0028f);
         navBar.localScale = new Vector3(w, h * 0.18f, 1f);
         navHeadText.transform.localPosition = new Vector3(-w * 0.5f + 0.008f, h * 0.5f - 0.004f, -0.003f);

@@ -33,6 +33,7 @@ public class NewsKit
     public NewsBg bg = NewsBg.City;
     public Color studio = new Color(0.08f, 0.16f, 0.38f);
     public string[] headline, field, closing, ticker, bulletin;
+    public string[] forecast, over;          // forecast: 아침 주의보(사건이 곧 터질 수 있음), over: 사건이 끝난 뒤 후일담
 }
 
 public static class NewsCatalog
@@ -116,6 +117,16 @@ public static class NewsCatalog
                 "도망치세요!|저는 방송 중이라|못 도망갑니다.",
                 "괴수 보험은|아직 없습니다.|내일 나올 예정.",
             },
+            forecast = new[]
+            {
+                "오늘 괴수 출몰이|예상됩니다.|도시락을 사수하세요.",
+                "괴수 주의보 발령!|언제 올지는 몰라요|저도 떨립니다.",
+            },
+            over = new[]
+            {
+                "괴수가 바다로|돌아갔습니다.|편의점은 폐업 위기.",
+                "괴수 사태 종료!|발자국은 관광지로|지정될 예정입니다.",
+            },
             bulletin = new[]
             {
                 "긴급 속보!|괴수 출현!|방금 편의점에서|나왔습니다!",
@@ -150,6 +161,16 @@ public static class NewsCatalog
                 "한쪽 차선을 쓸면|반대 차선으로!|침착하게.",
                 "싸움은 둘이 하는데|피해는 우리가.|이게 도시입니다.",
             },
+            forecast = new[]
+            {
+                "오늘 하늘 전투가|예상됩니다.|빨래는 실내에서.",
+                "히어로 빌런 주의보|부부싸움 소리가|들린다는 제보.",
+            },
+            over = new[]
+            {
+                "하늘 전투 종료!|둘은 같이 저녁|먹으러 갔습니다.",
+                "전투가 끝났습니다.|피해 복구비는|보험으로… 안 됨.",
+            },
             bulletin = new[]
             {
                 "긴급 속보!|하늘에서 전투가|시작됐습니다!",
@@ -183,6 +204,16 @@ public static class NewsCatalog
                 "초록색은 쳐도 되고|주황색 생존자는|절대 치지 마세요!",
                 "좀비는 쓸어버리고|생존자는 피하세요.|구분이 어렵다고요?",
                 "분노가 차면 미니건!|좀비 보너스|맛있게 드세요.",
+            },
+            forecast = new[]
+            {
+                "오늘 좀비 출현이|예상됩니다.|초록색을 조심!",
+                "좀비 주의보 발령!|초록은 쓸어버리고|주황은 피하세요.",
+            },
+            over = new[]
+            {
+                "좀비 사태 종료!|좀비들은 다시|출근했습니다.",
+                "상황 종료입니다.|좀비도 월요일엔|힘들었을 겁니다.",
             },
             bulletin = new[]
             {
@@ -234,8 +265,10 @@ public static class NewsCatalog
             "여러분 안녕하세요.|저는 오늘도|출근했습니다.",
         };
         list.Add(new NewsBeat(0, Pick(greets)));
-        list.Add(new NewsBeat(0, Pick(kit.headline)));
-        if (kit.field != null) list.Add(new NewsBeat(1, Pick(kit.field)));
+        // 사건이 하루 중 갑자기 터지는 날(괴수/히어로/좀비)의 아침 방송은 "주의보"다. 실제 사건이 터지면 긴급 속보가 따로 끼어든다.
+        bool forecastDay = kit.forecast != null;
+        list.Add(new NewsBeat(0, Pick(forecastDay ? kit.forecast : kit.headline)));
+        if (kit.field != null && !forecastDay) list.Add(new NewsBeat(1, Pick(kit.field)));
 
         // 곁들이 이야기: 날씨, 어제 일, 택시 개조 소문, 광고 중 하나
         float r = Random.value;
@@ -250,6 +283,14 @@ public static class NewsCatalog
         list.Add(new NewsBeat(0, Pick(kit.closing)));
         if (shift) list.Add(new NewsBeat(0, "오늘 영업은|" + shiftSeconds + "초입니다.|월세를 위해!"));
         return list.ToArray();
+    }
+
+    /// <summary>사건이 끝난 뒤 끼어드는 후일담 (없으면 null).</summary>
+    public static NewsBeat[] Over(DayType type)
+    {
+        var kit = Kit(type);
+        if (kit.over == null) return null;
+        return new[] { new NewsBeat(0, Pick(kit.over)) };
     }
 
     /// <summary>사건이 시작될 때 운전 중에 끼어드는 긴급 속보 (없으면 null).</summary>

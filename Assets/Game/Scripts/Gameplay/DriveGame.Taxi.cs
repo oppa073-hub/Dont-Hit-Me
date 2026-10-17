@@ -32,7 +32,27 @@ public partial class DriveGame
     {
         speed = 0f;
         camYawTarget = yaw;
-        camPitchTarget = Mathf.Atan2(1.0f, Mathf.Max(2f, taxi.TalkDist)) * Mathf.Rad2Deg;       // 유니티에서 x 회전이 양수면 아래를 본다: 눈높이보다 낮은 곳을 보면 손님이 화면 위쪽(대화 상자 위)에 온다
+        camPitchTarget = TalkPitch();
+    }
+
+    // 대화 카메라: 손님의 "얼굴"이 화면 위쪽 3분의 1쯤(대화 상자 위)에 오게 한다. 예전에는 몸 가운데를 향해서 차가 가까우면 발만 보였다.
+    // 손님 그림의 머리 높이는 약 1.45m. 유니티에서 x 회전이 양수면 아래를 본다.
+    const float TalkFaceY = 1.45f;
+
+    // 손님이 멀수록 더 확대해서(최소 14도) 얼굴이 크게 보이게 한다. 가까우면 sideFov 까지만 넓힌다
+    float TalkFov()
+    {
+        float d = Mathf.Max(2f, taxi.TalkDist);
+        return Mathf.Clamp(2f * Mathf.Atan(1.05f / d) * Mathf.Rad2Deg, 14f, sideFov);
+    }
+
+    // 화면 높이의 20%만큼 얼굴보다 아래를 화면 가운데로 잡으면 얼굴이 위에서 30% 지점에 온다
+    float TalkPitch()
+    {
+        float d = Mathf.Max(2f, taxi.TalkDist);
+        float view = 2f * d * Mathf.Tan(TalkFov() * 0.5f * Mathf.Deg2Rad);
+        float aimY = TalkFaceY - 0.2f * view;
+        return Mathf.Atan2(camHeight - aimY, d) * Mathf.Rad2Deg;
     }
 
     void AcceptPassenger()

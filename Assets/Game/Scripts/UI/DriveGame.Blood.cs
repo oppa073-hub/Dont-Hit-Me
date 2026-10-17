@@ -27,9 +27,50 @@ public partial class DriveGame
 
     void ClearBlood()
     {
+        wipeStart = -100f;
         splats.Clear();
         bloodChain = 0;
         lastBloodT = -100f;
+    }
+
+    // ---- 분노가 끝나면 와이퍼가 한 번 왕복하며 앞유리의 피를 닦는다 ----
+    const float WipeSeconds = 1.3f;
+    float wipeStart = -100f;
+    bool wipeCleared;
+
+    void StartBloodWipe()
+    {
+        if (splats.Count == 0 && bloodChain == 0) return;       // 닦을 게 없으면 그냥 둔다
+        wipeStart = Time.unscaledTime;
+        wipeCleared = false;
+        sound.PlayNearMiss();                                    // 쓰윽
+    }
+
+    // 와이퍼 두 개가 앞유리를 쓸고 지나간다. 올라가는 중간쯤에 얼룩이 한꺼번에 지워진다. (비 오는 날의 와이퍼와는 별개)
+    void DrawBloodWiper(float W, float H, float u)
+    {
+        float k = (Time.unscaledTime - wipeStart) / WipeSeconds;
+        if (k < 0f || k > 1f) return;
+        if (!wipeCleared && k >= 0.45f)
+        {
+            wipeCleared = true;
+            splats.Clear();
+            bloodChain = 0;
+        }
+        if (Event.current == null || Event.current.type != EventType.Repaint) return;
+        float sweep = k < 0.5f ? k * 2f : (1f - k) * 2f;                    // 올라갔다가 내려온다
+        sweep = sweep * sweep * (3f - 2f * sweep);
+        float ang = Mathf.Lerp(-78f, -8f, sweep);
+        float clipH = H * 0.80f, len = H * 0.55f;
+        GUI.BeginClip(new Rect(0, 0, W, clipH));
+        for (int i = 0; i < 2; i++)
+        {
+            var pivot = new Vector2(W * (i == 0 ? 0.28f : 0.62f), clipH + 10f * u);
+            GUIUtility.RotateAroundPivot(ang, pivot);
+            Fill(new Rect(pivot.x - 3f * u, pivot.y - len, 6f * u, len), new Color(0.05f, 0.05f, 0.06f, 0.9f));
+            GUI.matrix = Matrix4x4.identity;
+        }
+        GUI.EndClip();
     }
 
     // 사람을 쳤다: 연쇄 횟수에 따라 얼룩 수와 크기가 늘어난다

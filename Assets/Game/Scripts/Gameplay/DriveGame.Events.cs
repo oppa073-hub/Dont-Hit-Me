@@ -15,6 +15,7 @@ public partial class DriveGame
     {
         dayEvents = new EventManager(this);
         dayEvents.Started += OnEventStarted;
+        dayEvents.Ended += StartOverNews;
         traffic.KaijuSpawned += OnKaijuSpawned;
         traffic.LaserFired += OnLaserFired;
     }

@@ -89,28 +89,28 @@ public class WeatherManager
     {
         bool on = cfg.weatherOn;
         float sun = -Mathf.Cos(DayT * Mathf.PI * 2f);                              // +1 한낮, -1 한밤
-        float dark = on ? Mathf.Clamp01(Mathf.InverseLerp(0.15f, -0.25f, sun)) : 0f;
+        float dark = on ? Mathf.Clamp01(Mathf.InverseLerp(0.25f, -0.1f, sun)) : 0f;
         dark = dark * dark * (3f - 2f * dark);
         Darkness = dark;
         Warm = on ? Mathf.Clamp01(1f - Mathf.Abs(sun) / 0.35f) * (1f - dark * 0.5f) : 0f;
         float rain = on ? Rain : 0f;
 
         var daySky = new Color(128f / 255f, 194f / 255f, 206f / 255f);
-        var sky = Color.Lerp(daySky, new Color(0.03f, 0.05f, 0.12f), dark);
+        var sky = Color.Lerp(daySky, new Color(0.008f, 0.012f, 0.035f), dark);
         sky = Color.Lerp(sky, new Color(0.9f, 0.55f, 0.35f), Warm * 0.5f);
         SkyColor = Color.Lerp(sky, Dim(new Color(0.45f, 0.5f, 0.55f), 1f - dark * 0.8f), rain * 0.5f);
         SkyColor = Dim(SkyColor, 1f);
 
         var dayAmbient = new Color(0.68f, 0.68f, 0.72f);
-        AmbientColor = Color.Lerp(dayAmbient, new Color(0.13f, 0.15f, 0.27f), dark) * (1f - 0.2f * rain);
+        AmbientColor = Color.Lerp(dayAmbient, new Color(0.012f, 0.014f, 0.03f), dark) * (1f - 0.2f * rain);
         SunColor = Color.Lerp(Color.white, new Color(1f, 0.7f, 0.45f), Warm * 0.6f);
-        SunIntensity = Mathf.Lerp(0.8f, 0.12f, dark) * (1f - 0.3f * rain);
+        SunIntensity = Mathf.Lerp(0.8f, 0.006f, dark) * (1f - 0.3f * rain);
 
-        NightOverlay = new Color(0.02f, 0.03f, 0.14f, 0.45f * dark);
+        NightOverlay = new Color(0.01f, 0.015f, 0.08f, 0.28f * dark);              // 어둡게 만드는 건 대부분 실제 조명과 색 칠하기가 하고, 이 막은 전체 분위기만 잡는다
         RainOverlay = new Color(0.10f, 0.12f, 0.15f, 0.18f * rain);
         WarmOverlay = new Color(1f, 0.6f, 0.25f, 0.14f * Warm);
 
-        var tint = Color.Lerp(Color.white, new Color(0.22f, 0.26f, 0.45f), dark * 0.85f);
+        var tint = Color.Lerp(Color.white, new Color(0.025f, 0.03f, 0.07f), dark * 0.97f);
         tint = Color.Lerp(tint, new Color(1f, 0.8f, 0.65f), Warm * 0.5f);
         BackdropTint = Color.Lerp(tint, Dim(tint, 0.8f), rain);
     }

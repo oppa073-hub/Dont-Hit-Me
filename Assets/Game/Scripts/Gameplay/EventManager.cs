@@ -29,6 +29,8 @@ public class EventManager
 
     /// <summary>괴수/히어로 사건이 시작됐다.</summary>
     public event System.Action<DayType> Started;
+    /// <summary>괴수/히어로/좀비 사건이 끝났다.</summary>
+    public event System.Action<DayType> Ended;
 
     public EventManager(DriveGame cfg)
     {
@@ -58,6 +60,7 @@ public class EventManager
 
         float window = Mathf.Max(60f, cfg.shiftSeconds);
         startAt = Random.Range(0.25f, 0.55f) * window;
+        if (cfg.forceDayType >= 0) startAt = 8f;                 // 시험으로 날 종류를 고정했으면 사건이 금방 시작한다
         endAt = startAt + Duration(Type);
         RefreshLabel();
     }
@@ -102,6 +105,7 @@ public class EventManager
         {
             Active = false;
             RefreshLabel();
+            if (Ended != null) Ended(Type);
         }
     }
 

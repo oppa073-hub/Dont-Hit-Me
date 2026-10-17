@@ -24,22 +24,9 @@ public partial class DriveGame
         float bk = enc.Blackout01;
         bool live = flow == GameFlow.Playing && !gameOver;          // 일시정지/결과 화면에는 사건 연출을 남기지 않는다
         if (!live) bk = 0f;
-        if (bk > 0.01f) Fill(full, new Color(0f, 0f, 0.03f, 0.55f * bk * (1f - 0.5f * weather.Darkness)));       // 밤과 겹치면 덜 어둡게
+        if (bk > 0.01f) Fill(full, new Color(0f, 0f, 0.03f, 0.2f * bk * (1f - 0.5f * weather.Darkness)));       // 정전의 어둠은 대부분 실제 조명이 하고, 이 막은 분위기만 더한다
         if (live && dayEvents.ZombieActive) Fill(full, new Color(0.1f, 0.55f, 0.15f, 0.09f + 0.04f * Mathf.Sin(Time.unscaledTime * 2f)));       // 좀비 사태: 하늘이 초록빛으로
         if (live && enc.Active == EncounterType.Fans && Mathf.Repeat(Time.unscaledTime, 0.9f) < 0.05f) Fill(full, new Color(1f, 1f, 1f, 0.22f));
-
-        // 밤에는 앞길을 비추는 헤드라이트 빛 (겹쳐 그려서 가운데가 더 밝아 보이게)
-        float dk = Mathf.Max(weather.Darkness, bk);
-        if (dk > 0.2f)
-        {
-            Color glow = new Color(1f, 0.95f, 0.7f, 0.035f * dk);
-            for (int k = 0; k < 5; k++)
-            {
-                float w = W * (0.10f + 0.09f * k);
-                float top = H * (0.45f + 0.06f * k);
-                Fill(new Rect(W * 0.5f - w * 0.5f, top, w, playH - top), glow);
-            }
-        }
 
         if (weather.Rain <= 0.02f) return;
 

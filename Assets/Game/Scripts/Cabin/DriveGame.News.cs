@@ -20,9 +20,12 @@ public partial class DriveGame
     NewsBeat[] newsBeats = new NewsBeat[0];
     float[] newsEnds = new float[0];
     DayType newsType;
-    bool newsBulletin, newsAnchorOn = true, newsCentered;
+    bool newsBulletin, newsOver, newsAnchorOn = true, newsCentered;
     int newsBeatIdx = -1, newsShownChars = -1, newsTickIdx = -1;
     string newsBadgeShown = "";
+    string newsSubSpeaker = "", newsSubText = "";       // 앞유리 아래 큰 자막 (내비 화면이 작아서 같은 대사를 크게 한 번 더 보여 준다)
+    Color newsSubColor = Color.white;
+    int newsSubChars = -1, newsSubBeat = -1;
     float newsW, newsH;                  // 화면 크기(m): 모든 장식은 이 안으로 잘라서 화면 밖으로 튀어나오지 않게 한다
     Vector2 newsShake;                   // 장식 흔들림
 
@@ -61,7 +64,7 @@ public partial class DriveGame
     void StartNews()
     {
         var beats = NewsCatalog.Script(dayEvents.Type, dayEvents.Day, shiftMode, Mathf.RoundToInt(shiftSeconds), dayEvents.LastType, weather.Rain, weather.Darkness, projects.DoneCount);
-        BeginNews(beats, dayEvents.Type, false);
+        BeginNews(beats, dayEvents.Type, false, false);
         sound.PlayArrive();                  // 손님 호출음(차임)과 다른 소리
     }
 
@@ -71,10 +74,20 @@ public partial class DriveGame
         if (flow != GameFlow.Playing || gameOver || taxi.State != TaxiState.Cruise) return;
         var beats = NewsCatalog.Bulletin(t);
         if (beats == null) return;
-        BeginNews(beats, t, true);
+        BeginNews(beats, t, true, false);
     }
 
-    void BeginNews(NewsBeat[] beats, DayType type, bool bulletin)
+    // 사건이 끝났다: 손님을 찾는 중이면 내비에 후일담 뉴스가 잠깐 나온다
+    void StartOverNews(DayType t)
+    {
+        if (flow != GameFlow.Playing || gameOver || taxi.State != TaxiState.Cruise) return;
+        var beats = NewsCatalog.Over(t);
+        if (beats == null) return;
+        BeginNews(beats, t, false, true);
+        sound.PlayChime();
+    }
+
+    void BeginNews(NewsBeat[] beats, DayType type, bool bulletin, bool over)
     {
         newsBeats = beats;
         newsEnds = new float[beats.Length];
@@ -82,9 +95,11 @@ public partial class DriveGame
         for (int i = 0; i < beats.Length; i++) { acc += beats[i].Seconds; newsEnds[i] = acc; }
         newsType = type;
         newsBulletin = bulletin;
+        newsOver = over;
         newsT = 0f;
         newsActive = true;
         newsBeatIdx = -1;
+        newsSubBeat = newsSubChars = -1;
         newsShownChars = newsTickIdx = -1;
         newsBadgeShown = "";
     }
@@ -303,6 +318,11 @@ public partial class DriveGame
     {
         float w = Mathf.Max(0.05f, navSize.x), h = Mathf.Max(0.04f, navSize.y);
         float t = newsT;
+        float ts = w / 0.26f;                                  // 화면 크기에 비례해 글자 크기도 맞춘다
+        newsBadgeText.transform.localScale = Vector3.one * ts;
+        newsBodyText.transform.localScale = Vector3.one * ts;
+        newsTickerText.transform.localScale = Vector3.one * ts;
+        newsZzText.transform.localScale = Vector3.one * ts;
         var kit = NewsCatalog.Kit(newsType);
 
         // 지금 토막
@@ -320,7 +340,8 @@ public partial class DriveGame
         }
         bool ad = beat.kind == 2, field = beat.kind == 1;
         bool intense = field || beat.kind == 3;
-        NewsMood mood = (newsBulletin || beat.kind == 3) ? NewsMood.Panic : kit.mood;
+        bool calm = kit.blink && !newsBulletin;                // 괴수/히어로/좀비 날의 아침 방송(주의보)과 후일담은 차분하다
+        NewsMood mood = (newsBulletin || beat.kind == 3) ? NewsMood.Panic : ((calm || newsOver) ? NewsMood.Sleepy : kit.mood);
 
         // 화면 전체 흔들림 (놀란 뉴스일수록)
         newsW = w; newsH = h;
@@ -333,16 +354,16 @@ public partial class DriveGame
         // 배경
         newsStudio.localPosition = new Vector3(0f, 0f, -0.0035f);
         newsStudio.localScale = new Vector3(w, h, 1f);
-        if (ad) DrawNewsAd(w, h, t); else DrawNewsBg(kit.bg, w, h, intense, t);
+        if (ad) DrawNewsAd(w, h, t); else DrawNewsBg(newsOver ? NewsBg.City : kit.bg, w, h, intense, t);
 
         // 머리 띠 (사건이면 점멸) 와 하단 자막
         float hy = h * 0.5f - h * 0.07f;
         newsHeader.localPosition = new Vector3(0f, hy, -0.004f);
         newsHeader.localScale = new Vector3(w, h * 0.14f, 1f);
         newsBadgeText.transform.localPosition = new Vector3(-w * 0.5f + 0.006f, hy, -0.0045f);
-        string badge = ad ? "광고" : (field ? "현장 연결  LIVE" : kit.badge);
-        Color bc = ad ? new Color(0.55f, 0.15f, 0.7f) : (field ? new Color(0.9f, 0.5f, 0.1f) : kit.badgeColor);
-        if ((kit.blink || beat.kind == 3) && !ad && Mathf.Repeat(t * 2.6f, 1f) < 0.45f) bc = Color.Lerp(bc, new Color(0.12f, 0.02f, 0.02f), 0.8f);
+        string badge = ad ? "광고" : (field ? "현장 연결  LIVE" : (newsOver ? "시티뉴스  사태 종료" : (calm ? "시티뉴스  오늘의 예보" : kit.badge)));
+        Color bc = ad ? new Color(0.55f, 0.15f, 0.7f) : (field ? new Color(0.9f, 0.5f, 0.1f) : (newsOver ? new Color(0.15f, 0.55f, 0.3f) : (calm ? new Color(0.85f, 0.5f, 0.1f) : kit.badgeColor)));
+        if ((kit.blink || beat.kind == 3) && !ad && !calm && !newsOver && Mathf.Repeat(t * 2.6f, 1f) < 0.45f) bc = Color.Lerp(bc, new Color(0.12f, 0.02f, 0.02f), 0.8f);
         SetCol(newsHeader, bc);
         if (badge != newsBadgeShown) { newsBadgeShown = badge; newsBadgeText.text = badge; }
 
@@ -448,13 +469,40 @@ public partial class DriveGame
         // 글자 판 안에서 세로 가운데에 놓는다 (전체 줄 수로 계산해서, 글자가 한 글자씩 나와도 위치가 흔들리지 않는다)
         int lineCount = 1;
         foreach (char ch in full) if (ch == '\n') lineCount++;
-        newsBodyText.transform.localPosition = ad ? new Vector3(0f, 0f, -0.005f) : new Vector3(-w * 0.075f, lineCount * 0.0125f * 0.5f, -0.005f);
+        newsBodyText.transform.localPosition = ad ? new Vector3(0f, 0f, -0.005f) : new Vector3(-w * 0.075f, lineCount * 0.0125f * ts * 0.5f, -0.005f);
         int chars = Mathf.Clamp(Mathf.FloorToInt(bt * 24f), 0, full.Length);
         if (chars != newsShownChars)
         {
             newsShownChars = chars;
             newsBodyText.text = full.Substring(0, chars);
         }
+
+        // 자막: 같은 대사를 줄바꿈 없이 한 글자씩 (화자 표시는 토막 종류에 따라)
+        string raw = beat.text.Replace('|', ' ');
+        int sc = Mathf.Clamp(Mathf.FloorToInt(bt * 24f), 0, raw.Length);
+        if (idx != newsSubBeat || sc != newsSubChars)
+        {
+            if (idx != newsSubBeat)
+            {
+                newsSubBeat = idx;
+                newsSubSpeaker = beat.kind == 1 ? "[현장 기자]" : (beat.kind == 2 ? "[광고]" : (beat.kind == 3 ? "[긴급 속보]" : (newsOver ? "[후일담]" : "[김 앵커]")));
+                newsSubColor = beat.kind == 1 ? new Color(1f, 0.7f, 0.3f) : (beat.kind == 2 ? new Color(1f, 0.5f, 0.85f) : (beat.kind == 3 ? new Color(1f, 0.4f, 0.35f) : new Color(0.7f, 0.9f, 1f)));
+            }
+            newsSubChars = sc;
+            newsSubText = raw.Substring(0, sc);
+        }
+    }
+
+    // 앞유리 아래쪽 자막 (IMGUI): 뉴스가 나오는 동안만
+    void DrawNewsSubtitle(float W, float H, float u)
+    {
+        if (!newsActive || !newsShown || newsSubBeat < 0) return;
+        var r = new Rect(W * 0.5f - 400f * u, H * 0.585f, 800f * u, 78f * u);
+        Panel(r, 0.62f);
+        Label(new Rect(r.x + 14f * u, r.y + 4f * u, 400f * u, 22f * u), newsSubSpeaker, 17, newsSubColor, TextAnchor.UpperLeft);
+        style.wordWrap = true;
+        Label(new Rect(r.x + 14f * u, r.y + 26f * u, r.width - 28f * u, 50f * u), newsSubText, 24, Color.white, TextAnchor.UpperLeft);
+        style.wordWrap = false;
     }
 
     // 지직 잡음 줄 (배경 장식 풀과 별도로 뒤쪽 번호를 쓴다): 화면 위에 덮어 그린다

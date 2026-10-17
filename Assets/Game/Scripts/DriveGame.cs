@@ -217,10 +217,10 @@ public partial class DriveGame : MonoBehaviour
     public float roofY = 0.52f;
 
     [Tooltip("내비 화면 중심 위치. 화면은 자동으로 운전자 눈을 향한다")]
-    public Vector3 navPos = new Vector3(0.48f, -0.38f, 0.70f);
+    public Vector3 navPos = new Vector3(0.48f, -0.364f, 0.70f);       // 화면을 20% 키우면서 아랫단이 그대로 있도록 y 를 올렸다
 
     [Tooltip("내비 화면 크기(m, 가로/세로)")]
-    public Vector2 navSize = new Vector2(0.26f, 0.16f);
+    public Vector2 navSize = new Vector2(0.312f, 0.192f);       // 예전 0.26 x 0.16 에서 20% 키움. 안의 글자도 같은 비율로 커진다
 
     [Tooltip("내비 지도에 보일 격자 칸 수(위아래 각각). 클수록 넓게 보이고 작게 그려진다")]
     public int miniMapRange = 3;
@@ -355,6 +355,26 @@ public partial class DriveGame : MonoBehaviour
     public float endingLandAt = 24f;
     [Tooltip("화면 흔들림 세기 배율 (0이면 흔들리지 않음)")]
     public float endingShake = 1f;
+
+    [Header("Night (밤의 헤드라이트: 진짜 스포트라이트 + 사람/차/건물 그림은 같은 빛 모양으로 색을 어둡게 칠함)")]
+    [Tooltip("헤드라이트 켜기 (끄면 밤에 아주 어둡다)")]
+    public bool headlightOn = true;
+    [Tooltip("불빛이 닿는 거리(m)")]
+    public float headlightRange = 45f;
+    [Tooltip("불빛 하나가 퍼지는 각도(도, 전체 각). 좁을수록 도로 안만 비춘다")]
+    public float headlightAngle = 22f;
+    [Tooltip("왼쪽/오른쪽 헤드라이트가 차 가운데에서 떨어진 거리(m)")]
+    public float headlightSpacing = 0.95f;
+    [Tooltip("두 헤드라이트 불빛이 앞쪽 이 거리(m)에서 한곳으로 모인다. 작을수록 가깝게 모이고, 아주 크면 평행하게 나간다")]
+    public float headlightConverge = 28f;
+    [Tooltip("도로 밖(인도, 건물)에도 불빛이 닿는 정도 (0 = 도로만 보임, 1 = 인도까지 보임)")]
+    public float headlightSideLight = 0f;
+    [Tooltip("스포트라이트 밝기 (도로와 건물 몸통 같은 3D 부분). 거리 제곱에 반비례해 약해지므로 큰 값을 쓴다")]
+    public float headlightIntensity = 650f;
+    [Tooltip("한밤에 불빛이 안 닿는 곳의 밝기 (0 = 칠흑, 1 = 낮)")]
+    public float nightMinLight = 0f;
+    [Tooltip("밤에 운전석 안(핸들, 팔)을 비추는 아주 작은 조명 밝기. 손이 빛나 보이면 낮추고 0이면 완전히 끈다")]
+    public float cabinGlow = 0.03f;
 
     [Header("Zombie (좀비의 날: 초록 좀비는 치면 보상, 주황 생존자는 치면 사고)")]
     [Tooltip("좀비 사태가 이어지는 시간(초)")]
@@ -560,6 +580,10 @@ public partial class DriveGame : MonoBehaviour
             };
             s.dash.GetComponent<Renderer>().sharedMaterial = dashMat;
             for (int k = 0; k < 2; k++) s.bldg[k] = Block("Bldg");
+            // 인도와 건물 몸통은 헤드라이트를 받지 않는 레이어: 도로만 환하게 보인다 (스프라이트 쪽은 headlightSideLight 로 조절)
+            s.swL.gameObject.layer = SideLayer;
+            s.swR.gameObject.layer = SideLayer;
+            for (int k = 0; k < 2; k++) s.bldg[k].gameObject.layer = SideLayer;
             if (hasCity)
             {
                 foreach (var side in s.sides)
@@ -590,6 +614,7 @@ public partial class DriveGame : MonoBehaviour
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = hasCity ? new Color(128f / 255f, 194f / 255f, 206f / 255f) : new Color(0.55f, 0.75f, 0.95f);
 
+        CreateHeadlights();
         BuildBackdrop();
         BuildCabin();
         BuildBattle();
@@ -808,7 +833,7 @@ public partial class DriveGame : MonoBehaviour
         camPitch = Mathf.MoveTowards(camPitch, camPitchTarget, 120f * Time.unscaledDeltaTime);
         cam.transform.rotation = Quaternion.Euler(camPitch, camYaw, roll);
         // 대화 중에는 손님이 멀수록 더 확대해서, 떨어진 곳에 태워도 손님이 화면에 크게 보인다
-        float talkFov = Mathf.Clamp(2f * Mathf.Atan(2.25f / Mathf.Max(2f, taxi.TalkDist)) * Mathf.Rad2Deg, 24f, sideFov);
+        float talkFov = TalkFov();
         float fovTarget = taxi.State == TaxiState.Talking ? talkFov : 70f;
         cam.fieldOfView = Mathf.MoveTowards(cam.fieldOfView, fovTarget, 120f * Time.unscaledDeltaTime);
 

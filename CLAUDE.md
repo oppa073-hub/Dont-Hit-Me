@@ -30,7 +30,7 @@
   - Gameplay/DriveGame.Taxi.cs : 택시 연결부(TaxiManager 이벤트를 받아 차 세우기/시점/점수/팝업에 반영)
   - Gameplay/DriveGame.Traffic.cs : 난이도/교통 연결부(레벨 적용, 차 충돌/니어미스 결과를 속도·목숨·점수·팝업에 반영). World/DriveGame.TrafficBuild.cs : 교통 임시 스프라이트 그리기
   - Gameplay/DriveGame.Meta.cs : 성장 연결부(업그레이드를 목숨/무적/택시에 적용, 판이 끝나면 코인 지급, 목표 판정, 상점 키 입력). UI/DriveGame.Shop.cs : 상점 화면과 오늘의 목표 표시
-  - Gameplay/DriveGame.Ambience.cs : 분위기 연결부(날씨를 하늘/조명/도시 그림에 칠함, 튜토리얼 진행, 설정 입력/저장). UI/DriveGame.Overlays.cs : 밤/비 막, 헤드라이트, 빗줄기, 와이퍼, 설정 화면, 튜토리얼 글자 그리기
+  - Gameplay/DriveGame.Ambience.cs : 분위기 연결부(날씨를 하늘/조명/도시 그림에 칠함, 튜토리얼 진행, 설정 입력/저장). UI/DriveGame.Overlays.cs : 밤/비 막, 헤드라이트, 빗줄기, 와이퍼, 설정 화면, 튜토리얼 글자 그리기 **밤 조명**: 차(카메라)에 진짜 스포트라이트(headLight)와 운전석용 작은 점광(cabinLight)이 붙고, 빛을 못 받는 스프라이트(사람, 차, 건물 그림)는 NightLight(x,z)(스포트와 같은 원뿔+거리 감쇠)로 색을 어둡게 칠함(WorldView 의 Lit/TintBuilding). 정전도 같은 조명을 씀(NightK). 인스펙터 Night 헤더(headlightRange/Angle/Intensity, nightMinLight). 가로등 소품, 불길, 폭발, 괴수, 구급차는 안 어둡게
   - Gameplay/DriveGame.Pedestrians.cs : 보행자 연결부(치임/니어미스 결과를 목숨·점수·손님 리액션에 반영)
   - Cabin/DriveGame.Cabin.cs : 3D 운전석 부품과 배치(LayoutCabin)
   - Cabin/DriveGame.Navigator.cs : 대시보드 위 내비 화면
