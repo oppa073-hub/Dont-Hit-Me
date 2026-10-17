@@ -73,6 +73,7 @@ public partial class DriveGame
             taxi.ForcePaxType = debugQuirk == 0 ? null : PassengerCatalog.ByQuirk(debugQuirk);
         }
         else if (kb.gKey.wasPressedThisFrame) debugGod = !debugGod;
+        else if (kb.f4Key.wasPressedThisFrame && flow == GameFlow.Playing && !gameOver) StartEnding();           // 엔딩 바로 보기
         else changed = false;
         if (changed) RefreshDebug();
         return false;
@@ -116,6 +117,7 @@ public partial class DriveGame
                   + "V  다음 손님을 은행 강도로" + NL
                   + "Y 정전   K 라이벌   L 팬   J 돼지   M 구급차" + NL
                   + "B  다음 손님: " + DebugQuirkNames[debugQuirk] + NL
+                  + "F4  엔딩 바로 보기" + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
                   + "Del 두 번  저장 데이터 전부 초기화" + NL
                   + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 4)];
@@ -124,8 +126,8 @@ public partial class DriveGame
     void DrawDebug(float W, float H, float u)
     {
         if (!debugOpen) return;
-        Panel(new Rect(14 * u, 316 * u, 320 * u, 398 * u), 0.78f);
-        Label(new Rect(24 * u, 320 * u, 306 * u, 390 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
+        Panel(new Rect(14 * u, 296 * u, 320 * u, 418 * u), 0.78f);
+        Label(new Rect(24 * u, 300 * u, 306 * u, 410 * u), debugText, 17, new Color(0.7f, 1f, 0.8f), TextAnchor.UpperLeft);
         if (Time.unscaledTime < debugResetUntil)
             Label(new Rect(0, H * 0.6f, W, 36 * u), "한 번 더 Del 을 누르면 저장 데이터가 모두 지워집니다!", 24, UiRed, TextAnchor.MiddleCenter);
     }

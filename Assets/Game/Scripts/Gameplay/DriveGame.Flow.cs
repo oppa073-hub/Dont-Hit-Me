@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 // 모드가 두 가지: 하루 영업(정해진 시간 동안 일하고 결산, DriveGame.Shift.cs) / 무한(목숨이 다할 때까지).
 public partial class DriveGame
 {
-    enum GameFlow { Title, Lobby, Playing, Paused, Shop, Settings }
+    enum GameFlow { Title, Lobby, Playing, Paused, Shop, Settings, Ending }
 
     GameFlow flow = GameFlow.Title;       // 실행하면 타이틀에서 시작한다
 

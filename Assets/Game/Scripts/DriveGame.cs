@@ -348,6 +348,14 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("하나 처치할 때마다 얻는 점수")]
     public int gunKillScore = 10;
 
+    [Header("Ending (하늘을 나는 택시를 산 뒤 첫 손님을 태우면 달까지 날아간다. 대사는 StoryCatalog.EndingTexts)")]
+    [Tooltip("날개가 펴지며 날아오르는 시각(초)")]
+    public float endingLaunchAt = 2.5f;
+    [Tooltip("달에 도착하는 시각(초)")]
+    public float endingLandAt = 24f;
+    [Tooltip("화면 흔들림 세기 배율 (0이면 흔들리지 않음)")]
+    public float endingShake = 1f;
+
     [Header("Events (날짜와 돌발 사건: 평범한 날 / 사람 많은 날 / 괴수 침공 / 히어로와 빌런)")]
     [Tooltip("시험용. -1 = 무작위, 0 평범, 1 사람 많은 날, 2 괴수 침공, 3 히어로와 빌런. 플레이 중 F2 = 괴수, F3 = 히어로를 바로 시작")]
     public int forceDayType = -1;
@@ -650,6 +658,13 @@ public partial class DriveGame : MonoBehaviour
         }
 
         // 타이틀: 월드는 멈춰 있고 Space/Enter 로 시작한다
+        if (flow == GameFlow.Ending)
+        {
+            Time.timeScale = 1f;
+            UpdateEnding(kb);
+            return;
+        }
+
         if (flow == GameFlow.Title)
         {
             Time.timeScale = 0f;

@@ -256,6 +256,13 @@ public partial class DriveGame
             g.forceDayType = cover ? CoverDay(day) : dayType;
             g.debugGod = cover;
             Random.InitState(seed * 1000 + day);
+            if (day == 1 && Has("-simending"))
+            {
+                // 엔딩 시험: 코인을 잔뜩 주고 택시 개조를 모두 끝낸 채로 시작한다
+                g.upgrades.AddCoins(200000);
+                for (int i = 0; i < g.projects.Count; i++) g.projects.Buy(i, g.upgrades);
+                g.ApplyProjectPerks();
+            }
             dayStartCoins = g.upgrades.Coins;
             g.StartGame();
 
@@ -303,6 +310,12 @@ public partial class DriveGame
                 g.session.ForceEnd();
                 return;
             }
+            if (g.flow == GameFlow.Ending)
+            {
+                if (frame % 4 == 0) held.Add(Key.Space);               // 엔딩이 끝나면 Space 로 로비로 (날개 택시 개조를 산 뒤에만 나온다)
+                return;
+            }
+            if (g.flow == GameFlow.Lobby) { EndDay(); return; }       // 엔딩 뒤에는 로비로 돌아온다: 그 날을 마친 것으로 센다
             if (g.flow != GameFlow.Playing) return;
 
             SampleFrame();

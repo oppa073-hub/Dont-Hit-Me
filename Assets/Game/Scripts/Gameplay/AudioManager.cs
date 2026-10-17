@@ -12,7 +12,7 @@ public class AudioManager
     readonly AudioSource sfx;
     readonly AudioSource bgm;
     readonly AudioSource rainSrc;
-    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy, oink, powerDown;
+    readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy, oink, powerDown, rocket;
     bool lastBlinkOn;
 
     public AudioManager(DriveGame cfg, GameObject host, Camera cam)
@@ -55,6 +55,7 @@ public class AudioManager
         oink = MakeOink();
         powerDown = MakePowerDown();
         deploy = Click(240f, 0.2f, 1f);
+        rocket = MakeRocket();
     }
 
     // ---- 사건 효과음 ----
@@ -69,7 +70,8 @@ public class AudioManager
     public void PlayOink() { Play(oink, 0.8f); }         // 돼지
     public void PlayPowerDown() { Play(powerDown, 0.8f); }     // 정전
     public void PlayGun() { Play(gunShot, 0.35f); }      // 미니건 한 발
-    public void PlayDeploy() { Play(deploy, 1f); }       // 미니건이 튀어나오는 철컹
+    public void PlayDeploy() { Play(deploy, 1f); }
+    public void PlayRocket() { Play(rocket, 1f); }       // 엔딩: 날개 택시가 로켓처럼 치솟는 소리       // 미니건이 튀어나오는 철컹
 
     void Play(AudioClip clip, float volume)
     {
@@ -353,6 +355,24 @@ public class AudioManager
             d[i] = (Mathf.Sin(phase) * Mathf.Pow(1f - t, 2f) + noise) * 0.9f;
         }
         return Make("bonk", d);
+    }
+
+    // 엔딩 로켓: 낮은 울림이 점점 높아지는 소리 + 거친 잡음 (3.5초)
+    static AudioClip MakeRocket()
+    {
+        var d = new float[Mathf.CeilToInt(Rate * 3.5f)];
+        var rnd = new System.Random(23);
+        float phase = 0f, lp = 0f;
+        for (int i = 0; i < d.Length; i++)
+        {
+            float t = (float)i / d.Length;
+            float env = Mathf.Clamp01(t * 8f) * Mathf.Pow(1f - t, 0.6f);
+            phase += Mathf.Lerp(60f, 520f, t * t) / Rate * Mathf.PI * 2f;
+            float n = (float)rnd.NextDouble() * 2f - 1f;
+            lp += (n - lp) * Mathf.Lerp(0.08f, 0.5f, t);
+            d[i] = (Mathf.Sin(phase) * 0.45f + lp * 0.55f) * env * 0.9f;
+        }
+        return Make("rocket", d);
     }
 
     // 니어미스: 잡음이 커졌다 사라지는 쉬익

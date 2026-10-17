@@ -15,7 +15,6 @@ public partial class DriveGame
     string shopNpcLine = "";                 // 상점에서 정비사가 하는 말
     string lobbyDayText = "";
     int pendingProject = -1;                 // 방금 끝낸 택시 개조 (대사가 끝나면 이어서 처리)
-    float endingT = -1f;                     // 엔딩 연출 진행 시간 (-1 이면 아님)
 
     void CreateLobby()
     {
@@ -31,25 +30,12 @@ public partial class DriveGame
         ResetGame();
         flow = GameFlow.Lobby;
         lobby.Reset(1000f);
-        endingT = -1f;
         RefreshShop();
         if (PlayerPrefs.GetInt(IntroKey, 0) == 0) lobby.StartDialogue(StoryCatalog.Intro, TagIntro);
     }
 
     void UpdateLobby(Keyboard kb)
     {
-        // 엔딩 연출 중에는 조작을 받지 않는다
-        if (endingT >= 0f)
-        {
-            endingT += Time.unscaledDeltaTime;
-            if (endingT >= 9f)
-            {
-                endingT = -1f;
-                shopPage = 1;
-            }
-            return;
-        }
-
         float mv = (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
         bool act = kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame;
         if (!lobby.InDialogue && !lobby.Boarding)
@@ -86,16 +72,8 @@ public partial class DriveGame
         }
         else if (tag == TagProject)
         {
-            if (pendingProject == ProjectManager.Wings)
-            {
-                endingT = 0f;                    // 마지막 개조: 하늘을 나는 택시 엔딩
-                sound.PlayRoar();
-            }
-            else
-            {
-                shopPage = 1;
-                OpenShop();                      // 다음 개조를 보러 상점으로
-            }
+            shopPage = 1;
+            OpenShop();                          // 다음 개조를 보러 상점으로 (마지막 개조의 엔딩은 다음 영업의 첫 손님을 태울 때 시작된다: DriveGame.Ending.cs)
         }
     }
 

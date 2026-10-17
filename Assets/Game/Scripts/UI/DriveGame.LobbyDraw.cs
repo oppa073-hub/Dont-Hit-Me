@@ -90,8 +90,6 @@ public partial class DriveGame
         float viewW = W / u;
         // 엔딩 때는 카메라가 택시를 따라가서 떠오르는 장면이 보인다
         float focusX = lobby.PlayerX;
-        if (endingT >= 0f)
-            focusX = Mathf.Lerp(lobby.PlayerX, LobbyManager.TaxiX + Mathf.Max(0f, endingT - 1f) * 70f, Mathf.Clamp01(endingT / 1.5f));
         lbCam = Mathf.Clamp(focusX - viewW * 0.5f, 0f, Mathf.Max(0f, LobbyManager.WorldW - viewW));
         float t = Time.unscaledTime;
         float dark = weather.Darkness;
@@ -151,15 +149,13 @@ public partial class DriveGame
 
         // 정비사, 택시, 주인공
         LPerson(LobbyManager.NpcX, 1.18f, lobby.PlayerX < LobbyManager.NpcX ? 1 : -1, 0f, false, NpcShirt, new Color(0.18f, 0.22f, 0.35f), new Color(0.75f, 0.2f, 0.18f), NpcSkin, true);
-        float ek = endingT < 0f ? 0f : endingT;
-        float lift = ek < 1f ? 0f : Mathf.Pow(Mathf.Clamp01((ek - 1f) / 5f), 2f) * 900f;           // 엔딩: 택시가 하늘로 떠오른다
-        LTaxi(LobbyManager.TaxiX + (ek > 1f ? (ek - 1f) * 140f : 0f), dark, lift);
+        LTaxi(LobbyManager.TaxiX, dark, 0f);
         LPerson(lobby.PlayerX, 1f, lobby.Facing, lobby.WalkPhase, lobby.Moving, new Color(0.2f, 0.35f, 0.72f), new Color(0.22f, 0.22f, 0.28f), new Color(0.1f, 0.1f, 0.12f), new Color(0.96f, 0.8f, 0.66f), false);
 
         if (!interactive) return;
 
         // 말풍선 안내
-        if (!lobby.InDialogue && lobby.BoardFade < 0f && endingT < 0f)
+        if (!lobby.InDialogue && lobby.BoardFade < 0f)
         {
             float bounce = Mathf.Sin(t * 4f) * 4f;
             if (lobby.NearNpc) LobbyPrompt(LobbyManager.NpcX, 398f + bounce, "Space  대화 / 상점", 220f);
@@ -174,20 +170,6 @@ public partial class DriveGame
         Label(new Rect(0, H - 34 * u, W, 28 * u), "A / D 이동      Space 말 걸기 / 타기      O 설정      Esc 타이틀", 16, new Color(1f, 1f, 1f, 0.7f), TextAnchor.LowerCenter);
 
         if (lobby.InDialogue) DrawLobbyDialogue(W, H, u);
-
-        // 엔딩: 택시가 날아가고 화면이 어두워지며 병맛 마무리 글자가 나온다
-        if (endingT >= 0f)
-        {
-            float a = Mathf.Clamp01((endingT - 4f) / 2f);
-            Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, a));
-            if (a > 0.3f)
-            {
-                Label(new Rect(0, H * 0.30f, W, 80 * u), "하늘을 나는 택시", 60, new Color(UiGold.r, UiGold.g, UiGold.b, a), TextAnchor.MiddleCenter);
-                Label(new Rect(0, H * 0.30f + 90 * u, W, 36 * u), "…그리고 택시는 괴수와 히어로와 빌런의 박수를 받으며 달 뒤편으로 사라졌다.", 24, new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
-                Label(new Rect(0, H * 0.30f + 130 * u, W, 36 * u), "(월세는 아직 안 냈다)", 20, new Color(1f, 1f, 1f, a * 0.8f), TextAnchor.MiddleCenter);
-            }
-            if (endingT > 7f) Label(new Rect(0, H * 0.30f + 200 * u, W, 36 * u), "THE END?   영업은 계속된다", 22, new Color(UiGreen.r, UiGreen.g, UiGreen.b, Mathf.Clamp01(endingT - 7f)), TextAnchor.MiddleCenter);
-        }
 
         // 택시에 타면 화면이 어두워진다
         if (lobby.BoardFade >= 0f)

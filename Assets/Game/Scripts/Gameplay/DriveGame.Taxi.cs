@@ -37,6 +37,8 @@ public partial class DriveGame
 
     void AcceptPassenger()
     {
+        // 하늘을 나는 택시를 산 뒤 첫 일반 손님: 태우는 순간 엔딩이 시작된다
+        if (ShouldStartEnding()) { StartEnding(); return; }
         float cruise = Mathf.Min(Mathf.Min(maxSpeed, cruiseCap), baseSpeed + elapsed * speedRamp);
         taxi.Accept(gx, gy, heading, Period, cruise);
         EndNews();                                           // 손님을 태웠으니 내비는 지도로

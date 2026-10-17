@@ -362,6 +362,13 @@ public partial class DriveGame
             return;
         }
 
+        if (flow == GameFlow.Ending)
+        {
+            DrawEnding(W, H, u);
+            DrawDebug(W, H, u);
+            return;
+        }
+
         if (hurtFlash > 0f && flow == GameFlow.Playing && !gameOver) Fill(new Rect(0, 0, W, H), new Color(1f, 0f, 0f, hurtFlash * 0.6f));
 
         DrawCabin();
