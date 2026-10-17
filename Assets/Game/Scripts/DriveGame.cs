@@ -127,7 +127,7 @@ public partial class DriveGame : MonoBehaviour
     public Vector2 farTrigger = new Vector2(45f, 80f);
 
     [Tooltip("멀리서 건너는 사람의 걷는 속도(m/s)")]
-    public Vector2 crossSpeed = new Vector2(1.2f, 2.4f);
+    public Vector2 crossSpeed = new Vector2(1.8f, 3.0f);       // 봇 시험: 빨리 건너면 도로에 겹쳐 있는 시간이 줄어 사고가 약 30% 줄었다
 
     public float nearMissDist = 2.2f;      // 중심 간 횡거리 (2.3 이상이면 안전)
 
@@ -198,7 +198,7 @@ public partial class DriveGame : MonoBehaviour
     public float invulnTime = 1.0f;
 
     [Tooltip("사고 없이 이만큼(초) 달리면 하트가 하나 회복된다. 사고가 나면 처음부터 다시 센다")]
-    public float healSeconds = 50f;
+    public float healSeconds = 35f;
 
     public float hitSpeedFactor = 0.4f;
 
@@ -330,13 +330,13 @@ public partial class DriveGame : MonoBehaviour
 
     [Header("Balance (난이도 완화. 씬에 저장된 Max Speed 가 커도 이 상한이 먼저 적용된다)")]
     [Tooltip("순항 속도의 상한(m/s). 이보다 빨라지지 않는다 (분노 가속은 별도)")]
-    public float cruiseCap = 28f;
+    public float cruiseCap = 24f;
     [Tooltip("한꺼번에 도로를 건너거나 건너려고 나와 있는 사람의 최대 수 (팬 습격/분노 때 몰려든 사람은 예외)")]
-    public int maxCrossers = 4;
+    public int maxCrossers = 3;
     [Tooltip("갑자기 튀어나오는 사람이 차가 도착하기 이만큼(초) 전에 건너기 시작한다 (범위). 클수록 일찍 보여서 쉽다")]
-    public Vector2 dartLeadTime = new Vector2(2.0f, 3.0f);
+    public Vector2 dartLeadTime = new Vector2(2.6f, 3.6f);
     [Tooltip("멀리서 이미 건너는 사람: 차가 도착하기 이만큼(초) 전에 건너기 시작한다")]
-    public Vector2 farLeadTime = new Vector2(3.5f, 5.0f);
+    public Vector2 farLeadTime = new Vector2(4.0f, 5.5f);
     [Tooltip("분노 폭발 중 몰려드는 사람이 생기는 간격(초). 작을수록 많이 몰려든다")]
     public float rageSurgeInterval = 0.22f;
 
@@ -374,11 +374,11 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("영업 시간이 끝났을 때 태우고 있는 손님을 마저 모시는 데 주는 최대 시간(초)")]
     public float shiftOvertimeMax = 60f;
     [Tooltip("사고(사람/차에 부딪힘) 한 건당 결산에서 깎는 수리비(원)")]
-    public int accidentFine = 300;
+    public int accidentFine = 500;
     [Tooltip("순수익이 이 값 이상이면 평점 1 / 2 / 3")]
-    public int shiftStar1 = 3000;
-    public int shiftStar2 = 7000;
-    public int shiftStar3 = 12000;
+    public int shiftStar1 = 6000;
+    public int shiftStar2 = 15000;
+    public int shiftStar3 = 28000;
 
     [Header("Difficulty (시간이 지나면 레벨이 오른다)")]
     [Tooltip("레벨이 한 단계 오르는 데 걸리는 플레이 시간(초)")]
@@ -578,6 +578,7 @@ public partial class DriveGame : MonoBehaviour
         destMarker.gameObject.SetActive(false);
 
         ResetGame();
+        BotInit();
     }
 
     // ---------- 게임 ----------
@@ -617,6 +618,7 @@ public partial class DriveGame : MonoBehaviour
     void Update()
     {
         Time.timeScale = (!gameOver && flow == GameFlow.Playing && Time.unscaledTime < hitStopUntil) ? 0f : 1f;
+        BotUpdate();                         // 자동 운전 시험 봇 (명령줄 -simbot 일 때만 동작)
         var kb = Keyboard.current;
         if (kb == null) return;
         if (HandleDebugKeys(kb)) return;

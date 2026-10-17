@@ -67,6 +67,7 @@ public class PedestrianManager
         for (int i = 0, n = Mathf.RoundToInt(cfg.initialCrowd * CrowdMul); i < n; i++) Spawn(spawnZ, 0, Random.Range(6f, spawnZ));
         nextSpawn = 1.2f;
         nextFan = 0f;
+        nextSurge = 0f;
     }
 
     /// <summary>회전이 끝난 뒤: 새 도로 기준으로 다시 깐다 (가까운 곳은 비워서 멀리서부터 자연스럽게 나타나게).</summary>

@@ -55,3 +55,6 @@ Thumbs.db
 
 # Claude Code personal settings (not uploaded)
 .claude/settings.local.json
+
+# 시험 봇 보고서
+/SimReports/

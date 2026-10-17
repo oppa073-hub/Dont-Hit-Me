@@ -26,6 +26,7 @@ public partial class DriveGame
 
     void Popup(string text, Color color)
     {
+        BotOnPopup(text);
         popupText = text;
         popupColor = color;
         popupUntil = Time.unscaledTime + 0.8f;
@@ -348,6 +349,7 @@ public partial class DriveGame
 
     void OnGUI()
     {
+        if (Event.current.type != EventType.Repaint) return;       // 그리기만 하는 화면이라 Layout/입력 이벤트에서는 건너뛴다 (CPU 절약)
         float W = Screen.width, H = Screen.height, u = H / 720f;
 
         // 로비와 정비소(상점), 로비에서 연 설정은 로비 장면 위에 그린다

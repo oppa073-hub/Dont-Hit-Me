@@ -26,7 +26,7 @@ $refs = @("-r:$netstandardDll", "-r:$inputSystemDll")
 Get-ChildItem (Join-Path $UnityData "Managed${sep}UnityEngine") -Filter *.dll | ForEach-Object { $refs += "-r:" + $_.FullName }
 
 $outDll = Join-Path $out "check.dll"
-$cscArgs = @($csc, "-nologo", "-noconfig", "-nostdlib+", "-target:library", "-langversion:9", "-warn:0", "-out:$outDll") + $refs + $files
+$cscArgs = @($csc, "-nologo", "-noconfig", "-nostdlib+", "-target:library", "-langversion:9", "-warn:0", "-define:UNITY_EDITOR", "-out:$outDll") + $refs + $files
 $result = & dotnet @cscArgs 2>&1
 if ($LASTEXITCODE -eq 0) { "컴파일 OK ($($files.Count)개 파일)"; exit 0 }
 $result | Select-Object -First 60

@@ -24,7 +24,7 @@ public class GoalManager
     static readonly string[] Names = { "손님 {0}명 태우기", "니어미스 {0}번", "레벨 {0} 도달", "무사고 {0}초", "점수 {0}점", "요금 {0}원 벌기" };
     static readonly int[][] Targets =
     {
-        new[] { 2, 3, 4 }, new[] { 5, 8, 12 }, new[] { 3, 4, 5 }, new[] { 45, 60, 90 }, new[] { 500, 1000, 1500 }, new[] { 5000, 8000, 12000 }
+        new[] { 3, 4, 5 }, new[] { 8, 12, 18 }, new[] { 4, 5, 6 }, new[] { 45, 60, 90 }, new[] { 1000, 2000, 3000 }, new[] { 10000, 18000, 28000 }
     };
 
     readonly Goal[] goals = new Goal[3];

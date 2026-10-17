@@ -16,10 +16,10 @@ public class ProjectManager
 
     public static readonly ProjectDef[] Defs =
     {
-        new ProjectDef { name = "정비소 증축 + 네온간판",   desc = "차고를 넓힌다  —  모든 업그레이드 20% 할인",                       cost = 3000 },
-        new ProjectDef { name = "황금 도색 + 언더네온",     desc = "눈이 부신 전설의 택시  —  분노 1.5배 오래, 요금 +10%",              cost = 6000 },
-        new ProjectDef { name = "지붕 양옆 미니건",         desc = "분노 폭발 때 튀어나와 앞을 쓸어버린다 (괴수, 히어로, 손님은 제외)", cost = 15000 },
-        new ProjectDef { name = "하늘을 나는 택시",         desc = "모든 기사의 꿈  —  분노 충전 1.5배, 요금 +15%, 엔딩",              cost = 40000 },
+        new ProjectDef { name = "정비소 증축 + 네온간판",   desc = "차고를 넓힌다  —  모든 업그레이드 20% 할인",                       cost = 4000 },
+        new ProjectDef { name = "황금 도색 + 언더네온",     desc = "눈이 부신 전설의 택시  —  분노 1.5배 오래, 요금 +10%",              cost = 9000 },
+        new ProjectDef { name = "지붕 양옆 미니건",         desc = "분노 폭발 때 튀어나와 앞을 쓸어버린다 (괴수, 히어로, 손님은 제외)", cost = 24000 },
+        new ProjectDef { name = "하늘을 나는 택시",         desc = "모든 기사의 꿈  —  분노 충전 1.5배, 요금 +15%, 엔딩",              cost = 60000 },
     };
 
     const string Key = "DontHitMe.Proj.";

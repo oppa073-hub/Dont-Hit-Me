@@ -40,6 +40,7 @@ public partial class DriveGame
             if (kb.f3Key.wasPressedThisFrame) dayEvents.DebugStart(DayType.Hero, elapsed);
         }
         dayEvents.Tick(elapsed);
+        if (!dayEvents.KaijuActive && traffic.HasKaiju) traffic.RemoveKaiju();          // 괴수 사건이 끝나면 괴수도 사라진다
         traffic.TickKaiju(elapsed, speed, dayEvents.KaijuActive, nextInterDist, Period, turning, SpawnZ);
         traffic.TickHero(dt, elapsed, advance, dayEvents.HeroActive, turning, SpawnZ);
 

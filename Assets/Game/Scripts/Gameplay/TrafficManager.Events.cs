@@ -16,6 +16,9 @@ public partial class TrafficManager
     /// <summary>구급차가 뒤에서 접근 중이면 뒤쪽 거리(m), 아니면 -1.</summary>
     public float AmbulanceDist { get { return ambulance != null && ambulance.z < 0f ? -ambulance.z : -1f; } }
 
+    /// <summary>구급차의 가로 위치 (시험 봇이 비켜 가는 데 쓴다).</summary>
+    public float AmbulanceX { get { return ambulance != null ? ambulance.x : 0f; } }
+
     /// <summary>라이벌 택시가 손님을 태웠다 (손님을 가로챈다).</summary>
     public event System.Action<PedestrianManager.Ped> RivalArrived;
     /// <summary>플레이어가 라이벌 택시에 박치기했다 (남은 체력, 라이벌이 있는 쪽 -1/+1).</summary>
@@ -37,6 +40,12 @@ public partial class TrafficManager
             for (int i = 0; i < objs.Count; i++) if (objs[i].kind == Kaiju) return true;
             return false;
         }
+    }
+
+    /// <summary>괴수를 치운다 (사건 시간이 끝났는데 길을 막고 서 있으면 영영 못 지나가므로).</summary>
+    public void RemoveKaiju()
+    {
+        for (int i = objs.Count - 1; i >= 0; i--) if (objs[i].kind == Kaiju) RemoveAt(i);
     }
 
     /// <summary>괴수, 불길, 연기를 모두 치운다 (사건이 끝났거나 시험용으로 바꿀 때).</summary>
