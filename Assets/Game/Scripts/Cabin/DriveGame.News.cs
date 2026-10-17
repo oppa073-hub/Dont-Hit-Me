@@ -23,6 +23,8 @@ public partial class DriveGame
     bool newsBulletin, newsAnchorOn = true, newsCentered;
     int newsBeatIdx = -1, newsShownChars = -1, newsTickIdx = -1;
     string newsBadgeShown = "";
+    float newsW, newsH;                  // 화면 크기(m): 모든 장식은 이 안으로 잘라서 화면 밖으로 튀어나오지 않게 한다
+    Vector2 newsShake;                   // 장식 흔들림
 
     void BuildNews()
     {
@@ -43,12 +45,12 @@ public partial class DriveGame
         newsFlash = CabinPart("NewsFlash", PrimitiveType.Quad, newsRoot, Unlit(Color.white));
         newsAnchorParts = new[] { newsBody, newsTie, newsHead, newsHair, newsEyeL, newsEyeR, newsMouth };
 
-        newsBadgeText = CabinText("NewsBadge", newsRoot, 0.0105f, TextAnchor.MiddleLeft, Color.white);
+        newsBadgeText = CabinText("NewsBadge", newsRoot, 0.0090f, TextAnchor.MiddleLeft, Color.white);
         newsBadgeText.alignment = TextAlignment.Left;
         newsBadgeText.text = "시티뉴스  LIVE";
-        newsBodyText = CabinText("NewsBody", newsRoot, 0.0115f, TextAnchor.UpperLeft, Color.white);
+        newsBodyText = CabinText("NewsBody", newsRoot, 0.0100f, TextAnchor.UpperLeft, Color.white);
         newsBodyText.alignment = TextAlignment.Left;
-        newsTickerText = CabinText("NewsTickerText", newsRoot, 0.0085f, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
+        newsTickerText = CabinText("NewsTickerText", newsRoot, 0.0072f, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
         newsTickerText.text = "N 키: 뉴스 건너뛰기";
         newsZzText = CabinText("NewsZz", newsRoot, 0.012f, TextAnchor.MiddleCenter, new Color(0.8f, 0.9f, 1f));
         newsZzText.text = "z Z";
@@ -151,12 +153,24 @@ public partial class DriveGame
     {
         if (n >= newsDeco.Count) newsDeco.Add(CabinPart("NewsDeco", PrimitiveType.Quad, newsRoot, NewsMat(c)));
         var q = newsDeco[n++];
-        if (!q.gameObject.activeSelf) q.gameObject.SetActive(true);
+        ClipToScreen(ref x, ref y, ref w, ref h);
+        bool visible = w > 0.0002f && h > 0.0002f;
+        if (q.gameObject.activeSelf != visible) q.gameObject.SetActive(visible);
         q.localPosition = new Vector3(x, y, -0.0038f);
         q.localScale = new Vector3(Mathf.Max(0.0001f, w), Mathf.Max(0.0001f, h), 1f);
         var rd = q.GetComponent<Renderer>();
         var m = NewsMat(c);
         if (rd.sharedMaterial != m) rd.sharedMaterial = m;
+    }
+
+    // 사각형(중심 x,y 크기 w,h)을 화면 안으로 잘라낸다. 흔들림도 여기서 더해 화면 밖으로 삐져나가지 않게 한다
+    void ClipToScreen(ref float x, ref float y, ref float w, ref float h)
+    {
+        x += newsShake.x; y += newsShake.y;
+        float x0 = Mathf.Max(x - w * 0.5f, -newsW * 0.5f), x1 = Mathf.Min(x + w * 0.5f, newsW * 0.5f);
+        float y0 = Mathf.Max(y - h * 0.5f, -newsH * 0.5f), y1 = Mathf.Min(y + h * 0.5f, newsH * 0.5f);
+        w = Mathf.Max(0f, x1 - x0); h = Mathf.Max(0f, y1 - y0);
+        x = (x0 + x1) * 0.5f; y = (y0 + y1) * 0.5f;
     }
 
     // 날 종류별 배경 그림. intense = 현장 연결/긴급 속보 (더 격하게 움직인다)
@@ -290,10 +304,12 @@ public partial class DriveGame
         NewsMood mood = (newsBulletin || beat.kind == 3) ? NewsMood.Panic : kit.mood;
 
         // 화면 전체 흔들림 (놀란 뉴스일수록)
-        Vector3 shake = Vector3.zero;
-        if (mood == NewsMood.Panic) shake = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f) * h * (intense ? 0.014f : 0.007f);
-        else if (field) shake = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), 0f) * h * 0.008f;
-        newsRoot.localPosition = shake;
+        newsW = w; newsH = h;
+        Vector2 shake = Vector2.zero;
+        if (mood == NewsMood.Panic) shake = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * h * (intense ? 0.014f : 0.007f);
+        else if (field) shake = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * h * 0.008f;
+        newsShake = shake;                   // 배경 그림만 흔든다 (화면 틀과 글자는 그대로)
+        newsRoot.localPosition = Vector3.zero;
 
         // 배경
         newsStudio.localPosition = new Vector3(0f, 0f, -0.0035f);
@@ -361,7 +377,7 @@ public partial class DriveGame
             newsEyeR.localScale = new Vector3(ew, eh, 1f);
 
             // 입: 글자가 나오는 동안 벌렸다 닫았다
-            bool talking = newsShownChars < 0 || newsShownChars < StoryCatalog.Wrap(beat.text).Length;
+            bool talking = newsShownChars < 0 || newsShownChars < StoryCatalog.Wrap(beat.text, 11f).Length;
             float open = (talking && Mathf.Sin(t * 18f) > -0.2f) ? h * 0.032f : h * 0.008f;
             if (mood == NewsMood.Panic) open = Mathf.Max(open, h * 0.03f);
             newsMouth.localPosition = new Vector3(cx, headY - h * 0.075f, -0.0055f);
@@ -400,8 +416,8 @@ public partial class DriveGame
         else HideNoise();
 
         // 글자판과 원고: 한 글자씩 나타난다
-        float panelW = ad ? w * 0.92f : w * 0.52f, panelH = ad ? h * 0.6f : h * 0.62f;
-        newsPanel.localPosition = new Vector3(ad ? 0f : w * 0.205f, h * 0.0f, -0.0046f);
+        float panelW = ad ? w * 0.92f : w * 0.58f, panelH = ad ? h * 0.6f : h * 0.62f;
+        newsPanel.localPosition = new Vector3(ad ? 0f : w * 0.20f, h * 0.0f, -0.0046f);
         newsPanel.localScale = new Vector3(panelW, panelH, 1f);
         if (newsCentered != ad)
         {
@@ -409,8 +425,11 @@ public partial class DriveGame
             newsBodyText.anchor = ad ? TextAnchor.MiddleCenter : TextAnchor.UpperLeft;
             newsBodyText.alignment = ad ? TextAlignment.Center : TextAlignment.Left;
         }
-        newsBodyText.transform.localPosition = ad ? new Vector3(0f, 0f, -0.005f) : new Vector3(-w * 0.07f, h * 0.5f - h * 0.17f, -0.005f);
-        string full = StoryCatalog.Wrap(beat.text);
+        string full = StoryCatalog.Wrap(beat.text, 11f);
+        // 글자 판 안에서 세로 가운데에 놓는다 (전체 줄 수로 계산해서, 글자가 한 글자씩 나와도 위치가 흔들리지 않는다)
+        int lineCount = 1;
+        foreach (char ch in full) if (ch == '\n') lineCount++;
+        newsBodyText.transform.localPosition = ad ? new Vector3(0f, 0f, -0.005f) : new Vector3(-w * 0.075f, lineCount * 0.0125f * 0.5f, -0.005f);
         int chars = Mathf.Clamp(Mathf.FloorToInt(bt * 24f), 0, full.Length);
         if (chars != newsShownChars)
         {
@@ -427,8 +446,11 @@ public partial class DriveGame
         if (i >= newsNoise.Count) newsNoise.Add(CabinPart("NewsNoise", PrimitiveType.Quad, newsRoot, NewsMat(c)));
         var q = newsNoise[i];
         if (!q.gameObject.activeSelf) q.gameObject.SetActive(true);
-        q.localPosition = new Vector3(0f, y, -0.0047f);
-        q.localScale = new Vector3(w, hh, 1f);
+        float nx = 0f;
+        newsShake = Vector2.zero;
+        ClipToScreen(ref nx, ref y, ref w, ref hh);
+        q.localPosition = new Vector3(nx, y, -0.0047f);
+        q.localScale = new Vector3(Mathf.Max(0.0001f, w), Mathf.Max(0.0001f, hh), 1f);
         var m = NewsMat(c);
         var rd = q.GetComponent<Renderer>();
         if (rd.sharedMaterial != m) rd.sharedMaterial = m;

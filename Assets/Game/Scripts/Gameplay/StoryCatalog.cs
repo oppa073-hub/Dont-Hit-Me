@@ -148,4 +148,32 @@ public static class StoryCatalog
 
     /// <summary>줄바꿈 표시(|)를 실제 줄바꿈으로.</summary>
     public static string Wrap(string s) { return s.Replace('|', '\n'); }
+
+    /// <summary>줄바꿈 표시를 줄바꿈으로 바꾸고, 한 줄이 maxEm(한글 한 글자 = 1) 보다 길면 띄어쓰기에서 더 나눈다. 작은 화면 밖으로 글자가 삐져나가지 않게 한다.</summary>
+    public static string Wrap(string s, float maxEm)
+    {
+        var sb = new System.Text.StringBuilder(s.Length + 4);
+        float w = 0f;
+        foreach (char c in s)
+        {
+            if (c == '|' || c == '\n') { sb.Append('\n'); w = 0f; continue; }
+            float cw = c == ' ' ? 0.4f : (c < 128 ? 0.6f : 1f);
+            if (w + cw > maxEm)
+            {
+                // 가장 가까운 띄어쓰기에서 나눈다 (없으면 그 자리에서)
+                int sp = -1;
+                for (int i = sb.Length - 1; i >= 0 && sb[i] != '\n'; i--) if (sb[i] == ' ') { sp = i; break; }
+                if (sp >= 0)
+                {
+                    sb[sp] = '\n';
+                    w = 0f;
+                    for (int i = sp + 1; i < sb.Length; i++) w += sb[i] < 128 ? 0.6f : 1f;
+                }
+                else { sb.Append('\n'); w = 0f; }
+            }
+            sb.Append(c);
+            w += cw;
+        }
+        return sb.ToString();
+    }
 }
