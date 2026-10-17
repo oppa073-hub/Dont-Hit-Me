@@ -146,34 +146,6 @@ public static class StoryCatalog
 
     public static string GunPassengerLine() { return Pick(GunPassengerLines); }
 
-    /// <summary>운전을 시작할 때 내비 화면에 나오는 아침 뉴스 원고. 오늘이 어떤 날인지 알려 준다.</summary>
-    public static string[] News(DayType type, int day, bool shift, int shiftSeconds)
-    {
-        var list = new System.Collections.Generic.List<string>();
-        list.Add("안녕하세요,|시티뉴스|김 앵커입니다.|(졸려요)");
-        switch (type)
-        {
-            case DayType.Crowded:
-                list.Add("오늘은 도시 축제!|사람이 너무 많아|땅이 안 보입니다.");
-                list.Add("참고로 저도 지금|인파에 밀려|방송 중입니다.");
-                break;
-            case DayType.Kaiju:
-                list.Add("연안에서 괴수가|편의점 도시락을|털고 있습니다.");
-                list.Add("괴수가 길을 막으면|교차로에서|꺾으세요!");
-                break;
-            case DayType.Hero:
-                list.Add("하늘에서 히어로와|빌런이 부부싸움|중입니다.");
-                list.Add("눈에서 나오는|레이저를 조심!|빨래가 탑니다.");
-                break;
-            default:
-                list.Add("오늘 Day " + day + ".|특별한 사건 없음.|평범해서 무섭네요.");
-                list.Add("오늘의 운세:|운전은 안전하게!|(안 지킬 거잖아요)");
-                break;
-        }
-        if (shift) list.Add("오늘 영업은|" + shiftSeconds + "초입니다.|월세를 위해!");
-        return list.ToArray();
-    }
-
     /// <summary>줄바꿈 표시(|)를 실제 줄바꿈으로.</summary>
     public static string Wrap(string s) { return s.Replace('|', '\n'); }
 }

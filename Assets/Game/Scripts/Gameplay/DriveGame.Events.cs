@@ -59,6 +59,7 @@ public partial class DriveGame
     void OnEventStarted(DayType t)
     {
         sound.PlayAlarm();
+        StartBulletin(t);                                   // 손님을 찾는 중이면 내비에 긴급 속보가 끼어든다
     }
 
     void OnKaijuSpawned() { sound.PlayRoar(); }
