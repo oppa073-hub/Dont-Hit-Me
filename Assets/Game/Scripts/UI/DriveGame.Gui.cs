@@ -138,8 +138,21 @@ public partial class DriveGame
             float k = Mathf.Clamp01(1f - amb / 70f);
             bool blink = Mathf.Repeat(Time.unscaledTime, 0.25f) < 0.125f;
             Fill(r, blink ? new Color(1f, 0.1f, 0.1f, 0.35f * k + 0.1f) : new Color(0.15f, 0.3f, 1f, 0.35f * k + 0.1f));
-            float sz = k * mh * 0.7f;
-            Fill(new Rect(r.center.x - sz * 0.9f, r.center.y - sz * 0.4f, sz * 1.8f, sz * 0.8f), new Color(1f, 1f, 0.92f, 0.9f));
+            var front = CarArt.AmbulanceFront();                           // 흰 차의 앞모습에 경광등을 얹어 구급차로 (룸미러에 비친 앞모습)
+            if (front != null)
+            {
+                float hh = Mathf.Max(4f, (mh - 8f) * Mathf.Lerp(0.3f, 1f, k));         // 가까워질수록 커진다 (거울 안에 들어오게 제한)
+                float px = hh / front.rect.height;
+                DrawSpriteGui(front, r.center.x, r.yMax - 3f, px, false, Color.white);
+                float lw = front.rect.width * px * 0.3f, lh = Mathf.Max(2f, hh * 0.14f), ly = r.yMax - 3f - hh - lh * 0.4f;
+                Fill(new Rect(r.center.x - lw * 1.05f, ly, lw, lh), blink ? new Color(1f, 0.1f, 0.1f) : new Color(0.4f, 0.1f, 0.1f));
+                Fill(new Rect(r.center.x + lw * 0.05f, ly, lw, lh), blink ? new Color(0.1f, 0.2f, 0.5f) : new Color(0.2f, 0.4f, 1f));
+            }
+            else
+            {
+                float sz = k * mh * 0.7f;
+                Fill(new Rect(r.center.x - sz * 0.9f, r.center.y - sz * 0.4f, sz * 1.8f, sz * 0.8f), new Color(1f, 1f, 0.92f, 0.9f));
+            }
         }
         if (!carrying) return;
 

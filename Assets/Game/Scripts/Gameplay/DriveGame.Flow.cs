@@ -49,6 +49,7 @@ public partial class DriveGame
     // 지금 틀 음악: 타이틀/로비/상점은 로비 곡, 운전 중에는 시간대(낮/노을/밤)에 따라
     int MusicTrack()
     {
+        if (flow == GameFlow.Ending) return -1;           // 엔딩은 음악 없이 효과음만
         if (flow == GameFlow.Title || flow == GameFlow.Lobby || flow == GameFlow.Shop) return AudioManager.TrackLobby;
         if (rage.Active && !gameOver) return AudioManager.TrackRage;
         if (weather.Darkness > 0.5f) return AudioManager.TrackNight;

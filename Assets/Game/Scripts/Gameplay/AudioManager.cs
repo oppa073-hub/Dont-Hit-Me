@@ -14,6 +14,7 @@ public class AudioManager
     readonly AudioSource bgm;
     readonly AudioSource rainSrc;
     AudioClip engineSynth;
+    AudioSource windSrc, rumbleSrc, droneSrc;       // 엔딩용 반복 소리: 바람, 저음 진동, 우주의 낮은 울림
     readonly AudioClip tick, tock, bonk, whoosh, ding, chime, alarm, roar, laser, gunShot, deploy, oink, powerDown, rocket, splat;
     bool lastBlinkOn;
 
@@ -48,6 +49,9 @@ public class AudioManager
         bgm.loop = true;
         bgm.playOnAwake = false;
         bgm.spatialBlend = 0f;
+        windSrc = LoopSource(host);
+        rumbleSrc = LoopSource(host);
+        droneSrc = LoopSource(host);
         stingerSrc = host.AddComponent<AudioSource>();
         stingerSrc.playOnAwake = false;
         stingerSrc.spatialBlend = 0f;
@@ -90,6 +94,41 @@ public class AudioManager
     public void PlayDeploy() { Play("deploy", deploy, 1f); }    // 미니건이 튀어나오는 철컹
     public void PlaySplat() { Play("splat", splat, 0.9f); }       // 좀비를 칠 때 철퍽
     public void PlayRocket() { Play("rocket", rocket, 1f); }       // 엔딩: 날개 택시가 로켓처럼 치솟는 소리
+
+    static AudioSource LoopSource(GameObject host)
+    {
+        var s = host.AddComponent<AudioSource>();
+        s.loop = true;
+        s.playOnAwake = false;
+        s.spatialBlend = 0f;
+        return s;
+    }
+
+    // ---- 엔딩 소리: 반복 소리 세 개의 크기(0~1)를 매 프레임 정해 준다 ----
+    public void EndingAmbience(float wind, float rumble, float drone)
+    {
+        SetLoop(windSrc, "wind", wind);
+        SetLoop(rumbleSrc, "rumble", rumble);
+        SetLoop(droneSrc, "drone", drone);
+    }
+
+    public void StopEndingAmbience() { EndingAmbience(0f, 0f, 0f); }
+
+    void SetLoop(AudioSource src, string key, float v)
+    {
+        if (!cfg.soundOn || v < 0.01f)
+        {
+            if (src.isPlaying) src.Stop();
+            return;
+        }
+        if (src.clip == null) src.clip = Pick(key, null);
+        if (src.clip == null) return;
+        if (!src.isPlaying) src.Play();
+        src.volume = v * cfg.masterVolume;
+    }
+
+    public void PlayScream(bool male) { Play(male ? "screamM" : "screamF", null, 0.9f); }
+    public void PlayWingsOpen() { Play("whir", null, 0.9f); Play("build", null, 0.8f); }
 
     // 엔진: 기어 0(정차)~6 루프를 속도 구간(초속 5씩)마다 갈아 끼우고, 한 기어 안에서는 음이 4반음쯤 오른다.
     // 기어가 오르내릴 때 변속음. 파일이 없으면 false.
@@ -266,6 +305,8 @@ public class AudioManager
         }
     }
 
+    public void StopSpeech() { babbles.Clear(); }
+
     void TickBabble()
     {
         int played = 0;
@@ -384,6 +425,7 @@ public class AudioManager
         TickBabble();
         float dt = Time.unscaledDeltaTime;
         var want = LoadTrack(track);
+        if (track < 0) musicFade = Mathf.MoveTowards(musicFade, 0f, dt / 0.4f);        // 음악 없는 장면(엔딩): 빠르게 끈다
         if (want != null)
         {
             // 곡이 바뀌면 0.8초에 걸쳐 줄였다가 새 곡을 처음부터 틀고 다시 키운다

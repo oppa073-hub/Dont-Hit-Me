@@ -33,6 +33,21 @@ public static class CarArt
         return Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0f), t.width / CarWidth, 0, SpriteMeshType.FullRect);
     }
 
+    static Sprite ambulance;
+    static bool ambulanceTried;
+
+    /// <summary>룸미러에 비치는 구급차 앞모습(흰색으로 칠한 차 그림). 없으면 null.</summary>
+    public static Sprite AmbulanceFront()
+    {
+        if (!ambulanceTried)
+        {
+            ambulanceTried = true;
+            var t = Resources.Load<Texture2D>("Cars/amb_front");
+            if (t != null) ambulance = Make(t);
+        }
+        return ambulance;
+    }
+
     public static bool Available { get { Load(); return rear.Count > 0; } }
 
     /// <summary>무작위 차 하나의 (뒷모습, 앞모습) 번호. 없으면 -1.</summary>

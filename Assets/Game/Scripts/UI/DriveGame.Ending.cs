@@ -13,7 +13,8 @@ public partial class DriveGame
 
     float endT, edScroll, edRocketT, edU, edVw;
     Vector2 edOff;                                  // 화면 흔들림 (논리 좌표)
-    bool edLaunched, edLanded;
+    bool edLaunched, edLanded, edWingsSound;
+    int edLineIdx;
     Color edSkin = new Color(0.96f, 0.8f, 0.66f), edHair = new Color(0.15f, 0.1f, 0.08f);
     string edName = "손님";
 
@@ -32,7 +33,8 @@ public partial class DriveGame
         endT = 0f;
         edScroll = 0f;
         edRocketT = 0f;
-        edLaunched = edLanded = false;
+        edLaunched = edLanded = edWingsSound = false;
+        edLineIdx = -1;
         edOff = Vector2.zero;
         if (taxi.Pax != null)
         {
@@ -70,27 +72,40 @@ public partial class DriveGame
         endT += dt;
         float L = endingLaunchAt, A = endingLandAt;
 
+        if (!edWingsSound && endT >= L - 1.7f)
+        {
+            edWingsSound = true;
+            sound.PlayWingsOpen();                 // 날개가 철컹 펴지는 소리와 점점 커지는 휘이잉
+        }
         if (!edLaunched && endT >= L)
         {
             edLaunched = true;
             sound.PlayRocket();
-            sound.PlayRoar();
+            sound.PlayStomp(1f);                   // 쾅 하고 발사
         }
         if (!edLanded && endT >= A)
         {
             edLanded = true;
-            sound.PlayArrive();
-            sound.PlayBonk();
+            sound.PlayStomp(0.6f);                 // 달에 사뿐히(쿵)
+            sound.PlayChime();
         }
-        if (edLaunched && !edLanded)
+
+        // 손님의 말: 소리치는 대사(!!)는 비명, 나머지는 웅얼
+        var lt = StoryCatalog.EndingTimes;
+        while (edLineIdx + 1 < lt.Length && endT >= lt[edLineIdx + 1])
         {
-            edRocketT -= dt;
-            if (edRocketT <= 0f)
-            {
-                edRocketT = 1.3f;
-                sound.PlayNearMiss();
-            }
+            edLineIdx++;
+            string line = StoryCatalog.EndingTexts[edLineIdx];
+            if (line.Contains("!!") || line.Contains("아아")) sound.PlayScream(taxi.PaxMale);
+            else sound.Speak(line, PaxVoice(), voicePaxVolume);
         }
+
+        // 반복 소리: 발사 전에는 저음 진동이 커지고, 날아가는 동안 바람, 우주로 나가면 바람이 줄고 낮은 울림
+        float space = EndSm(A * 0.55f, A * 0.85f, endT);
+        float windV = EndSpeed() * (1f - space) + (endT >= L ? 0.1f * (1f - space) : 0f);
+        float rumbleV = endT < L ? 0.7f * EndSm(0f, L, endT) : 0.5f * EndSpeed() * (1f - space);
+        float droneV = 0.55f * space * (endT >= A ? 0.6f : 1f);
+        sound.EndingAmbience(windV, rumbleV, droneV);
 
         float sf = EndSpeed();
         edScroll += sf * dt;
@@ -109,6 +124,8 @@ public partial class DriveGame
     // 엔딩이 끝났다: 이번 영업을 결산하고 로비로 돌아간다
     void FinishEnding()
     {
+        sound.StopEndingAmbience();
+        sound.StopSpeech();
         SaveResultOnce();
         EnterLobby();
     }

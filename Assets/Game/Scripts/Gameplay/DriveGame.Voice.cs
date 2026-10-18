@@ -23,7 +23,11 @@ public partial class DriveGame
             lastPaxLine = taxi.PaxLine;
             sound.Speak(taxi.PaxLine, PaxVoice(), voicePaxVolume);
         }
-        else if (taxi.State != TaxiState.Talking) lastPaxLine = "";
+        else if (taxi.State != TaxiState.Talking)
+        {
+            if (lastPaxLine != "") sound.StopSpeech();          // 대화가 끝났는데 인사 소리가 남아 있으면 끊는다
+            lastPaxLine = "";
+        }
         if (taxi.ReactUntil != lastReactUntil)
         {
             lastReactUntil = taxi.ReactUntil;

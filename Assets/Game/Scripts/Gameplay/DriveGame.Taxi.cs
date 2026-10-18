@@ -91,6 +91,7 @@ public partial class DriveGame
     {
         // 하늘을 나는 택시를 산 뒤 첫 일반 손님: 태우는 순간 엔딩이 시작된다
         if (ShouldStartEnding()) { StartEnding(); return; }
+        sound.StopSpeech();                                  // 인사 도중에 태워도 웅얼거림이 이어지지 않게
         sound.PlayDoorOpen();                                // 손님이 타는 소리: 문 열고, 앉고, 닫는다
         sound.PlayLater("doorclose", 0.7f, 0.9f);
         float cruise = Mathf.Min(Mathf.Min(maxSpeed, cruiseCap), baseSpeed + elapsed * speedRamp);
@@ -103,6 +104,7 @@ public partial class DriveGame
 
     void DeclinePassenger()
     {
+        sound.StopSpeech();
         taxi.Decline();
         camYawTarget = 0f;
         camPitchTarget = 0f;

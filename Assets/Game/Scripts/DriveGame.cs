@@ -883,7 +883,7 @@ public partial class DriveGame : MonoBehaviour
         if (cam == null) return;
         sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
         if (!gameOver) sound.StopStinger();
-        sound.TickMusic(weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f, MusicTrack());
+        sound.TickMusic(flow == GameFlow.Ending ? 0f : weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f, MusicTrack());
         Vector3 off = shakeEnabled && Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;
