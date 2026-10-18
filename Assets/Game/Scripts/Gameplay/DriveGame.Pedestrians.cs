@@ -22,7 +22,7 @@ public partial class DriveGame
         sound.PlayBonk();
         taxi.OnPedHit();                      // 손님을 태운 채 사람을 치면 손님이 반응하고 요금이 깎인다
         if (session.RegisterHit())            // 무적이 아니면 목숨이 줄고, 마지막 목숨이면 게임오버
-            Popup(p.survivor ? "생존자를 쳤다!" : "쾅!", new Color(1f, 0.4f, 0.4f));
+            Popup(p.survivor ? Loc.T("생존자를 쳤다!", "You hit a survivor!") : Loc.T("쾅!", "BAM!"), new Color(1f, 0.4f, 0.4f));
     }
 
     float zombieCheerT;
@@ -37,7 +37,7 @@ public partial class DriveGame
         sound.PlaySplat();
         session.AddScore(zombieScore);
         rage.AddBonus(zombieRageGain);
-        Popup("좀비 처치!  +" + zombieScore, new Color(0.55f, 1f, 0.4f));
+        Popup(Loc.T("좀비 처치!  +", "Zombie down!  +") + zombieScore, new Color(0.55f, 1f, 0.4f));
         if (Time.unscaledTime >= zombieCheerT && taxi.State == TaxiState.Carrying)
         {
             zombieCheerT = Time.unscaledTime + 4f;
@@ -50,7 +50,7 @@ public partial class DriveGame
     {
         session.RegisterNearMiss(nearMissBonus);
         sound.PlayNearMiss();
-        Popup("아슬아슬!  +" + nearMissBonus, new Color(0.4f, 1f, 0.6f));
+        Popup(Loc.T("아슬아슬!  +", "Close call!  +") + nearMissBonus, new Color(0.4f, 1f, 0.6f));
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.08f);
         rage.AddNearMiss();                   // 팝업 뒤에 불러야 분노가 발동할 때 RAGE 글자가 가려지지 않는다
     }

@@ -50,11 +50,11 @@ public partial class DriveGame
 
         newsBadgeText = CabinText("NewsBadge", newsRoot, 0.0090f, TextAnchor.MiddleLeft, Color.white);
         newsBadgeText.alignment = TextAlignment.Left;
-        newsBadgeText.text = "시티뉴스  LIVE";
+        newsBadgeText.text = "City News  LIVE";
         newsBodyText = CabinText("NewsBody", newsRoot, 0.0100f, TextAnchor.UpperLeft, Color.white);
         newsBodyText.alignment = TextAlignment.Left;
         newsTickerText = CabinText("NewsTickerText", newsRoot, 0.0072f, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
-        newsTickerText.text = "N 키: 뉴스 건너뛰기";
+        newsTickerText.text = Loc.T("N 키: 뉴스 건너뛰기", "Press N to skip the news");
         newsZzText = CabinText("NewsZz", newsRoot, 0.012f, TextAnchor.MiddleCenter, new Color(0.8f, 0.9f, 1f));
         newsZzText.text = "z Z";
         newsRoot.gameObject.SetActive(false);
@@ -320,7 +320,7 @@ public partial class DriveGame
         float t = newsT;
         float ts = w / 0.26f;                                  // 화면 크기에 비례해 글자 크기도 맞춘다
         newsBadgeText.transform.localScale = Vector3.one * ts;
-        newsBodyText.transform.localScale = Vector3.one * ts;
+        newsBodyText.transform.localScale = Vector3.one * ts * NewsTextK;
         newsTickerText.transform.localScale = Vector3.one * ts;
         newsZzText.transform.localScale = Vector3.one * ts;
         var kit = NewsCatalog.Kit(newsType);
@@ -361,7 +361,7 @@ public partial class DriveGame
         newsHeader.localPosition = new Vector3(0f, hy, -0.004f);
         newsHeader.localScale = new Vector3(w, h * 0.14f, 1f);
         newsBadgeText.transform.localPosition = new Vector3(-w * 0.5f + 0.006f, hy, -0.0045f);
-        string badge = ad ? "광고" : (field ? "현장 연결  LIVE" : (newsOver ? "시티뉴스  사태 종료" : (calm ? "시티뉴스  오늘의 예보" : kit.badge)));
+        string badge = ad ? Loc.T("광고", "AD") : (field ? Loc.T("현장 연결  LIVE", "LIVE REPORT") : (newsOver ? Loc.T("시티뉴스  사태 종료", "City News  Incident Over") : (calm ? Loc.T("시티뉴스  오늘의 예보", "City News  Today's Forecast") : Loc.S(kit.badge))));
         Color bc = ad ? new Color(0.55f, 0.15f, 0.7f) : (field ? new Color(0.9f, 0.5f, 0.1f) : (newsOver ? new Color(0.15f, 0.55f, 0.3f) : (calm ? new Color(0.85f, 0.5f, 0.1f) : kit.badgeColor)));
         if ((kit.blink || beat.kind == 3) && !ad && !calm && !newsOver && Mathf.Repeat(t * 2.6f, 1f) < 0.45f) bc = Color.Lerp(bc, new Color(0.12f, 0.02f, 0.02f), 0.8f);
         SetCol(newsHeader, bc);
@@ -375,7 +375,7 @@ public partial class DriveGame
         if (ti != newsTickIdx)
         {
             newsTickIdx = ti;
-            newsTickerText.text = ti < 0 ? "N 키: 뉴스 건너뛰기" : (ad ? "▶ 광고 문의: 박 택시 (합법 아님)" : NewsCatalog.Tick(newsType, ti));
+            newsTickerText.text = ti < 0 ? Loc.T("N 키: 뉴스 건너뛰기", "Press N to skip the news") : (ad ? Loc.T("▶ 광고 문의: 박 택시 (합법 아님)", "▶ Ad inquiries: Big Apple Taxi (not legal)") : Loc.S(NewsCatalog.Tick(newsType, ti)));
         }
 
         // 앵커 (광고에는 나오지 않는다)
@@ -417,7 +417,7 @@ public partial class DriveGame
             newsEyeR.localScale = new Vector3(ew, eh, 1f);
 
             // 입: 글자가 나오는 동안 벌렸다 닫았다
-            bool talking = newsShownChars < 0 || newsShownChars < StoryCatalog.Wrap(beat.text, 11f).Length;
+            bool talking = newsShownChars < 0 || newsShownChars < StoryCatalog.Wrap(beat.text, NewsEm).Length;
             float open = (talking && Mathf.Sin(t * 18f) > -0.2f) ? h * 0.032f : h * 0.008f;
             if (mood == NewsMood.Panic) open = Mathf.Max(open, h * 0.03f);
             newsMouth.localPosition = new Vector3(cx, headY - h * 0.075f, -0.0055f);
@@ -465,11 +465,11 @@ public partial class DriveGame
             newsBodyText.anchor = ad ? TextAnchor.MiddleCenter : TextAnchor.UpperLeft;
             newsBodyText.alignment = ad ? TextAlignment.Center : TextAlignment.Left;
         }
-        string full = StoryCatalog.Wrap(beat.text, 11f);
+        string full = StoryCatalog.Wrap(beat.text, NewsEm);
         // 글자 판 안에서 세로 가운데에 놓는다 (전체 줄 수로 계산해서, 글자가 한 글자씩 나와도 위치가 흔들리지 않는다)
         int lineCount = 1;
         foreach (char ch in full) if (ch == '\n') lineCount++;
-        newsBodyText.transform.localPosition = ad ? new Vector3(0f, 0f, -0.005f) : new Vector3(-w * 0.075f, lineCount * 0.0125f * ts * 0.5f, -0.005f);
+        newsBodyText.transform.localPosition = ad ? new Vector3(0f, 0f, -0.005f) : new Vector3(-w * 0.075f, lineCount * 0.0125f * ts * NewsTextK * 0.5f, -0.005f);
         int chars = Mathf.Clamp(Mathf.FloorToInt(bt * 24f), 0, full.Length);
         if (chars != newsShownChars)
         {
@@ -488,7 +488,7 @@ public partial class DriveGame
             if (idx != newsSubBeat)
             {
                 newsSubBeat = idx;
-                newsSubSpeaker = beat.kind == 1 ? "[현장 기자]" : (beat.kind == 2 ? "[광고]" : (beat.kind == 3 ? "[긴급 속보]" : (newsOver ? "[후일담]" : "[김 앵커]")));
+                newsSubSpeaker = beat.kind == 1 ? Loc.T("[현장 기자]", "[Field Reporter]") : (beat.kind == 2 ? Loc.T("[광고]", "[Ad]") : (beat.kind == 3 ? Loc.T("[긴급 속보]", "[Breaking News]") : (newsOver ? Loc.T("[후일담]", "[Aftermath]") : Loc.T("[김 앵커]", "[Anchor Dana]"))));
                 newsSubColor = beat.kind == 1 ? new Color(1f, 0.7f, 0.3f) : (beat.kind == 2 ? new Color(1f, 0.5f, 0.85f) : (beat.kind == 3 ? new Color(1f, 0.4f, 0.35f) : new Color(0.7f, 0.9f, 1f)));
             }
             newsSubChars = sc;
@@ -496,15 +496,19 @@ public partial class DriveGame
         }
     }
 
+    // 내비 뉴스 글자 줄바꿈 폭: 영어는 글자가 가늘어서 더 많이 들어가지만 줄 수가 늘지 않게 글자를 조금 줄인다
+    public float NewsEm { get { return Loc.Ko ? 11f : 14.2f; } }
+    public float NewsTextK { get { return Loc.Ko ? 1f : 0.78f; } }
+
     // 앞유리 아래쪽 자막 (IMGUI): 뉴스가 나오는 동안만
     void DrawNewsSubtitle(float W, float H, float u)
     {
         if (!newsActive || !newsShown || newsSubBeat < 0) return;
-        var r = new Rect(W * 0.5f - 250f * u, H * 0.72f, 500f * u, 54f * u);           // 화면 아래쪽(대시보드 바로 위)의 작은 자막: 도로 한복판을 가리지 않고 한눈에 읽힌다
+        var r = new Rect(W * 0.5f - 250f * u, H * 0.70f, 500f * u, 78f * u);           // 화면 아래쪽(대시보드 바로 위)의 작은 자막: 도로 한복판을 가리지 않고 한눈에 읽힌다
         Panel(r, 0.6f);
         Label(new Rect(r.x + 10f * u, r.y + 2f * u, 300f * u, 16f * u), newsSubSpeaker, 13, newsSubColor, TextAnchor.UpperLeft);
         style.wordWrap = true;
-        Label(new Rect(r.x + 10f * u, r.y + 17f * u, r.width - 20f * u, 36f * u), newsSubText, 17, Color.white, TextAnchor.UpperLeft);
+        Label(new Rect(r.x + 10f * u, r.y + 17f * u, r.width - 20f * u, 58f * u), newsSubText, 17, Color.white, TextAnchor.UpperLeft);
         style.wordWrap = false;
     }
 

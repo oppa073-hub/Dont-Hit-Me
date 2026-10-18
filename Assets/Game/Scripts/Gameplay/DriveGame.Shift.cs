@@ -57,12 +57,12 @@ public partial class DriveGame
             if (!lastFareWarned)
             {
                 lastFareWarned = true;
-                Popup("영업 종료 시간! 마지막 손님을 모셔다 드리세요", new Color(1f, 0.8f, 0.4f));
+                Popup(Loc.T("영업 종료 시간! 마지막 손님을 모셔다 드리세요", "Closing time! Deliver your last passenger"), new Color(1f, 0.8f, 0.4f));
             }
             shiftOvertime += dt;
             if (shiftOvertime <= shiftOvertimeMax) return;       // 너무 오래 끌면 그냥 마친다
             if (turning) return;                                 // 교차로를 도는 중이면 다 돌고 나서 마친다
-            Popup("마지막 손님을 못 모셨어요…", new Color(1f, 0.5f, 0.4f));
+            Popup(Loc.T("마지막 손님을 못 모셨어요…", "You didn't make the last delivery…"), new Color(1f, 0.5f, 0.4f));
         }
         else if (turning) return;                                // 월드가 기울어진 채 멈추지 않게, 회전이 끝난 뒤에 마친다
         session.ForceEnd();
@@ -75,7 +75,7 @@ public partial class DriveGame
         if (sec != hudShiftSec)
         {
             hudShiftSec = sec;
-            hudShiftText = shiftLeft > 0f ? "영업 " + (sec / 60) + ":" + (sec % 60).ToString("00") : "마지막 손님";
+            hudShiftText = shiftLeft > 0f ? Loc.T("영업 ", "Shift ") + (sec / 60) + ":" + (sec % 60).ToString("00") : Loc.T("마지막 손님", "Last fare");
         }
         return hudShiftText;
     }

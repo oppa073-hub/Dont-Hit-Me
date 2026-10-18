@@ -22,7 +22,7 @@ public partial class DriveGame
     // 무사고 덕분에 하트가 하나 찼다
     void OnHealed()
     {
-        Popup("체력 회복!  하트 +1", UiGreen);
+        Popup(Loc.T("체력 회복!  하트 +1", "Healed!  Heart +1"), UiGreen);
         sound.PlayChime();
     }
 

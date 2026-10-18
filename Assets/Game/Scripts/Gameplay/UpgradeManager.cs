@@ -12,12 +12,12 @@ public class UpgradeManager
 {
     public static readonly UpgradeDef[] Defs =
     {
-        new UpgradeDef { name = "여분 목숨",   desc = "시작 목숨 +1",              maxLevel = 2, baseCost = 800 },
-        new UpgradeDef { name = "튼튼한 범퍼", desc = "피격 뒤 무적 시간 +0.25초", maxLevel = 4, baseCost = 400 },
-        new UpgradeDef { name = "친절한 미소", desc = "팁 +25%",                   maxLevel = 4, baseCost = 500 },
-        new UpgradeDef { name = "요금 협상",   desc = "요금 +8%",                  maxLevel = 5, baseCost = 600 },
-        new UpgradeDef { name = "시간 여유",   desc = "손님 제한 시간 +3초",       maxLevel = 3, baseCost = 500 },
-        new UpgradeDef { name = "자가 수리",   desc = "체력 회복 15% 빨라짐",      maxLevel = 4, baseCost = 450 },
+        new UpgradeDef { name = "여분 목숨‖Extra Life",   desc = "시작 목숨 +1‖+1 starting life",              maxLevel = 2, baseCost = 800 },
+        new UpgradeDef { name = "튼튼한 범퍼‖Sturdy Bumper", desc = "피격 뒤 무적 시간 +0.25초‖+0.25s invincibility after a hit", maxLevel = 4, baseCost = 400 },
+        new UpgradeDef { name = "친절한 미소‖Friendly Smile", desc = "팁 +25%‖Tips +25%",                   maxLevel = 4, baseCost = 500 },
+        new UpgradeDef { name = "요금 협상‖Fare Haggling",   desc = "요금 +8%‖Fares +8%",                  maxLevel = 5, baseCost = 600 },
+        new UpgradeDef { name = "시간 여유‖Extra Time",   desc = "손님 제한 시간 +3초‖+3s passenger time limit",       maxLevel = 3, baseCost = 500 },
+        new UpgradeDef { name = "자가 수리‖Self-Repair",   desc = "체력 회복 15% 빨라짐‖Healing 15% faster",      maxLevel = 4, baseCost = 450 },
     };
 
     const string CoinsKey = "DontHitMe.Coins";

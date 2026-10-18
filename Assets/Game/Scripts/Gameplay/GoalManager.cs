@@ -21,7 +21,14 @@ public class GoalManager
     }
 
     // 종류별 문구와 목표값 후보(쉬움 → 어려움)
-    static readonly string[] Names = { "손님 {0}명 태우기", "니어미스 {0}번", "레벨 {0} 도달", "무사고 {0}초", "점수 {0}점", "요금 {0}원 벌기" };
+    static readonly string[] Names =
+    {
+        "손님 {0}명 태우기‖Pick up {0} passengers", "니어미스 {0}번‖{0} near misses", "레벨 {0} 도달‖Reach level {0}",
+        "무사고 {0}초‖{0}s without a crash", "점수 {0}점‖Score {0} points", "요금 {0} 벌기‖Earn {0} in fares"
+    };
+
+    /// <summary>언어를 바꿨다: 목표 글자를 다시 만든다.</summary>
+    public void Refresh() { foreach (var g in goals) if (g != null) g.lastShown = -1; }
     static readonly int[][] Targets =
     {
         new[] { 3, 4, 5 }, new[] { 8, 12, 18 }, new[] { 4, 5, 6 }, new[] { 45, 60, 90 }, new[] { 1000, 2000, 3000 }, new[] { 10000, 18000, 28000 }
@@ -99,7 +106,7 @@ public class GoalManager
 
     void Refresh(Goal g, int cur)
     {
-        string name = string.Format(Names[g.kind], g.target);
+        string name = string.Format(Loc.S(Names[g.kind]), g.kind == 5 ? Loc.Money(g.target) : g.target.ToString());
         if (g.doneToday) g.Line = "● " + name;
         else g.Line = "○ " + name + "  (" + Mathf.Min(cur, g.target) + "/" + g.target + ")   +" + g.reward;
         g.lastShown = cur;

@@ -16,10 +16,10 @@ public class ProjectManager
 
     public static readonly ProjectDef[] Defs =
     {
-        new ProjectDef { name = "차고 증축 + 네온간판",   desc = "차고를 넓힌다  —  모든 업그레이드 20% 할인",                       cost = 4000 },
-        new ProjectDef { name = "황금 도색 + 언더네온",     desc = "눈이 부신 전설의 택시  —  분노 1.5배 오래, 요금 +10%",              cost = 9000 },
-        new ProjectDef { name = "지붕 양옆 미니건",         desc = "분노 폭발 때 튀어나와 앞을 쓸어버린다 (괴수, 히어로, 손님은 제외)", cost = 24000 },
-        new ProjectDef { name = "하늘을 나는 택시",         desc = "모든 기사의 꿈  —  분노 충전 1.5배, 요금 +15%, 엔딩",              cost = 60000 },
+        new ProjectDef { name = "차고 증축 + 네온간판‖Garage Expansion + Neon Sign",   desc = "차고를 넓힌다  —  모든 업그레이드 20% 할인‖Expand the garage — all upgrades 20% off",                       cost = 4000 },
+        new ProjectDef { name = "황금 도색 + 언더네온‖Gold Paint + Underglow",     desc = "눈이 부신 전설의 택시  —  분노 1.5배 오래, 요금 +10%‖A dazzling legendary cab — rage lasts 1.5x longer, fares +10%",              cost = 9000 },
+        new ProjectDef { name = "지붕 양옆 미니건‖Roof Miniguns",         desc = "분노 폭발 때 튀어나와 앞을 쓸어버린다 (괴수, 히어로, 손님은 제외)‖Pop out during Rage and mow down everything ahead (monsters, heroes and passengers excluded)", cost = 24000 },
+        new ProjectDef { name = "하늘을 나는 택시‖The Flying Taxi",         desc = "모든 기사의 꿈  —  분노 충전 1.5배, 요금 +15%, 엔딩‖Every driver's dream — rage charges 1.5x faster, fares +15%, ending",              cost = 60000 },
     };
 
     const string Key = "DontHitMe.Proj.";

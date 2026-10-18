@@ -47,7 +47,7 @@ public partial class DriveGame
     void OnLevelChanged(int lv)
     {
         ApplyDifficulty();
-        Popup("레벨 " + lv + " 상승!", new Color(1f, 0.9f, 0.3f));
+        Popup(Loc.T("레벨 " + lv + " 상승!", "Level " + lv + "!"), new Color(1f, 0.9f, 0.3f));
         sound.PlayChime();
     }
 
@@ -67,7 +67,7 @@ public partial class DriveGame
             // 콘은 목숨은 안 깎고 속도만 잃는다
             speed *= 0.6f;
             shakeUntil = Time.unscaledTime + 0.2f;
-            Popup("덜컹!", new Color(1f, 0.7f, 0.3f));
+            Popup(Loc.T("덜컹!", "Bump!"), new Color(1f, 0.7f, 0.3f));
             return;
         }
         if (o.kind == TrafficManager.Pig)
@@ -79,14 +79,14 @@ public partial class DriveGame
             sound.PlayOink();
             AddMud();
             taxi.OnPedHit();
-            Popup("꿀꿀!  돼지를 쳤다", new Color(1f, 0.65f, 0.75f));
+            Popup(Loc.T("꿀꿀!  돼지를 쳤다", "Oink!  You hit a pig"), new Color(1f, 0.65f, 0.75f));
             return;
         }
         speed *= o.kind == TrafficManager.Kaiju ? 0.2f : (o.kind == TrafficManager.Flame ? 0.5f : hitSpeedFactor);
         hitStopUntil = Time.unscaledTime + hitStop;
         shakeUntil = Time.unscaledTime + (o.kind == TrafficManager.Kaiju ? 0.6f : 0.3f);
         taxi.OnPedHit();                      // 손님을 태운 채 사고가 나면 손님이 반응하고 요금이 깎인다
-        string what = o.kind == TrafficManager.Kaiju ? "괴수의 불길!" : (o.kind == TrafficManager.Flame ? "레이저 불길!" : "충돌!");
+        string what = o.kind == TrafficManager.Kaiju ? Loc.T("괴수의 불길!", "Monster fire!") : (o.kind == TrafficManager.Flame ? Loc.T("레이저 불길!", "Laser fire!") : Loc.T("충돌!", "Crash!"));
         if (session.RegisterHit())
             Popup(what, new Color(1f, 0.4f, 0.4f));
     }
@@ -96,7 +96,7 @@ public partial class DriveGame
     {
         session.RegisterNearMiss(vehicleNearMissBonus);
         sound.PlayNearMiss();
-        Popup("스치듯 통과!  +" + vehicleNearMissBonus, new Color(0.4f, 1f, 0.6f));
+        Popup(Loc.T("스치듯 통과!  +", "Squeaked by!  +") + vehicleNearMissBonus, new Color(0.4f, 1f, 0.6f));
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.06f);
         rage.AddNearMiss();
     }

@@ -67,7 +67,7 @@ public partial class DriveGame
     void OnGoalCompleted(GoalManager.Goal g)
     {
         upgrades.AddCoins(g.reward);
-        Popup("목표 달성!  +" + g.reward + " 코인", new Color(1f, 0.9f, 0.3f));
+        Popup(Loc.T("목표 달성!  +" + g.reward + " 코인", "Goal complete!  +" + g.reward + " coins"), new Color(1f, 0.9f, 0.3f));
         sound.PlayArrive();
     }
 
@@ -76,8 +76,8 @@ public partial class DriveGame
     {
         int earned = RunIncome() / 10 + nearMisses * 5;
         upgrades.AddCoins(earned);
-        return "획득 코인 +" + earned + "   보유 " + upgrades.Coins + NL
-             + "오늘의 목표 " + goals.DoneTodayCount + "/" + goals.Count + " 달성";
+        return Loc.T("획득 코인 +" + earned + "   보유 " + upgrades.Coins + NL + "오늘의 목표 " + goals.DoneTodayCount + "/" + goals.Count + " 달성",
+                     "Coins earned +" + earned + "   Total " + upgrades.Coins + NL + "Goals completed " + goals.DoneTodayCount + "/" + goals.Count);
     }
 
     // ---- 상점 ----
@@ -91,24 +91,24 @@ public partial class DriveGame
 
     void RefreshShop()
     {
-        shopCoinsText = "보유 코인  " + upgrades.Coins;
-        shopTitleText = shopCoinsText + "      O  설정";
+        shopCoinsText = Loc.T("보유 코인  ", "Coins  ") + upgrades.Coins;
+        shopTitleText = shopCoinsText + Loc.T("      O  설정", "      O  Settings");
         lobbyDayText = "Day " + dayEvents.Day;
-        lobbyProjText = "택시 개조  " + projects.DoneCount + " / " + projects.Count;
-        lobbyHeatText = "도시 위험도  " + HeatStars(HeatFor(dayEvents.Day)) + (HeatFor(dayEvents.Day) > 0 ? "   (요금 +" + Mathf.RoundToInt(heatFareBonus * 100f * HeatFor(dayEvents.Day)) + "%)" : "");
+        lobbyProjText = Loc.T("택시 개조  ", "Taxi mods  ") + projects.DoneCount + " / " + projects.Count;
+        lobbyHeatText = Loc.T("도시 위험도  ", "City danger  ") + HeatStars(HeatFor(dayEvents.Day)) + (HeatFor(dayEvents.Day) > 0 ? Loc.T("   (요금 +", "   (fares +") + Mathf.RoundToInt(heatFareBonus * 100f * HeatFor(dayEvents.Day)) + "%)" : "");
         if (shopLines.Length != upgrades.Count) shopLines = new string[upgrades.Count];
         for (int i = 0; i < upgrades.Count; i++)
         {
             var d = UpgradeManager.Defs[i];
-            string cost = upgrades.IsMax(i) ? "최고 단계" : "비용 " + upgrades.Cost(i);
-            shopLines[i] = "[" + (i + 1) + "] " + d.name + "  Lv " + upgrades.Level(i) + "/" + d.maxLevel + "   " + d.desc + "   " + cost;
+            string cost = upgrades.IsMax(i) ? Loc.T("최고 단계", "MAX") : Loc.T("비용 ", "Cost ") + upgrades.Cost(i);
+            shopLines[i] = "[" + (i + 1) + "] " + Loc.S(d.name) + "  Lv " + upgrades.Level(i) + "/" + d.maxLevel + "   " + Loc.S(d.desc) + "   " + cost;
         }
         for (int i = 0; i < projects.Count; i++)
         {
             var p = ProjectManager.Defs[i];
-            string status = projects.Done(i) ? "완료" : (!projects.Unlocked(i) ? "잠김" : p.cost.ToString("N0") + " 코인");
-            shopProjNames[i] = "[" + (i + 1) + "] " + p.name + "      " + status;
-            shopProjDescs[i] = p.desc;
+            string status = projects.Done(i) ? Loc.T("완료", "Done") : (!projects.Unlocked(i) ? Loc.T("잠김", "Locked") : p.cost.ToString("N0") + Loc.T(" 코인", " coins"));
+            shopProjNames[i] = "[" + (i + 1) + "] " + Loc.S(p.name) + "      " + status;
+            shopProjDescs[i] = Loc.S(p.desc);
         }
     }
 
@@ -125,9 +125,9 @@ public partial class DriveGame
             for (int i = 0; i < upgrades.Count && i < ShopKeys.Length; i++)
             {
                 if (!kb[ShopKeys[i]].wasPressedThisFrame) continue;
-                if (upgrades.IsMax(i)) shopMsg = "이미 최고 단계입니다";
-                else if (upgrades.TryBuy(i)) shopMsg = UpgradeManager.Defs[i].name + " 구매!";
-                else shopMsg = "코인이 모자랍니다";
+                if (upgrades.IsMax(i)) shopMsg = Loc.T("이미 최고 단계입니다", "Already at max level");
+                else if (upgrades.TryBuy(i)) shopMsg = Loc.T(Loc.S(UpgradeManager.Defs[i].name) + " 구매!", "Purchased: " + Loc.S(UpgradeManager.Defs[i].name) + "!");
+                else shopMsg = Loc.T("코인이 모자랍니다", "Not enough coins");
                 shopMsgUntil = Time.unscaledTime + 1.5f;
                 RefreshShop();
             }
@@ -137,8 +137,8 @@ public partial class DriveGame
             for (int i = 0; i < projects.Count && i < ShopKeys.Length; i++)
             {
                 if (!kb[ShopKeys[i]].wasPressedThisFrame) continue;
-                if (projects.Done(i)) shopMsg = "이미 개조를 마쳤습니다";
-                else if (!projects.Unlocked(i)) shopMsg = "앞 단계 개조를 먼저 마쳐야 합니다";
+                if (projects.Done(i)) shopMsg = Loc.T("이미 개조를 마쳤습니다", "Already installed");
+                else if (!projects.Unlocked(i)) shopMsg = Loc.T("앞 단계 개조를 먼저 마쳐야 합니다", "Finish the previous mod first");
                 else if (projects.Buy(i, upgrades))
                 {
                     // 개조 완료: 효과를 적용하고 정비사의 대사를 듣는다 (마지막 개조면 엔딩)
@@ -148,7 +148,7 @@ public partial class DriveGame
                     StartProjectDialogue(i);
                     return;
                 }
-                else shopMsg = "코인이 모자랍니다";
+                else shopMsg = Loc.T("코인이 모자랍니다", "Not enough coins");
                 shopMsgUntil = Time.unscaledTime + 1.5f;
                 RefreshShop();
             }

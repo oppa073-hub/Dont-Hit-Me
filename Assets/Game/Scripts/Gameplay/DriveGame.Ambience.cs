@@ -19,7 +19,9 @@ public partial class DriveGame
     const string SetKey = "DontHitMe.Set.";
     GameFlow settingsReturn = GameFlow.Title;         // 설정을 닫으면 돌아갈 화면
     int settingsSel;
-    string[] settingsLines = new string[6];
+    string[] settingsLines = new string[9];
+    bool settingsKeys;                                // true 면 조작 키 설정 쪽
+    int settingsKeyWait = -1;                         // 키를 바꾸는 중이면 그 동작 번호 (다음에 누른 키가 들어간다)
 
     void CreateAmbience()
     {
@@ -158,11 +160,15 @@ public partial class DriveGame
     }
 
     // ---- 설정 ----
+    // 로비에서 비서에게 말을 걸면 열린다. 언어, 소리(전체/음악/효과음/엔진), 화면, 튜토리얼, 조작 키.
 
     void LoadSettings()
     {
+        Loc.Load();
+        Keybinds.Load();
         masterVolume = PlayerPrefs.GetFloat(SetKey + "Master", masterVolume);
         bgmVolume = PlayerPrefs.GetFloat(SetKey + "Music", bgmVolume);
+        sfxVolume = PlayerPrefs.GetFloat(SetKey + "Sfx", sfxVolume);
         engineVolume = PlayerPrefs.GetFloat(SetKey + "Engine", engineVolume);
         shakeEnabled = PlayerPrefs.GetInt(SetKey + "Shake", shakeEnabled ? 1 : 0) == 1;
         weatherOn = PlayerPrefs.GetInt(SetKey + "Weather", weatherOn ? 1 : 0) == 1;
@@ -172,6 +178,7 @@ public partial class DriveGame
     {
         PlayerPrefs.SetFloat(SetKey + "Master", masterVolume);
         PlayerPrefs.SetFloat(SetKey + "Music", bgmVolume);
+        PlayerPrefs.SetFloat(SetKey + "Sfx", sfxVolume);
         PlayerPrefs.SetFloat(SetKey + "Engine", engineVolume);
         PlayerPrefs.SetInt(SetKey + "Shake", shakeEnabled ? 1 : 0);
         PlayerPrefs.SetInt(SetKey + "Weather", weatherOn ? 1 : 0);
@@ -184,42 +191,91 @@ public partial class DriveGame
         return name + "   [" + new string('|', k) + new string('.', 10 - k) + "] " + (k * 10) + "%";
     }
 
-    static string OnOff(string name, bool on) { return name + "   " + (on ? "켜짐" : "꺼짐"); }
+    static string OnOff(string name, bool on) { return name + "   " + (on ? Loc.T("켜짐", "On") : Loc.T("꺼짐", "Off")); }
 
     void RefreshSettings()
     {
-        settingsLines[0] = VolumeText("마스터 볼륨", masterVolume);
-        settingsLines[1] = VolumeText("음악 볼륨", bgmVolume);
-        settingsLines[2] = VolumeText("엔진 소리", engineVolume);
-        settingsLines[3] = OnOff("화면 흔들림", shakeEnabled);
-        settingsLines[4] = OnOff("낮/밤, 비 효과", weatherOn);
-        settingsLines[5] = OnOff("튜토리얼 안내", tutorial.Enabled);
+        if (settingsKeys)
+        {
+            if (settingsLines.Length != Keybinds.Count + 2) settingsLines = new string[Keybinds.Count + 2];
+            for (int i = 0; i < Keybinds.Count; i++)
+                settingsLines[i] = Keybinds.ActionName(i) + "   [ " + (settingsKeyWait == i ? Loc.T("키를 누르세요…", "press a key…") : Keybinds.KeyName(Keybinds.Map[i])) + " ]";
+            settingsLines[Keybinds.Count] = Loc.T("기본값으로 되돌리기", "Reset to defaults");
+            settingsLines[Keybinds.Count + 1] = Loc.T("뒤로", "Back");
+            return;
+        }
+        if (settingsLines.Length != 9) settingsLines = new string[9];
+        settingsLines[0] = Loc.T("언어   ", "Language   ") + (Loc.Ko ? "한국어" : "English");
+        settingsLines[1] = VolumeText(Loc.T("전체 볼륨", "Master volume"), masterVolume);
+        settingsLines[2] = VolumeText(Loc.T("노래 (음악)", "Music"), bgmVolume);
+        settingsLines[3] = VolumeText(Loc.T("효과음", "Sound effects"), sfxVolume);
+        settingsLines[4] = VolumeText(Loc.T("엔진 소리", "Engine sound"), engineVolume);
+        settingsLines[5] = OnOff(Loc.T("화면 흔들림", "Screen shake"), shakeEnabled);
+        settingsLines[6] = OnOff(Loc.T("낮/밤, 비 효과", "Day/night & rain"), weatherOn);
+        settingsLines[7] = OnOff(Loc.T("튜토리얼 안내", "Tutorial tips"), tutorial.Enabled);
+        settingsLines[8] = Loc.T("조작 키 설정  >", "Key bindings  >");
     }
 
     void OpenSettings(GameFlow back)
     {
         settingsReturn = back;
         settingsSel = 0;
+        settingsKeys = false;
+        settingsKeyWait = -1;
         flow = GameFlow.Settings;
         RefreshSettings();
     }
 
     static float StepVolume(float v, int dir) { return Mathf.Clamp01(Mathf.Round((v + dir * 0.1f) * 10f) / 10f); }
 
+    // 언어를 바꿨다: 글자를 미리 만들어 두는 곳(상점, 로비, 목표, HUD 등)을 새로 만든다
+    void OnLanguageChanged()
+    {
+        RefreshShop();
+        RefreshModeText();
+        goals.Refresh();
+        hudRem = hudFareNow = hudTimeLeft = hudTip = -99999;          // 탑승 정보를 다시 만든다
+        hudPaxName = hudDestName = null;
+        hintF = int.MinValue;
+        hudInterDist = int.MinValue;
+        navHead = -1;
+        navRem = -2;
+        hudKmh = -1; hudLevel = -1; hudNear = -1; hudHits = -1; hudTotal = -1; hudFareTotal = -1;
+        hudLives = -999;
+        lobbyModeCached = null;
+    }
+
     void AdjustSetting(int i, int dir)
     {
+        if (settingsKeys)
+        {
+            if (i < Keybinds.Count) settingsKeyWait = i;                           // 다음에 누르는 키를 받는다
+            else if (i == Keybinds.Count) Keybinds.ResetAll();
+            else { settingsKeys = false; settingsSel = 8; }
+            RefreshSettings();
+            return;
+        }
         switch (i)
         {
-            case 0: masterVolume = StepVolume(masterVolume, dir); break;
-            case 1: bgmVolume = StepVolume(bgmVolume, dir); break;
-            case 2: engineVolume = StepVolume(engineVolume, dir); break;
-            case 3: shakeEnabled = !shakeEnabled; break;
-            case 4:
+            case 0:
+                Loc.Set(Loc.Ko ? 0 : 1);
+                OnLanguageChanged();
+                break;
+            case 1: masterVolume = StepVolume(masterVolume, dir); break;
+            case 2: bgmVolume = StepVolume(bgmVolume, dir); break;
+            case 3: sfxVolume = StepVolume(sfxVolume, dir); break;
+            case 4: engineVolume = StepVolume(engineVolume, dir); break;
+            case 5: shakeEnabled = !shakeEnabled; break;
+            case 6:
                 weatherOn = !weatherOn;
                 weather.Tick(0f);
                 ApplyWeather();
                 break;
-            default: tutorial.SetEnabled(!tutorial.Enabled); break;
+            case 7: tutorial.SetEnabled(!tutorial.Enabled); break;
+            default:
+                settingsKeys = true;
+                settingsSel = 0;
+                break;
         }
         SaveSettings();
         RefreshSettings();
@@ -227,6 +283,20 @@ public partial class DriveGame
 
     void UpdateSettings(Keyboard kb)
     {
+        // 키를 바꾸는 중: 다음에 눌린 키를 받는다 (Esc 는 취소)
+        if (settingsKeys && settingsKeyWait >= 0)
+        {
+            if (kb.escapeKey.wasPressedThisFrame) { settingsKeyWait = -1; RefreshSettings(); return; }
+            foreach (var kc in kb.allKeys)
+            {
+                if (!kc.wasPressedThisFrame || kc.keyCode == Key.None || kc.keyCode == Key.IMESelected) continue;
+                Keybinds.Rebind(settingsKeyWait, kc.keyCode);
+                settingsKeyWait = -1;
+                RefreshSettings();
+                return;
+            }
+            return;
+        }
         int n = settingsLines.Length;
         if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame) settingsSel = (settingsSel + n - 1) % n;
         if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame) settingsSel = (settingsSel + 1) % n;
@@ -234,6 +304,9 @@ public partial class DriveGame
         if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
             AdjustSetting(settingsSel, 1);
         if (kb.escapeKey.wasPressedThisFrame || kb.oKey.wasPressedThisFrame || kb.backspaceKey.wasPressedThisFrame)
-            flow = settingsReturn;
+        {
+            if (settingsKeys) { settingsKeys = false; settingsSel = 8; RefreshSettings(); }
+            else flow = settingsReturn;
+        }
     }
 }

@@ -70,24 +70,24 @@ public partial class DriveGame
         switch (t)
         {
             case EncounterType.Blackout:
-                dayEvents.RaiseAlert("정전! 도시가 암흑에 빠졌습니다 — 헤드라이트에 의지하세요!", 5f);
+                dayEvents.RaiseAlert(Loc.T("정전! 도시가 암흑에 빠졌습니다 — 헤드라이트에 의지하세요!", "Blackout! The city goes dark — rely on your headlights!"), 5f);
                 sound.PlayPowerDown();
                 break;
             case EncounterType.Fans:
-                dayEvents.RaiseAlert("연예인 출몰! 팬들이 차 앞으로 몰려듭니다!", 5f);
+                dayEvents.RaiseAlert(Loc.T("연예인 출몰! 팬들이 차 앞으로 몰려듭니다!", "Celebrity sighting! Fans are rushing your car!"), 5f);
                 sound.PlayAlarm();
                 break;
             case EncounterType.Pigs:
-                dayEvents.RaiseAlert("트럭 전복! 돼지 떼가 도로를 건넙니다!", 5f);
+                dayEvents.RaiseAlert(Loc.T("트럭 전복! 돼지 떼가 도로를 건넙니다!", "Truck overturned! A herd of pigs is crossing the road!"), 5f);
                 sound.PlayOink();
                 break;
             case EncounterType.Emergency:
-                dayEvents.RaiseAlert("구급차가 뒤에서 달려옵니다! 길을 비켜 주세요! (A / D)", 5f);
+                dayEvents.RaiseAlert(Loc.T("구급차가 뒤에서 달려옵니다! 길을 비켜 주세요! (A / D)", "Ambulance coming from behind! Make way! (steer aside)"), 5f);
                 traffic.SpawnAmbulance(carX, speed);
                 sirenWailT = 0f;
                 break;
             case EncounterType.Rival:
-                dayEvents.RaiseAlert("라이벌 택시 출현! 손님을 뺏긴다 — 박치기로 때려서 쫓아내세요!", 5f);
+                dayEvents.RaiseAlert(Loc.T("라이벌 택시 출현! 손님을 뺏긴다 — 박치기로 때려서 쫓아내세요!", "Rival cab! It's stealing your fares — ram it to drive it off!"), 5f);
                 traffic.SpawnRival(taxi.Caller);
                 sound.PlayAlarm();
                 break;
@@ -102,7 +102,7 @@ public partial class DriveGame
         session.ExtendInvuln(0.9f);                           // 넉백 동안 잠깐 무적
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.3f);
         sound.PlayCrash();
-        Popup("박치기!  라이벌 체력 " + hpLeft, UiGold);
+        Popup(Loc.T("박치기!  라이벌 체력 ", "Ram!  Rival HP ") + hpLeft, UiGold);
     }
 
     // 라이벌 택시를 격파했다: 정상 손님 요금의 절반쯤을 받는다
@@ -116,14 +116,14 @@ public partial class DriveGame
         session.ExtendInvuln(0.9f);
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.3f);
         sound.PlayArrive();
-        Popup("라이벌 택시 격파!  +" + reward + "원", UiGold);
+        Popup(Loc.T("라이벌 택시 격파!  +", "Rival cab destroyed!  +") + Loc.Money(reward), UiGold);
     }
 
     // 라이벌 택시가 손님을 태웠다
     void OnRivalArrived(PedestrianManager.Ped p)
     {
         if (!taxi.StealCaller(p)) return;
-        Popup("라이벌 택시가 손님을 가로챘다!", new Color(1f, 0.5f, 0.4f));
+        Popup(Loc.T("라이벌 택시가 손님을 가로챘다!", "The rival cab stole your fare!"), new Color(1f, 0.5f, 0.4f));
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.2f);
         sound.PlayBonk();
     }
@@ -135,7 +135,7 @@ public partial class DriveGame
         {
             session.AddScore(100);
             rage.AddNearMiss();
-            Popup("양보 성공!  +100", UiGreen);
+            Popup(Loc.T("양보 성공!  +100", "Yielded!  +100"), UiGreen);
             sound.PlayChime();
             return;
         }
@@ -149,7 +149,7 @@ public partial class DriveGame
         speed *= 0.4f;
         hitStopUntil = Time.unscaledTime + hitStop;
         taxi.OnPedHit();
-        if (session.RegisterHit()) Popup("구급차를 막았다!  들이받혔다", UiRed);
+        if (session.RegisterHit()) Popup(Loc.T("구급차를 막았다!  들이받혔다", "You blocked the ambulance!  Rammed!"), UiRed);
     }
 
     // 폭탄 손님의 폭탄이 터졌다 (속도가 너무 오래 느렸다)

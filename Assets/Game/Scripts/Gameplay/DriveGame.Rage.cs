@@ -27,7 +27,7 @@ public partial class DriveGame
 
     void OnRageStarted()
     {
-        Popup(gunsOwned ? "분노 폭발!  미니건 전개!" : "분노 폭발!  무적 + 가속", new Color(1f, 0.3f, 0.2f));
+        Popup(gunsOwned ? Loc.T("분노 폭발!  미니건 전개!", "RAGE!  Miniguns out!") : Loc.T("분노 폭발!  무적 + 가속", "RAGE!  Invincible + speed"), new Color(1f, 0.3f, 0.2f));
         gunKills = 0;
         gunScoreSum = 0;
         if (gunsOwned) taxi.Say(StoryCatalog.GunPassengerLine(), 2.6f);
@@ -37,8 +37,8 @@ public partial class DriveGame
 
     void OnRageEnded()
     {
-        if (gunsOwned && gunKills > 0) Popup("난사 " + gunKills + "마리 처치!  +" + gunScoreSum, UiGold);
-        else Popup("분노가 가라앉았다", new Color(0.9f, 0.9f, 0.9f));
+        if (gunsOwned && gunKills > 0) Popup(Loc.T("난사 " + gunKills + "마리 처치!  +" + gunScoreSum, "Mowed down " + gunKills + "!  +" + gunScoreSum), UiGold);
+        else Popup(Loc.T("분노가 가라앉았다", "Rage subsided"), new Color(0.9f, 0.9f, 0.9f));
         session.ExtendInvuln(0.6f);                 // 겹친 채 끝나도 바로 다치지 않게 잠깐 더 무적
         StartBloodWipe();                           // 분노 중에 튄 피를 와이퍼가 한 번 닦는다
     }
@@ -49,7 +49,7 @@ public partial class DriveGame
         sound.PlayBonk();
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.15f);
         session.AddScore(rageSmashScore);
-        Popup("박살!  +" + rageSmashScore, new Color(1f, 0.45f, 0.3f));
+        Popup(Loc.T("박살!  +", "SMASH!  +") + rageSmashScore, new Color(1f, 0.45f, 0.3f));
     }
 
     // 팔 색: 게이지가 찰수록 붉어지고, 분노 상태에서는 선명하게 깜빡인다 (매 프레임, 팔이 보일 때)

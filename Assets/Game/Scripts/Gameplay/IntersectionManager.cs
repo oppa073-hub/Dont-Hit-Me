@@ -140,7 +140,7 @@ public class IntersectionManager
                     Gy += DriveGame.HeadY[Heading];
                     if (Blinker != 0)
                     {
-                        Popup("깜빡이를 더 일찍 켜세요", new Color(1f, 0.7f, 0.4f));
+                        Popup(Loc.T("깜빡이를 더 일찍 켜세요", "Signal earlier!"), new Color(1f, 0.7f, 0.4f));
                         Blinker = 0;
                     }
                 }
@@ -160,7 +160,7 @@ public class IntersectionManager
                 TurnInterIdx = kNext * e;                            // 이 교차로의 첫 구간 번호
                 TurnAlpha = 0f;
                 Blinker = 0;
-                Popup(TurnDir < 0 ? "좌회전" : "우회전", new Color(0.6f, 0.9f, 1f));
+                Popup(TurnDir < 0 ? Loc.T("좌회전", "Left turn") : Loc.T("우회전", "Right turn"), new Color(0.6f, 0.9f, 1f));
             }
             return;
         }

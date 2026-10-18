@@ -30,16 +30,16 @@ public partial class DriveGame
             {
                 bool low = taxi.Fuse < 0.35f;
                 Color c = low && Mathf.Repeat(Time.unscaledTime, 0.3f) < 0.15f ? Color.white : new Color(1f, 0.3f, 0.2f);
-                QuirkBar(r, taxi.Fuse < 0.9f && speed < bombMinSpeed ? "속도 올려!" : "폭탄", taxi.Fuse, c);
+                QuirkBar(r, taxi.Fuse < 0.9f && speed < bombMinSpeed ? Loc.T("속도 올려!", "Speed up!") : Loc.T("폭탄", "Bomb"), taxi.Fuse, c);
                 break;
             }
             case Quirk.Wedding:
-                QuirkBar(r, "행복도", taxi.Happy, new Color(1f, 0.5f, 0.75f));
+                QuirkBar(r, Loc.T("행복도", "Happiness"), taxi.Happy, new Color(1f, 0.5f, 0.75f));
                 break;
             case Quirk.Alien:
                 r = new Rect(W * 0.5f - 220 * u, y, 440 * u, 28 * u);
                 Panel(r, 0.55f);
-                Label(r, "삐빅… 지구 지도 해독 불가", 17, UiGreen, TextAnchor.MiddleCenter);
+                Label(r, Loc.T("삐빅… 지구 지도 해독 불가", "Beep… cannot read Earth map"), 17, UiGreen, TextAnchor.MiddleCenter);
                 break;
             case Quirk.Racer:
             {
@@ -47,7 +47,7 @@ public partial class DriveGame
                 if (kmh != hudRacerKmh)
                 {
                     hudRacerKmh = kmh;
-                    hudRacerText = "평균 " + kmh + " km/h    빠를수록 요금이 오른다";
+                    hudRacerText = Loc.T("평균 " + kmh + " km/h    빠를수록 요금이 오른다", "Avg " + kmh + " km/h    faster = bigger fare");
                 }
                 r = new Rect(W * 0.5f - 220 * u, y, 440 * u, 28 * u);
                 Panel(r, 0.55f);
@@ -61,7 +61,7 @@ public partial class DriveGame
                 if (!taxi.Grabbed) break;
                 float gw = 460 * u, gh = 30 * u, gx = W * 0.5f - gw * 0.5f, gy = H * 0.60f;
                 float pulse = 1f + 0.05f * Mathf.Sin(Time.unscaledTime * 24f);
-                Label(new Rect(gx, gy - 46 * u, gw, 36 * u), "핸들을 잡혔다!  A  D  연타!!", Mathf.RoundToInt(26 * pulse), UiGold, TextAnchor.MiddleCenter);
+                Label(new Rect(gx, gy - 46 * u, gw, 36 * u), Loc.T("핸들을 잡혔다!  ", "Wheel grabbed!  ") + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerLeft]) + "  " + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerRight]) + Loc.T("  연타!!", "  mash!!"), Mathf.RoundToInt(26 * pulse), UiGold, TextAnchor.MiddleCenter);
                 Panel(new Rect(gx - 8 * u, gy - 8 * u, gw + 16 * u, gh + 16 * u), 0.7f);
                 Fill(new Rect(gx, gy, gw, gh), new Color(0f, 0f, 0f, 0.65f));
                 float half = gw * 0.5f;

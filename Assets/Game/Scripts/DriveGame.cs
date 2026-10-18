@@ -542,6 +542,8 @@ public partial class DriveGame : MonoBehaviour
     public bool soundOn = true;
     [Range(0f, 1f)]
     public float masterVolume = 0.6f;
+    [Tooltip("효과음(소리, 목소리, 비소리) 크기. 설정에서 바꾼다")]
+    public float sfxVolume = 1f;
     [Range(0f, 1f)]
     [Tooltip("엔진 소리 크기. 효과음보다 작게 둔다")]
     public float engineVolume = 0.25f;
@@ -813,8 +815,8 @@ public partial class DriveGame : MonoBehaviour
         {
             session.Tick(Time.deltaTime);                            // 피격 직후 정차해도 붉은 화면이 남지 않게
             bool turned = Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f;
-            if (turned && kb.spaceKey.wasPressedThisFrame) AcceptPassenger();
-            else if (turned && kb.xKey.wasPressedThisFrame && !taxi.HeistLocked) DeclinePassenger();
+            if (turned && (Keybinds.Pressed(kb, Keybinds.Accept) || kb.enterKey.wasPressedThisFrame)) AcceptPassenger();
+            else if (turned && Keybinds.Pressed(kb, Keybinds.Decline) && !taxi.HeistLocked) DeclinePassenger();
             UpdateWorldVisuals();
             return;
         }
@@ -823,14 +825,14 @@ public partial class DriveGame : MonoBehaviour
         elapsed += dt;
 
         // 조향 (관성)
-        float input = (kb.dKey.isPressed || kb.rightArrowKey.isPressed ? 1f : 0f)
-                    - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
+        float input = (Keybinds.Held(kb, Keybinds.SteerRight) || kb.rightArrowKey.isPressed ? 1f : 0f)
+                    - (Keybinds.Held(kb, Keybinds.SteerLeft) || kb.leftArrowKey.isPressed ? 1f : 0f);
         if (taxi.State == TaxiState.Carrying)
         {
             if (taxi.Grabbed)                                                          // 핸들을 잡혔다: A, D 를 번갈아 연타해 게이지를 채운다
             {
-                if (kb.aKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame) taxi.Mash(-1);
-                if (kb.dKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame) taxi.Mash(1);
+                if (Keybinds.Pressed(kb, Keybinds.SteerLeft) || kb.leftArrowKey.wasPressedThisFrame) taxi.Mash(-1);
+                if (Keybinds.Pressed(kb, Keybinds.SteerRight) || kb.rightArrowKey.wasPressedThisFrame) taxi.Mash(1);
             }
             if (taxi.SteerYank != 0) input = taxi.SteerYank;                           // 욱한 손님이 핸들을 확 잡아챈다: 막을 수 없다
             else if (taxi.SteerFlip) input = -input;                                   // 핸들을 쥔 채 반대로 돌린다
@@ -848,7 +850,7 @@ public partial class DriveGame : MonoBehaviour
         steerAngle = Mathf.Lerp(steerAngle, lateralVel / maxLateral * wheelMaxAngle, dt * 10f);
 
         // 속도
-        bool brake = kb.sKey.isPressed || kb.downArrowKey.isPressed;
+        bool brake = Keybinds.Held(kb, Keybinds.Brake) || kb.downArrowKey.isPressed;
         if (brake && !wasBrake && speed > 12f && Time.unscaledTime > screechAt)      // 빠르게 달리다 브레이크를 밟는 순간 타이어 끽
         {
             sound.PlayBrake();
@@ -869,8 +871,8 @@ public partial class DriveGame : MonoBehaviour
         session.AddDistance(dist - prevDist);
 
         // 깜빡이: Q 좌 / E 우 (다시 누르면 해제)
-        if (kb.qKey.wasPressedThisFrame) road.ToggleBlinker(-1);
-        if (kb.eKey.wasPressedThisFrame) road.ToggleBlinker(1);
+        if (Keybinds.Pressed(kb, Keybinds.BlinkLeft)) road.ToggleBlinker(-1);
+        if (Keybinds.Pressed(kb, Keybinds.BlinkRight)) road.ToggleBlinker(1);
 
         session.Tick(dt);
         session.TickHeal(dt);

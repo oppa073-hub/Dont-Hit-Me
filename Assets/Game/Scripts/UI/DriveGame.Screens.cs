@@ -22,7 +22,7 @@ public partial class DriveGame
     {
         float cx = x;
         foreach (var k in keys) cx += KeyCap(cx, y, k, u) + 6 * u;
-        Label(new Rect(cx + 6 * u, y, 260 * u, 28 * u), what, 19, new Color(1f, 1f, 1f, 0.92f), TextAnchor.MiddleLeft);
+        Label(new Rect(cx + 6 * u, y, 290 * u, 28 * u), what, 18, new Color(1f, 1f, 1f, 0.92f), TextAnchor.MiddleLeft);
     }
 
     void DrawTitle(float W, float H, float u)
@@ -43,22 +43,23 @@ public partial class DriveGame
         for (int i = 0; i < 44; i++)                                                                       // 택시 지붕의 체커 무늬
             for (int j = 0; j < 2; j++)
                 Fill(new Rect(cx0 + i * cw, cy + j * cw * 0.6f, cw, cw * 0.6f), ((i + j) & 1) == 0 ? new Color(0.05f, 0.05f, 0.06f, 0.9f) : new Color(UiGold.r, UiGold.g, UiGold.b, 0.9f));
-        Label(new Rect(0, cy + 26 * u, W, 34 * u), "택시 기사가 되어 무단횡단자를 피하며 손님을 모셔다 드리세요", 21, new Color(1f, 1f, 1f, 0.88f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, cy + 26 * u, W, 34 * u), Loc.T("택시 기사가 되어 무단횡단자를 피하며 손님을 모셔다 드리세요", "Be a taxi driver: dodge jaywalkers and get your passengers to their stops"), 21, new Color(1f, 1f, 1f, 0.88f), TextAnchor.MiddleCenter);
 
         // 조작 안내: 키캡으로 세 줄 x 두 칸 (상자는 가운데 하나)
         var cp = new Rect(W * 0.5f - 400 * u, 292 * u, 800 * u, 144 * u);
         Panel(cp, 0.5f);
         float c1 = cp.x + 36 * u, c2 = cp.x + 420 * u, r1 = cp.y + 14 * u, step = 40 * u;
-        ControlRow(c1, r1, new[] { "A", "D" }, "조향", u);
-        ControlRow(c1, r1 + step, new[] { "S" }, "브레이크 (손님 앞에서 멈추기)", u);
-        ControlRow(c1, r1 + step * 2, new[] { "Q", "E" }, "좌 / 우 깜빡이 (교차로 회전)", u);
-        ControlRow(c2, r1, new[] { "Space" }, "손님 태우기", u);
-        ControlRow(c2, r1 + step, new[] { "X" }, "손님 거절", u);
-        ControlRow(c2, r1 + step * 2, new[] { "Esc" }, "일시정지", u);
+        var km = Keybinds.Map;
+        ControlRow(c1, r1, new[] { Keybinds.KeyName(km[Keybinds.SteerLeft]), Keybinds.KeyName(km[Keybinds.SteerRight]) }, Loc.T("조향", "Steer"), u);
+        ControlRow(c1, r1 + step, new[] { Keybinds.KeyName(km[Keybinds.Brake]) }, Loc.T("브레이크 (손님 앞에서 멈추기)", "Brake (stop at the curb)"), u);
+        ControlRow(c1, r1 + step * 2, new[] { Keybinds.KeyName(km[Keybinds.BlinkLeft]), Keybinds.KeyName(km[Keybinds.BlinkRight]) }, Loc.T("좌 / 우 깜빡이 (교차로 회전)", "Left / Right blinker"), u);
+        ControlRow(c2, r1, new[] { Keybinds.KeyName(km[Keybinds.Accept]) }, Loc.T("손님 태우기", "Pick up passenger"), u);
+        ControlRow(c2, r1 + step, new[] { Keybinds.KeyName(km[Keybinds.Decline]) }, Loc.T("손님 거절", "Decline passenger"), u);
+        ControlRow(c2, r1 + step * 2, new[] { "Esc" }, Loc.T("일시정지", "Pause"), u);
 
         // 시작 안내: 상자 없이 큰 글자 하나만, 부드럽게 숨 쉰다
         float breathe = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-        Label(new Rect(0, 486 * u, W, 56 * u), "Space  /  Enter  로비에 입장", 38, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 486 * u, W, 56 * u), Loc.T("Space  /  Enter  로비에 입장", "Space  /  Enter  to start"), 38, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
 
         // 맨 아래: 모드와 코인 한 줄씩, 조용하게
         Label(new Rect(0, H - 76 * u, W, 26 * u), modeText, 17, new Color(UiGold.r, UiGold.g, UiGold.b, 0.85f), TextAnchor.MiddleCenter);
@@ -69,23 +70,23 @@ public partial class DriveGame
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.55f));
         Panel(new Rect(W * 0.5f - 320 * u, H * 0.5f - 184 * u, 640 * u, 288 * u), 0.7f);
-        Label(new Rect(0, H * 0.5f - 170 * u, W, 70 * u), "일시정지", 56, Color.white, TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.5f - 96 * u, W, 34 * u), "Esc 또는 P  계속      R  처음부터 다시      O  설정", 22, UiCyan, TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.5f - 44 * u, W, 26 * u), "오늘의 목표", 19, UiGold, TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.5f - 170 * u, W, 70 * u), Loc.T("일시정지", "Paused"), 56, Color.white, TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.5f - 96 * u, W, 34 * u), Loc.T("Esc 또는 P  계속      R  처음부터 다시      O  설정", "Esc or P  Resume      R  Restart      O  Settings"), 22, UiCyan, TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.5f - 44 * u, W, 26 * u), Loc.T("오늘의 목표", "Today's Goals"), 19, UiGold, TextAnchor.MiddleCenter);
         DrawGoals(0, H * 0.5f - 16 * u, W, u, 17, TextAnchor.UpperCenter);
     }
 
     void DrawGameOver(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.6f));
-        if (timeUp) Label(new Rect(0, H * 0.14f, W, 80 * u), "영업 종료", 62, UiGold, TextAnchor.MiddleCenter);
-        else Label(new Rect(0, H * 0.14f, W, 80 * u), shiftMode ? "사고로 영업 중단" : "게임 오버", 62, UiRed, TextAnchor.MiddleCenter);
+        if (timeUp) Label(new Rect(0, H * 0.14f, W, 80 * u), Loc.T("영업 종료", "Shift Over"), 62, UiGold, TextAnchor.MiddleCenter);
+        else Label(new Rect(0, H * 0.14f, W, 80 * u), shiftMode ? Loc.T("사고로 영업 중단", "Shift Ended by Crash") : Loc.T("게임 오버", "Game Over"), 62, UiRed, TextAnchor.MiddleCenter);
 
         Panel(new Rect(W * 0.5f - 390 * u, H * 0.14f + 96 * u, 780 * u, 290 * u), 0.62f);
         Label(new Rect(W * 0.5f - 370 * u, H * 0.14f + 108 * u, 740 * u, 270 * u), resultText, 24, Color.white, TextAnchor.UpperCenter);
 
         float breathe = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-        Label(new Rect(0, H * 0.84f, W, 40 * u), "R 바로 다시 영업      U 로비로 (사장님께)", 28, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.84f, W, 40 * u), Loc.T("R 바로 다시 영업      U 로비로 (사장님께)", "R  Start another shift      U  Back to the lobby (Boss)"), 28, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
         Label(new Rect(0, H * 0.84f + 42 * u, W, 30 * u), modeText, 17, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
     }
 }

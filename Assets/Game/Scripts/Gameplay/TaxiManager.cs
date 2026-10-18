@@ -161,7 +161,7 @@ public class TaxiManager
         {
             Caller = null;
             ResetCallerTimer();
-            if (State == TaxiState.Cruise) Popup("손님을 놓쳤다", new Color(0.8f, 0.8f, 0.8f));
+            if (State == TaxiState.Cruise) Popup(Loc.T("손님을 놓쳤다", "You missed the fare"), new Color(0.8f, 0.8f, 0.8f));
         }
 
         if (State == TaxiState.Cruise)
@@ -183,7 +183,7 @@ public class TaxiManager
             destRel(DestX, DestY, out int wf, out int wr, out float wsd);
             bool away = wr != 0 || Mathf.Abs(wsd) > Mathf.Max(1f, cfg.arriveRadius) * 2.2f;
             awayT = away ? awayT + dt : 0f;
-            if (away && awayT - dt <= 0f) Popup("자리를 지키세요! 손님이 아직 안 나왔어요", new Color(1f, 0.7f, 0.3f));      // 벗어나는 순간 경고
+            if (away && awayT - dt <= 0f) Popup(Loc.T("자리를 지키세요! 손님이 아직 안 나왔어요", "Stay put! Your passenger isn't out yet"), new Color(1f, 0.7f, 0.3f));      // 벗어나는 순간 경고
             if (!turning && awayT > 1.5f) HeistFail();                                                           // 1.5초 넘게 벗어나 있으면 실패
             else if (WaitT >= cfg.heistWaitSeconds && !turning) BeginHeistReturn(spawnZ);
         }
@@ -194,7 +194,7 @@ public class TaxiManager
             if (!LateWarned && TripT > TripLimit)
             {
                 LateWarned = true;
-                Popup("늦었어요! 요금이 깎입니다", new Color(1f, 0.6f, 0.4f));
+                Popup(Loc.T("늦었어요! 요금이 깎입니다", "Running late! The fare is dropping"), new Color(1f, 0.6f, 0.4f));
             }
 
             // 수다쟁이 손님은 가끔 말을 건다
@@ -225,7 +225,7 @@ public class TaxiManager
                         ReactText = PassengerCatalog.PickOne(Pax.react);
                         ReactIsChat = false;
                         ReactUntil = Time.unscaledTime + 1.6f;
-                        Popup("멀미! 요금 -10%", new Color(0.7f, 0.9f, 0.5f));
+                        Popup(Loc.T("멀미! 요금 -10%", "Carsick! Fare -10%"), new Color(0.7f, 0.9f, 0.5f));
                     }
                 }
             }
@@ -249,7 +249,7 @@ public class TaxiManager
                 {
                     // 지나쳤다: 트립당 한 번만 요금을 깎는다. 목적지는 그대로 두고 옆길로 돌아와 다시 접근한다.
                     Overshot = true;
-                    Popup("목적지를 지나쳤어요!", new Color(1f, 0.5f, 0.4f));
+                    Popup(Loc.T("목적지를 지나쳤어요!", "You passed the destination!"), new Color(1f, 0.5f, 0.4f));
                     FareMul = Mathf.Max(0.2f, FareMul - 0.2f);
                 }
             }
@@ -284,7 +284,7 @@ public class TaxiManager
                     {
                         Fuse = 1f;
                         if (!NoPenalty) FareMul = Mathf.Max(0.2f, FareMul * 0.6f);
-                        Popup("쾅!  폭탄이 터졌다…", new Color(1f, 0.4f, 0.3f));
+                        Popup(Loc.T("쾅!  폭탄이 터졌다…", "BOOM!  The bomb went off…"), new Color(1f, 0.4f, 0.3f));
                         if (BombExploded != null) BombExploded();
                     }
                 }
@@ -300,7 +300,7 @@ public class TaxiManager
                     ReactText = PassengerCatalog.PickOne(Pax.react);
                     ReactIsChat = false;
                     ReactUntil = Time.unscaledTime + 1.6f;
-                    Popup("부케가 날아갔다!", new Color(1f, 0.6f, 0.8f));
+                    Popup(Loc.T("부케가 날아갔다!", "The bouquet went flying!"), new Color(1f, 0.6f, 0.8f));
                     if (BouquetThrown != null) BouquetThrown();
                 }
                 break;
@@ -346,7 +346,7 @@ public class TaxiManager
                         SteerYank = 0;
                         MashL = MashR = 0f;
                         flipEventT = Random.Range(6f, 10f);
-                        if (freed) Popup("뿌리쳤다!", new Color(0.5f, 1f, 0.6f));
+                        if (freed) Popup(Loc.T("뿌리쳤다!", "Broke free!"), new Color(0.5f, 1f, 0.6f));
                     }
                 }
                 break;
@@ -473,7 +473,7 @@ public class TaxiManager
         awayT = 0f;
         ThanksText = PaxName + ": \"" + PassengerCatalog.PickOne(PassengerCatalog.HeistWaitLines) + "\"";
         ThanksUntil = Time.unscaledTime + 3f;
-        Popup("손님이 은행으로 들어갔다…  기다리세요!", new Color(1f, 0.85f, 0.3f));
+        Popup(Loc.T("손님이 은행으로 들어갔다…  기다리세요!", "The passenger went into the bank…  Wait here!"), new Color(1f, 0.85f, 0.3f));
     }
 
     void HeistFail()
@@ -483,7 +483,7 @@ public class TaxiManager
         Pax = null;
         ThanksUntil = 0f;                                    // 기다리라던 대사가 남지 않게
         ResetCallerTimer();
-        Popup("손님을 버리고 떠났다…  의뢰 실패!", new Color(1f, 0.5f, 0.4f));
+        Popup(Loc.T("손님을 버리고 떠났다…  의뢰 실패!", "You left the passenger behind…  Job failed!"), new Color(1f, 0.5f, 0.4f));
     }
 
     // 시간이 찼다: 손님이 가방을 끌어안고 뛰어와 차에 매달린다 (옆 시점 대화, 거절 불가)
@@ -545,7 +545,7 @@ public class TaxiManager
 
         peds.Remove(Caller);                                 // 손님은 차 안으로
         Caller = null;
-        Popup(fleeing ? "출발!  경찰이 쫓아온다!" : "출발!", new Color(1f, 0.9f, 0.4f));
+        Popup(fleeing ? Loc.T("출발!  경찰이 쫓아온다!", "Go!  The cops are chasing!") : Loc.T("출발!", "Go!"), new Color(1f, 0.9f, 0.4f));
         if (fleeing && HeistFleeStarted != null) HeistFleeStarted();
     }
 
@@ -574,7 +574,7 @@ public class TaxiManager
         int tip = CurrentTip();
         FareTotal += fare + tip;
         Trips++;
-        Popup(escaped ? "도주 성공!  +" + (fare + tip) + "원" : (tip > 0 ? "도착! +" + fare + "원  (팁 +" + tip + ")" : "도착! +" + fare + "원"), new Color(1f, 0.85f, 0.3f));
+        Popup(escaped ? Loc.T("도주 성공!  +", "Getaway!  +") + Loc.Money(fare + tip) : (tip > 0 ? Loc.T("도착! +", "Arrived! +") + Loc.Money(fare) + Loc.T("  (팁 +", "  (tip +") + Loc.Money(tip) + ")" : Loc.T("도착! +", "Arrived! +") + Loc.Money(fare)), new Color(1f, 0.85f, 0.3f));
         State = TaxiState.Cruise;
         HeistStage = 0;
         ClearQuirk();
@@ -584,6 +584,24 @@ public class TaxiManager
     }
 
     /// <summary>태운 손님이 한마디 한다 (미니건이 튀어나올 때 같은 상황).</summary>
+    /// <summary>시험용(화면 점검 도구): 상태와 손님 글자를 직접 정한다.</summary>
+    public void DebugSet(TaxiState st, PaxType pax, string paxName, string dest, string line)
+    {
+        State = st;
+        Pax = pax;
+        PaxName = paxName;
+        DestName = dest;
+        PaxLine = line;
+        ReactUntil = 0f;
+    }
+
+    public void DebugThanks(string text)
+    {
+        State = TaxiState.Cruise;
+        ThanksText = text;
+        ThanksUntil = Time.unscaledTime + 3f;
+    }
+
     public void Say(string text, float seconds)
     {
         if (State != TaxiState.Carrying) return;

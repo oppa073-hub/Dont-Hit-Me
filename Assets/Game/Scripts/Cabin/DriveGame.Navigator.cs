@@ -173,7 +173,7 @@ public partial class DriveGame
         if (interKey != navHead)
         {
             navHead = interKey;
-            string label = blinker < 0 ? "좌회전 " : (blinker > 0 ? "우회전 " : "교차로 ");        // 깜빡이를 켜 두면 어느 쪽으로 돌 예정인지 보인다
+            string label = blinker < 0 ? Loc.T("좌회전 ", "Left ") : (blinker > 0 ? Loc.T("우회전 ", "Right ") : Loc.T("교차로 ", "Next "));        // 깜빡이를 켜 두면 어느 쪽으로 돌 예정인지 보인다
             navHeadText.text = label + Mathf.RoundToInt(nextInterDist / 5f) * 5 + "m";
         }
         if (carrying && taxi.AlienTrip) rem = -77;
@@ -183,8 +183,8 @@ public partial class DriveGame
             navRem = infoKey;
             navDestShown = taxi.DestName;
             if (carrying) navInfoText.text = taxi.DestName + (taxi.AlienTrip ? "  ???m" : "  " + rem + "m");
-            else if (callerM >= 0) navInfoText.text = "손님 " + (callerRight ? "오른쪽 " : "왼쪽 ") + callerM + "m 앞";
-            else navInfoText.text = "손님 찾는 중";
+            else if (callerM >= 0) navInfoText.text = Loc.T("손님 " + (callerRight ? "오른쪽 " : "왼쪽 ") + callerM + "m 앞", "Pickup " + (callerRight ? "right " : "left ") + callerM + "m ahead");
+            else navInfoText.text = Loc.T("손님 찾는 중", "Looking for a fare");
         }
     }
 }

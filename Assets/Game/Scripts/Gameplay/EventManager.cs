@@ -98,7 +98,7 @@ public class EventManager
     public void Announce()
     {
         if (Type != DayType.Crowded) return;
-        AlertText = "오늘은 사람 많은 날! 길도 손님도 북적입니다";
+        AlertText = Loc.T("오늘은 사람 많은 날! 길도 손님도 북적입니다", "Crowded day! Streets and fares are packed");
         AlertUntil = Time.unscaledTime + 5f;
     }
 
@@ -118,10 +118,10 @@ public class EventManager
     {
         Active = true;
         AlertText = Type == DayType.Kaiju
-            ? "긴급 속보! 괴수가 나타났습니다 — 다음 교차로에서 돌아가세요!"
+            ? Loc.T("긴급 속보! 괴수가 나타났습니다 — 다음 교차로에서 돌아가세요!", "BREAKING NEWS! A monster has appeared — turn back at the next intersection!")
             : (Type == DayType.Zombie
-                ? "긴급 속보! 좀비 출현 — 초록색은 쓸어버리고, 주황색 생존자는 피하세요!"
-                : "긴급 속보! 히어로와 빌런이 하늘에서 전투 중 — 레이저를 피하세요!");
+                ? Loc.T("긴급 속보! 좀비 출현 — 초록색은 쓸어버리고, 주황색 생존자는 피하세요!", "BREAKING NEWS! Zombies! Plow the green ones, avoid the orange survivors!")
+                : Loc.T("긴급 속보! 히어로와 빌런이 하늘에서 전투 중 — 레이저를 피하세요!", "BREAKING NEWS! Hero vs villain in the sky — dodge the lasers!"));
         AlertUntil = Time.unscaledTime + 6f;
         RefreshLabel();
         if (Started != null) Started(Type);
@@ -166,10 +166,10 @@ public class EventManager
     void RefreshLabel()
     {
         string extra = "";
-        if (Type == DayType.Crowded) extra = "  ·  사람 많은 날";
-        else if (KaijuActive) extra = "  ·  괴수 침공!";
-        else if (HeroActive) extra = "  ·  히어로 vs 빌런";
-        else if (ZombieActive) extra = "  ·  좀비 사태!";
-        DayLabel = "Day " + Day + extra + (Heat > 0 ? "  \u00b7  \uc704\ud5d8 " + Heat : "");
+        if (Type == DayType.Crowded) extra = Loc.T("  ·  사람 많은 날", "  ·  Crowded day");
+        else if (KaijuActive) extra = Loc.T("  ·  괴수 침공!", "  ·  Monster attack!");
+        else if (HeroActive) extra = Loc.T("  ·  히어로 vs 빌런", "  ·  Hero vs Villain");
+        else if (ZombieActive) extra = Loc.T("  ·  좀비 사태!", "  ·  Zombie outbreak!");
+        DayLabel = "Day " + Day + extra + (Heat > 0 ? Loc.T("  ·  위험 ", "  ·  Heat ") + Heat : "");
     }
 }

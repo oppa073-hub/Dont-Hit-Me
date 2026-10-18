@@ -16,7 +16,7 @@ public partial class DriveGame
     bool edLaunched, edLanded, edWingsSound;
     int edLineIdx;
     Color edSkin = new Color(0.96f, 0.8f, 0.66f), edHair = new Color(0.15f, 0.1f, 0.08f);
-    string edName = "손님";
+    string edName = "Passenger";
     PixelSet edArt;
 
     // 날개를 단 뒤 처음 태우는 일반 손님이면 엔딩 (은행 강도 같은 특수 손님은 건너뛴다)
@@ -42,7 +42,7 @@ public partial class DriveGame
             edSkin = taxi.PaxSkin;
             edArt = taxi.PaxArt;
             edHair = taxi.PaxHair;
-            edName = string.IsNullOrEmpty(taxi.PaxName) ? "손님" : taxi.PaxName;
+            edName = string.IsNullOrEmpty(taxi.PaxName) ? Loc.T("손님", "Passenger") : taxi.PaxName;
         }
         if (natural)
         {
@@ -97,7 +97,7 @@ public partial class DriveGame
         while (edLineIdx + 1 < lt.Length && endT >= lt[edLineIdx + 1])
         {
             edLineIdx++;
-            string line = StoryCatalog.EndingTexts[edLineIdx];
+            string line = Loc.S(StoryCatalog.EndingTexts[edLineIdx]);
             if (line.Contains("!!") || line.Contains("아아")) sound.PlayScream(taxi.PaxMale);
             else sound.Speak(line, PaxVoice(), voicePaxVolume);
         }
@@ -172,16 +172,16 @@ public partial class DriveGame
         {
             Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, ov));
             float a1 = EndSm(A + 8f, A + 9.5f, t), a2 = EndSm(A + 9f, A + 10.5f, t), a3 = EndSm(A + 11f, A + 12f, t);
-            Label(new Rect(0, H * 0.28f, W, 80 * u), "하늘을 나는 택시", 60, new Color(UiGold.r, UiGold.g, UiGold.b, a1), TextAnchor.MiddleCenter);
-            Label(new Rect(0, H * 0.28f + 90 * u, W, 36 * u), "…그리고 택시는 달에 도착했다. 손님은 내렸고, 요금은 못 받았다.", 24, new Color(1f, 1f, 1f, a2), TextAnchor.MiddleCenter);
-            Label(new Rect(0, H * 0.28f + 130 * u, W, 36 * u), "(월세는 아직 안 냈다)", 20, new Color(1f, 1f, 1f, a2 * 0.8f), TextAnchor.MiddleCenter);
-            Label(new Rect(0, H * 0.28f + 200 * u, W, 36 * u), "THE END?   영업은 계속된다", 24, new Color(UiGreen.r, UiGreen.g, UiGreen.b, a3), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.28f, W, 80 * u), Loc.T("하늘을 나는 택시", "The Flying Taxi"), 60, new Color(UiGold.r, UiGold.g, UiGold.b, a1), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.28f + 90 * u, W, 36 * u), Loc.T("…그리고 택시는 달에 도착했다. 손님은 내렸고, 요금은 못 받았다.", "…And the taxi reached the Moon. The passenger got out. The fare was never paid."), 24, new Color(1f, 1f, 1f, a2), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.28f + 130 * u, W, 36 * u), Loc.T("(월세는 아직 안 냈다)", "(Rent is still due.)"), 20, new Color(1f, 1f, 1f, a2 * 0.8f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, H * 0.28f + 200 * u, W, 36 * u), Loc.T("THE END?   영업은 계속된다", "THE END?   The shift goes on"), 24, new Color(UiGreen.r, UiGreen.g, UiGreen.b, a3), TextAnchor.MiddleCenter);
             if (t >= A + 12f && Mathf.Repeat(Time.unscaledTime, 1.2f) < 0.8f)
-                Label(new Rect(0, H - 70 * u, W, 30 * u), "Space  로비로", 20, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+                Label(new Rect(0, H - 70 * u, W, 30 * u), Loc.T("Space  로비로", "Space  Back to the lobby"), 20, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
         }
         else if (t > 6f)
         {
-            Label(new Rect(W - 260 * u, H - 34 * u, 250 * u, 26 * u), "Esc  건너뛰기", 15, new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerRight);
+            Label(new Rect(W - 260 * u, H - 34 * u, 250 * u, 26 * u), Loc.T("Esc  건너뛰기", "Esc  Skip"), 15, new Color(1f, 1f, 1f, 0.45f), TextAnchor.LowerRight);
         }
     }
 
@@ -346,7 +346,7 @@ public partial class DriveGame
         if (idx < times.Length - 1 && t - times[idx] > 3.6f) return;
         if (idx == times.Length - 1 && t - times[idx] > 4f) return;
 
-        string text = texts[idx];
+        string text = Loc.S(texts[idx]);
         bool shout = text.Contains("!!");
         var r = new Rect(W * 0.5f - 450 * u, H - 150 * u, 900 * u, 108 * u);
         Panel(r, 0.72f);
@@ -356,6 +356,8 @@ public partial class DriveGame
         Label(new Rect(r.x + 120 * u, r.y + 6 * u, 400 * u, 24 * u), edName, 17, UiGold, TextAnchor.UpperLeft);
         float jx = 0f, jy = 0f;
         if (shout && t < A) { jx = Random.Range(-3f, 3f) * u; jy = Random.Range(-3f, 3f) * u; }
-        Label(new Rect(r.x + 120 * u + jx, r.y + 34 * u + jy, 760 * u, 60 * u), text, shout ? 30 : 26, shout ? new Color(1f, 0.85f, 0.8f) : Color.white, TextAnchor.UpperLeft);
+        style.wordWrap = true;
+        Label(new Rect(r.x + 120 * u + jx, r.y + 30 * u + jy, 760 * u, 74 * u), text, shout ? 28 : 26, shout ? new Color(1f, 0.85f, 0.8f) : Color.white, TextAnchor.UpperLeft);
+        style.wordWrap = false;
     }
 }

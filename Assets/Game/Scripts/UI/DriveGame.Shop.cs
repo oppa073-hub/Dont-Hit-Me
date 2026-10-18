@@ -9,9 +9,9 @@ public partial class DriveGame
     void DrawShop(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.72f));
-        Label(new Rect(0, 56 * u, W, 70 * u), shopPage == 0 ? "박 택시 사장실" : "택시 개조", 52, UiGold, TextAnchor.MiddleCenter);
+        Label(new Rect(0, 56 * u, W, 70 * u), shopPage == 0 ? Loc.T("토니 사장실", "Boss Tony's Office") : Loc.T("택시 개조", "Taxi Mods"), 52, UiGold, TextAnchor.MiddleCenter);
         Label(new Rect(0, 124 * u, W, 36 * u), shopCoinsText, 28, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
-        Label(new Rect(0, 160 * u, W, 26 * u), shopPage == 0 ? "Tab  택시 개조 보기" : "Tab  업그레이드 보기", 17, UiCyan, TextAnchor.MiddleCenter);
+        Label(new Rect(0, 160 * u, W, 26 * u), shopPage == 0 ? Loc.T("Tab  택시 개조 보기", "Tab  View taxi mods") : Loc.T("Tab  업그레이드 보기", "Tab  View upgrades"), 17, UiCyan, TextAnchor.MiddleCenter);
 
         // 정비사 초상과 말풍선
         Panel(new Rect(W * 0.02f, 196 * u, W * 0.23f, 420 * u), 0.5f);
@@ -56,7 +56,7 @@ public partial class DriveGame
 
         if (Time.unscaledTime < shopMsgUntil)
             Label(new Rect(0, 556 * u, W, 40 * u), shopMsg, 26, UiGreen, TextAnchor.MiddleCenter);
-        Label(new Rect(0, 600 * u, W, 36 * u), "숫자키로 구매     Tab 쪽 넘기기     Esc 로 로비로 돌아가기", 21, UiCyan, TextAnchor.MiddleCenter);
+        Label(new Rect(0, 600 * u, W, 36 * u), Loc.T("숫자키로 구매     Tab 쪽 넘기기     Esc 로 로비로 돌아가기", "Number keys to buy     Tab Switch page     Esc Back to lobby"), 21, UiCyan, TextAnchor.MiddleCenter);
     }
 
     // 오늘의 목표 목록 (HUD, 타이틀, 일시정지에서 쓴다). 완료한 목표는 초록색.

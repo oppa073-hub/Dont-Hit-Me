@@ -32,9 +32,9 @@ public partial class DriveGame
     void RefreshModeText()
     {
         int b = shiftMode ? bestShift : best;
-        modeText = "Day " + dayEvents.Day + "      " + (shiftMode ? "하루 영업 모드 (" + Mathf.RoundToInt(shiftSeconds) + "초)" : "무한 모드")
-                 + (b > 0 ? "   최고 점수 " + b : "")
-                 + "      Tab  모드 변경";
+        modeText = "Day " + dayEvents.Day + "      " + (shiftMode ? Loc.T("하루 영업 모드 (" + Mathf.RoundToInt(shiftSeconds) + "초)", "Daily Shift (" + Mathf.RoundToInt(shiftSeconds) + "s)") : Loc.T("무한 모드", "Endless Mode"))
+                 + (b > 0 ? Loc.T("   최고 점수 ", "   Best score ") + b : "")
+                 + Loc.T("      Tab  모드 변경", "      Tab  Switch mode");
     }
 
     // 타이틀에서 시작/게임오버 뒤 재시작: 판을 새로 시작하고 플레이 상태로
@@ -80,23 +80,23 @@ public partial class DriveGame
         }
         RefreshModeText();
 
-        string head = "Day " + dayEvents.Day + "   점수 " + total + (newBest ? "   NEW BEST!" : "") + NL;
-        string tail = "니어미스 " + nearMisses + "   플레이 시간 " + Mathf.RoundToInt(elapsed) + "초   레벨 " + difficulty.MaxLevelReached + NL;
+        string head = "Day " + dayEvents.Day + Loc.T("   점수 ", "   Score ") + total + (newBest ? "   NEW BEST!" : "") + NL;
+        string tail = Loc.T("니어미스 " + nearMisses + "   플레이 시간 " + Mathf.RoundToInt(elapsed) + "초   레벨 " + difficulty.MaxLevelReached + NL, "Near misses " + nearMisses + "   Time played " + Mathf.RoundToInt(elapsed) + "s   Level " + difficulty.MaxLevelReached + NL);
         if (shiftMode)
         {
             int fine = hits * accidentFine;
             resultText = head
-                       + "손님 " + taxi.Trips + "명   요금 합계 " + taxi.FareTotal + "원" + NL
-                       + "사고 " + hits + "건   수리비 -" + fine + "원" + NL
-                       + "오늘 순수익 " + ShiftNet() + "원   평점 " + ShiftStars() + " / 3" + NL
+                       + Loc.T("손님 " + taxi.Trips + "명   요금 합계 " + Loc.Money(taxi.FareTotal) + NL, "Passengers " + taxi.Trips + "   Total fares " + Loc.Money(taxi.FareTotal) + NL)
+                       + Loc.T("사고 " + hits + "건   수리비 -" + Loc.Money(fine) + NL, "Crashes " + hits + "   Repairs -" + Loc.Money(fine) + NL)
+                       + Loc.T("오늘 순수익 " + Loc.Money(ShiftNet()) + "   평점 " + ShiftStars() + " / 3" + NL, "Net profit today " + Loc.Money(ShiftNet()) + "   Rating " + ShiftStars() + " / 3" + NL)
                        + tail
                        + GrantRunCoins();
         }
         else
         {
             resultText = head
-                       + "손님 " + taxi.Trips + "명   요금 " + taxi.FareTotal + "원" + NL
-                       + "충돌 " + hits + "   " + tail
+                       + Loc.T("손님 " + taxi.Trips + "명   요금 " + Loc.Money(taxi.FareTotal) + NL, "Passengers " + taxi.Trips + "   Fares " + Loc.Money(taxi.FareTotal) + NL)
+                       + Loc.T("충돌 " + hits + "   ", "Hits " + hits + "   ") + tail
                        + GrantRunCoins();
         }
         dayEvents.CompleteDay();          // 하루가 끝났다: 다음 날 번호로

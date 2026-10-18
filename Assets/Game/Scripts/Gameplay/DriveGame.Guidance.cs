@@ -40,13 +40,14 @@ public partial class DriveGame
     // near: 목적지 줄 위에서 도착 반경 안(브레이크로 정차하면 도착되는 곳)
     string NavHint(int f, int r, bool near)
     {
-        string turn = r < 0 ? "좌회전" : "우회전";                  // r==0 이면 돌아가는 길은 우회전
-        string side = r < 0 ? "왼쪽 " : "오른쪽 ";
+        bool ko = Loc.Ko;
+        string turn = ko ? (r < 0 ? "좌회전" : "우회전") : (r < 0 ? "left" : "right");      // r==0 이면 돌아가는 길은 우회전
+        string side = ko ? (r < 0 ? "왼쪽 " : "오른쪽 ") : (r < 0 ? "left " : "right ");
         int m = Mathf.Abs(r);
-        if (near) return "목적지 교차로예요 — 브레이크로 정차하세요";
-        if (f < 0) return "목적지가 뒤쪽이에요 — 다음 교차로에서 " + turn + "해 돌아가세요";
-        if (r == 0) return f == 0 ? "목적지가 바로 앞 교차로예요" : "목적지: 앞 " + (f + 1) + "칸 — 직진";
-        if (f == 0) return "목적지: 앞 1칸, " + side + m + "칸 — 다음 교차로에서 " + turn;
-        return "목적지: 앞 " + (f + 1) + "칸, " + side + m + "칸 — 교차로 " + f + "개 지난 뒤 다음 교차로에서 " + turn;
+        if (near) return ko ? "목적지 교차로예요 — 브레이크로 정차하세요" : "This is your destination — stop with the brake";
+        if (f < 0) return ko ? "목적지가 뒤쪽이에요 — 다음 교차로에서 " + turn + "해 돌아가세요" : "Your destination is behind you — turn " + turn + " at the next intersection";
+        if (r == 0) return f == 0 ? (ko ? "목적지가 바로 앞 교차로예요" : "Your destination is the next intersection") : (ko ? "목적지: 앞 " + (f + 1) + "칸 — 직진" : "Destination: " + (f + 1) + " blocks ahead — go straight");
+        if (f == 0) return ko ? "목적지: 앞 1칸, " + side + m + "칸 — 다음 교차로에서 " + turn : "Destination: 1 block ahead, " + m + " blocks " + side + "— " + turn + " at the next intersection";
+        return ko ? "목적지: 앞 " + (f + 1) + "칸, " + side + m + "칸 — 교차로 " + f + "개 지난 뒤 다음 교차로에서 " + turn : "Destination: " + (f + 1) + " blocks ahead, " + m + " blocks " + side + "— " + turn + " after " + f + " more intersection" + (f == 1 ? "" : "s");
     }
 }

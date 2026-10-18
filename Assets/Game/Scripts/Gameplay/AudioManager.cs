@@ -124,7 +124,7 @@ public class AudioManager
         if (src.clip == null) src.clip = Pick(key, null);
         if (src.clip == null) return;
         if (!src.isPlaying) src.Play();
-        src.volume = v * cfg.masterVolume;
+        src.volume = v * cfg.masterVolume * cfg.sfxVolume;
     }
 
     public void PlayScream(bool male) { Play(male ? "screamM" : "screamF", null, 0.9f); }
@@ -282,7 +282,7 @@ public class AudioManager
         if (!cfg.soundOn || char.IsWhiteSpace(ch) || char.IsPunctuation(ch)) return;
         voice = Mathf.Clamp(voice, 0, VoiceBase.Length - 1);
         int code = ch;
-        sfx.PlayOneShot(Blip(voice, code), volume * cfg.masterVolume);
+        sfx.PlayOneShot(Blip(voice, code), volume * cfg.masterVolume * cfg.sfxVolume);
     }
 
     struct Babble { public float at; public char ch; public int voice; public float vol; }
@@ -371,7 +371,7 @@ public class AudioManager
     void Play(AudioClip clip, float volume)
     {
         if (!cfg.soundOn || clip == null) return;
-        sfx.PlayOneShot(clip, volume * cfg.masterVolume);
+        sfx.PlayOneShot(clip, volume * cfg.masterVolume * cfg.sfxVolume);
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ public class AudioManager
         if (on != lastBlinkOn)
         {
             lastBlinkOn = on;
-            sfx.PlayOneShot(on ? tick : tock, 0.5f * cfg.masterVolume);
+            sfx.PlayOneShot(on ? tick : tock, 0.5f * cfg.masterVolume * cfg.sfxVolume);
         }
     }
 
@@ -451,7 +451,7 @@ public class AudioManager
         if (rain > 0.02f)
         {
             if (!rainSrc.isPlaying) rainSrc.Play();
-            rainSrc.volume = cfg.masterVolume * 0.35f * rain;
+            rainSrc.volume = cfg.masterVolume * cfg.sfxVolume * 0.35f * rain;
         }
         else if (rainSrc.isPlaying) rainSrc.Pause();
     }

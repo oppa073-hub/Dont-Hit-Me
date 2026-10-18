@@ -116,6 +116,11 @@ def build_sets():
                 .add("idle", 6, True, row_frames(im, 128, 48, 0))
                 .add("walk", 10, True, row_frames(im, 128, 48, 1)))
 
+    # 로비에 세워 둔 차들(옆모습 128x48, 줄 0 = 5칸): 사장님 차(하얀 고급차), 동료 택시로 쓸 머슬카 둘. 오른쪽을 본다
+    for n, key in [("Luxury car sheet", "LuxuryCar"), ("Muscle car sheet", "MuscleCar"), ("Old muscle car sheet", "OldMuscleCar")]:
+        im = load(os.path.join(NPC, n + ".png"))
+        sets.append(S("parkcar", key, "w", 5.0).add("idle", 4, True, row_frames(im, 128, 48, 0)))
+
     # 괴수: 가마솥 악마 "The Devil" (96x112, 한 줄 7칸. 정면을 보고 있다)
     im = load(os.path.join(HELL, "The Devil.png"))
     sets.append(S("kaiju", "TheDevil", "w", 16.0).add("idle", 6, True, row_frames(im, 96, 112, 0, 7)))

@@ -7,7 +7,7 @@ public class LobbyManager
 {
     public const float WorldW = 2200f;     // 로비 전체 폭 (화면 높이 720 기준 단위)
     public const float NpcX = 520f;
-    public const float TaxiX = 1650f;
+    public const float TaxiX = 1880f;
     const float Speed = 280f;
     const float TypeSpeed = 38f;           // 대사가 한 글자씩 나오는 속도 (글자/초)
 
@@ -15,7 +15,9 @@ public class LobbyManager
     public int Facing { get; private set; }            // 1 = 오른쪽, -1 = 왼쪽
     public float WalkPhase { get; private set; }
     public bool Moving { get; private set; }
-    public bool NearNpc { get; private set; }
+    public bool NearNpc { get { return NearNpcIdx >= 0; } }
+    public int NearNpcIdx { get; private set; }               // 가장 가까운 npc 번호 (말 걸 수 있는 거리 안에 없으면 -1)
+    public float[] NpcXs = { NpcX };                          // 말 걸 수 있는 npc 들의 위치 (0 = 사장). DriveGame 이 정해 준다
     public bool NearTaxi { get; private set; }
     public bool Boarding { get { return boardT >= 0f; } }       // 택시에 타는 중 (암전이 시작되기 전 한 프레임도 포함)
 
@@ -33,7 +35,8 @@ public class LobbyManager
     public float BoardFade { get; private set; }
     float boardT = -1f;
 
-    public event System.Action NpcInteract, BoardRequested;
+    public event System.Action<int> NpcInteract;
+    public event System.Action BoardRequested;
     public event System.Action<int> DialogueFinished;
 
     public LobbyManager()
@@ -56,14 +59,20 @@ public class LobbyManager
 
     void UpdateNear()
     {
-        NearNpc = Mathf.Abs(PlayerX - NpcX) < 130f;
+        NearNpcIdx = -1;
+        float best = 85f;                                       // 이 거리 안에서 가장 가까운 사람
+        for (int i = 0; i < NpcXs.Length; i++)
+        {
+            float d = Mathf.Abs(PlayerX - NpcXs[i]);
+            if (d < best) { best = d; NearNpcIdx = i; }
+        }
         NearTaxi = Mathf.Abs(PlayerX - TaxiX) < 150f;
     }
 
     /// <summary>대사 시작. tag 는 끝났을 때 DialogueFinished 로 돌아온다.</summary>
     public void StartDialogue(string[] dialogue, int tag)
     {
-        lines = dialogue;
+        lines = Loc.S(dialogue);                          // 지금 언어의 글로 (한국어‖English 묶음에서 고른다)
         Moving = false;
         lineIdx = 0;
         DialogueTag = tag;
@@ -145,8 +154,9 @@ public class LobbyManager
         {
             if (NearNpc)
             {
-                Facing = PlayerX > NpcX ? -1 : 1;
-                if (NpcInteract != null) NpcInteract();
+                int ni = NearNpcIdx;
+                Facing = PlayerX > NpcXs[ni] ? -1 : 1;
+                if (NpcInteract != null) NpcInteract(ni);
             }
             else if (NearTaxi)
             {
