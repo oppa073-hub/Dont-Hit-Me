@@ -595,6 +595,8 @@ public class TaxiManager
         ReactUntil = 0f;
     }
 
+    public void DebugArt(PixelSet art) { PaxArt = art; PaxMale = PassengerCatalog.IsMale(art); }
+
     public void DebugThanks(string text)
     {
         State = TaxiState.Cruise;

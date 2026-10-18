@@ -37,10 +37,7 @@ public partial class DriveGame
                 QuirkBar(r, Loc.T("행복도", "Happiness"), taxi.Happy, new Color(1f, 0.5f, 0.75f));
                 break;
             case Quirk.Alien:
-                r = new Rect(W * 0.5f - 220 * u, y, 440 * u, 28 * u);
-                Panel(r, 0.55f);
-                Label(r, Loc.T("삐빅… 지구 지도 해독 불가", "Beep… cannot read Earth map"), 17, UiGreen, TextAnchor.MiddleCenter);
-                break;
+                return;                                        // 외계인 안내는 탑승 정보 상자의 세 번째 줄(초록 빛줄기 방향)이 이미 알려 주니 따로 상자를 더 만들지 않는다 (화면을 덜 가리게)
             case Quirk.Racer:
             {
                 int kmh = Mathf.RoundToInt(taxi.AvgSpeed * 3.6f / 5f) * 5;

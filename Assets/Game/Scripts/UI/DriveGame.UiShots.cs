@@ -197,6 +197,12 @@ public partial class DriveGame
             taxi.Accept(gx, gy, heading, Period, 20f);
             yield return Frames(2);
             yield return Shot(tag + "11-carry-" + pi);
+            if (t.quirk == Quirk.Alien)
+            {
+                dayEvents.RaiseAlert(Loc.T("정전! 도시가 암흑에 빠졌습니다 — 헤드라이트에 의지하세요!", "Blackout! The city goes dark — rely on your headlights!"), 5f);
+                yield return Frames(3);
+                yield return Shot(tag + "16-alien-alert");
+            }
             var texts = new List<string>();
             if (t.react != null) texts.AddRange(t.react);
             if (t.chat != null) texts.AddRange(t.chat);
@@ -212,6 +218,25 @@ public partial class DriveGame
                 taxi.DebugThanks(pname + ": \"" + Loc.S(th) + "\"");
                 yield return Frames(2);
             }
+        }
+        // 룸미러: 손님 표정(화남)과 기사의 분노 연출
+        {
+            var t0 = PassengerCatalog.PaxTypes[0];
+            taxi.DebugSet(TaxiState.Talking, t0, Loc.S(t0.names[0]), Loc.S(t0.dests[0]), "");
+            taxi.DebugArt(PixelArt.Random("npc"));
+            taxi.Accept(gx, gy, heading, Period, 20f);
+            rage.AddBonus(0.55f);
+            yield return Frames(3);
+            yield return Shot(tag + "17-mirror-gauge");
+            taxi.OnPedHit();
+            yield return Frames(3);
+            yield return Shot(tag + "18-mirror-angry");
+            rage.DebugFill();
+            yield return new WaitForSecondsRealtime(1.0f);
+            yield return Shot(tag + "19-mirror-rage-a");
+            yield return new WaitForSecondsRealtime(0.13f);
+            yield return Shot(tag + "19-mirror-rage-b");
+            taxi.DebugSet(TaxiState.Cruise, null, "", "", "");
         }
         foreach (var s in PassengerCatalog.HeistReturnLines) { taxi.DebugSet(TaxiState.Talking, PassengerCatalog.Heist, Loc.S("Sunglasses Guy"), Loc.S(PassengerCatalog.HeistHideouts[0]), string.Format(Loc.S(s), Loc.S(PassengerCatalog.HeistHideouts[0]))); yield return Frames(2); }
         foreach (var s in PassengerCatalog.LateThanks) { taxi.DebugThanks("Pat: \"" + Loc.S(s) + "\""); yield return Frames(2); }

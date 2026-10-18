@@ -46,6 +46,7 @@ public partial class DriveGame
         int m = Mathf.Abs(r);
         if (near) return ko ? "목적지 교차로예요 — 브레이크로 정차하세요" : "This is your destination — stop with the brake";
         if (f < 0) return ko ? "목적지가 뒤쪽이에요 — 다음 교차로에서 " + turn + "해 돌아가세요" : "Your destination is behind you — turn " + turn + " at the next intersection";
+        return "";                                              // "목적지: 앞 몇 칸…" 안내는 화면을 가려서 뺐다 (내비 화면과 도착 직전 안내만 남긴다)
         if (r == 0) return f == 0 ? (ko ? "목적지가 바로 앞 교차로예요" : "Your destination is the next intersection") : (ko ? "목적지: 앞 " + (f + 1) + "칸 — 직진" : "Destination: " + (f + 1) + " blocks ahead — go straight");
         if (f == 0) return ko ? "목적지: 앞 1칸, " + side + m + "칸 — 다음 교차로에서 " + turn : "Destination: 1 block ahead, " + m + " blocks " + side + "— " + turn + " at the next intersection";
         return ko ? "목적지: 앞 " + (f + 1) + "칸, " + side + m + "칸 — 교차로 " + f + "개 지난 뒤 다음 교차로에서 " + turn : "Destination: " + (f + 1) + " blocks ahead, " + m + " blocks " + side + "— " + turn + " after " + f + " more intersection" + (f == 1 ? "" : "s");

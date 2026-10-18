@@ -56,6 +56,12 @@ public partial class DriveGame
     void UpdateRageTint()
     {
         if (armMaterial == null) return;
+        armMaterial.SetColor("_BaseColor", RageColor());
+    }
+
+    // 분노 정도에 따른 피부 색 (팔과 룸미러 속 기사가 같이 쓴다)
+    Color RageColor()
+    {
         Color c;
         if (rage.Active)
         {
@@ -67,7 +73,7 @@ public partial class DriveGame
         }
         else if (rage.Ready) c = Color.Lerp(RageRed, new Color(0.7f, 0.04f, 0.04f), 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f));     // 가득 찼고 손님을 기다리는 중: 느리게 맥동
         else c = Color.Lerp(Color.white, RageRed, rage.Gauge);
-        armMaterial.SetColor("_BaseColor", c);
+        return c;
     }
 
     // 분노 상태일 때 화면 가장자리까지 붉은 막

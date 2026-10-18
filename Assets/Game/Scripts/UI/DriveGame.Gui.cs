@@ -230,12 +230,17 @@ public partial class DriveGame
     // 스프라이트 하나를 정사각형 칸에 그린다 (flip 이면 좌우 뒤집기)
     void DrawArtSprite(Sprite sp, Vector2 c, float size, bool flip, bool shocked, bool angry)
     {
+        DrawArtSprite(sp, c, size, flip, shocked, angry ? new Color(1f, 0.68f, 0.68f) : Color.white);
+    }
+
+    void DrawArtSprite(Sprite sp, Vector2 c, float size, bool flip, bool shocked, Color tint)
+    {
         if (shocked) c += new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)) * (Screen.height / 720f);
         var tex = sp.texture;
         var r = sp.textureRect;
         var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
         if (flip) { uv.x += uv.width; uv.width = -uv.width; }
-        GUI.color = angry ? new Color(1f, 0.68f, 0.68f) : Color.white;
+        GUI.color = tint;
         GUI.DrawTextureWithTexCoords(new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size), tex, uv, true);
         GUI.color = Color.white;
     }
@@ -308,12 +313,14 @@ public partial class DriveGame
         }
 
         // 뒷좌석 손님: 오른쪽, 가슴까지. 어깨 아래는 뒷좌석 등받이에 가려진다
-        bool shocked = Time.unscaledTime < taxi.ReactUntil && !taxi.ReactIsChat;
+        bool reacting = Time.unscaledTime < taxi.ReactUntil;
+        bool shocked = reacting && !taxi.ReactIsChat;                                          // 대화 상자의 얼굴과 같은 기준: 놀라면 떨리고,
+        bool angryPax = reacting && (!taxi.ReactIsChat || (taxi.Pax != null && taxi.Pax.quirk == Quirk.Fighter));    // 화나면 붉어진다
         if (carrying)
         {
             float ps = mh * 1.02f;
             var pc = new Vector2(mw * 0.70f, mh * 0.52f);
-            if (taxi.PaxArt != null && taxi.PaxArt.Bust != null) DrawArtSprite(taxi.PaxArt.Bust, pc, ps, false, shocked, false);
+            if (taxi.PaxArt != null && taxi.PaxArt.Bust != null) DrawArtSprite(taxi.PaxArt.Bust, pc, ps, false, shocked || angryPax, angryPax);
             else DrawFace(new Vector2(pc.x, pc.y - ps * 0.1f), ps * 0.6f, taxi.PaxSkin, taxi.PaxHair, shocked);
         }
         Fill(new Rect(0f, mh * 0.80f, mw, mh * 0.20f), new Color(0.07f, 0.08f, 0.1f));    // 뒷좌석 등받이
@@ -322,8 +329,13 @@ public partial class DriveGame
         var playerArt = PixelArt.GetByName("npc", "Japanese guy");
         float ds = mh * 1.28f;
         var dc = new Vector2(mw * 0.28f, mh * 0.62f);
-        if (playerArt != null && playerArt.Bust != null) DrawArtSprite(playerArt.Bust, dc, ds, true, false, false);
-        else DrawFace(new Vector2(dc.x, dc.y - ds * 0.1f), ds * 0.6f, PassengerCatalog.SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);
+        bool raging = rage.Active && !gameOver;
+        if (playerArt != null && playerArt.Bust != null)
+        {
+            if (raging) DrawBackFlames(dc, ds);                                                                                       // 분노 중에는 등 뒤에서 불길 (기사보다 먼저 그린다)
+            DrawArtSprite(playerArt.Bust, dc, ds, true, raging && Mathf.Repeat(Time.unscaledTime, 0.18f) < 0.05f, RageColor());      // 손이 붉어지는 만큼 기사도 붉어진다
+        }
+        else DrawFace(new Vector2(dc.x, dc.y - ds * 0.1f), ds * 0.6f, PassengerCatalog.SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);     // 그림이 없을 때만 예전 도형 얼굴
         Fill(new Rect(0f, mh * 0.93f, mw, mh * 0.07f), new Color(0.05f, 0.06f, 0.08f));  // 아래 가장자리
         GUI.EndClip();
     }
@@ -337,6 +349,31 @@ public partial class DriveGame
     }
 
     static Color Dk(Color c, float k) { return new Color(c.r * k, c.g * k, c.b * k, 1f); }       // 알파는 그대로 두고 밝기만 줄인다
+
+    // 분노 중: 룸미러 속 기사의 등 뒤에서 불길이 활활 치솟는다 (기사 그림보다 먼저 그려서 등/어깨 뒤에서 올라오는 것처럼 보인다)
+    void DrawBackFlames(Vector2 head, float ds)
+    {
+        float t = Time.unscaledTime;
+        float baseY = head.y + ds * 0.30f;                                       // 어깨선 근처에서 시작
+        for (int layer = 0; layer < 2; layer++)                                   // 뒷줄(크고 붉음) -> 앞줄(작고 노랑)
+        {
+            int n = 16;
+            for (int i = 0; i < n; i++)
+            {
+                float u0 = i / (float)(n - 1);
+                float ph = Frac(t * (1.7f + 0.5f * layer) + i * 0.173f + layer * 0.41f);
+                float sway = Mathf.Sin(t * 9f + i * 1.7f + layer) * ds * 0.04f;
+                float x = head.x + (u0 - 0.5f) * ds * 0.95f + sway;
+                float y = baseY - ph * ds * (layer == 0 ? 0.95f : 0.70f);
+                float sz = ds * (layer == 0 ? 0.30f : 0.20f) * (1f - ph * 0.65f);
+                Color c0 = layer == 0 ? new Color(1f, 0.30f, 0.05f) : new Color(1f, 0.85f, 0.30f);
+                Color c1 = layer == 0 ? new Color(0.7f, 0.05f, 0.02f) : new Color(1f, 0.45f, 0.05f);
+                Color fc = Color.Lerp(c0, c1, ph);
+                fc.a = (layer == 0 ? 0.85f : 0.9f) * (1f - ph * 0.8f);
+                Dot(new Vector2(x, y), sz, fc);
+            }
+        }
+    }
 
     // 뒷유리 너머 풍경: 하늘색(시간대), 지나온 도로가 소실점으로 모이며 중앙선이 뒤로 달아나고, 양옆 건물이 가장자리로 흘러간다
     void DrawMirrorBackdrop(Rect win)
@@ -503,13 +540,15 @@ public partial class DriveGame
                 hudTripSize2 = FitFont(hudTripText2, 440f, 18);
             }
             float py = hudStackY;
-            Panel(new Rect(W * 0.5f - 240 * u, py, 480 * u, 96 * u), 0.55f);
             string line3 = taxi.AlienTrip ? (nf < 0 ? Loc.T("신호가 뒤쪽이에요! 다음 교차로에서 돌아가세요", "The signal is behind you! Turn around at the next intersection") : (nr > 0 ? Loc.T("초록 빛줄기가 오른쪽에 보여요  (멈추면 도착)", "The green beam is on your right  (stop to arrive)") : (nr < 0 ? Loc.T("초록 빛줄기가 왼쪽에 보여요  (멈추면 도착)", "The green beam is on your left  (stop to arrive)") : Loc.T("초록 빛줄기를 향해 곧장 가세요  (멈추면 도착)", "Head straight for the green beam  (stop to arrive)")))) : hintText;
             if (!ReferenceEquals(line3, hudLine3Cached)) { hudLine3Cached = line3; hudLine3Size = FitFont(line3, 440f, 17); }
+            bool hasLine3 = !string.IsNullOrEmpty(line3);
+            float panelH = hasLine3 ? 96f : 66f;                                      // 안내 줄이 없으면 상자를 줄여 화면을 덜 가린다
+            Panel(new Rect(W * 0.5f - 240 * u, py, 480 * u, panelH * u), 0.55f);
             Label(new Rect(W * 0.5f - 232 * u, py + 3 * u, 464 * u, 30 * u), hudTripText, hudTripSize1, Color.white, TextAnchor.MiddleCenter);
             Label(new Rect(W * 0.5f - 224 * u, py + 33 * u, 448 * u, 28 * u), hudTripText2, hudTripSize2, late ? UiRed : UiGold, TextAnchor.MiddleCenter);
-            Label(new Rect(W * 0.5f - 224 * u, py + 63 * u, 448 * u, 28 * u), line3, hudLine3Size, UiGreen, TextAnchor.MiddleCenter);
-            hudStackY += 96 * u + 6 * u;
+            if (hasLine3) Label(new Rect(W * 0.5f - 224 * u, py + 63 * u, 448 * u, 28 * u), line3, hudLine3Size, UiGreen, TextAnchor.MiddleCenter);
+            hudStackY += panelH * u + 6 * u;
         }
         else if (taxi.State == TaxiState.Waiting)
         {
@@ -705,14 +744,15 @@ public partial class DriveGame
         if (!gameOver && Time.unscaledTime < dayEvents.AlertUntil)
         {
             // 긴급 속보: 붉게 깜빡이는 띠
-            float pulse = 0.7f + 0.25f * Mathf.Sin(Time.unscaledTime * 10f);
+            // 가늘고 반투명하게: 다른 상자와 함께 나와도 화면을 덜 가리게 (두 줄까지, 글자 작게)
+            float pulse = 0.5f + 0.2f * Mathf.Sin(Time.unscaledTime * 10f);
             float ay = hudStackY;
-            Fill(new Rect(W * 0.5f - 242 * u, ay, 484 * u, 56 * u), new Color(1f, 1f, 1f, 0.55f));
-            Fill(new Rect(W * 0.5f - 240 * u, ay + 2 * u, 480 * u, 52 * u), new Color(0.6f, 0.05f, 0.05f, pulse));
+            Fill(new Rect(W * 0.5f - 241 * u, ay, 482 * u, 42 * u), new Color(1f, 1f, 1f, 0.35f));
+            Fill(new Rect(W * 0.5f - 240 * u, ay + 1 * u, 480 * u, 40 * u), new Color(0.6f, 0.05f, 0.05f, pulse));
             style.wordWrap = true;
-            Label(new Rect(W * 0.5f - 230 * u, ay + 2 * u, 460 * u, 52 * u), dayEvents.AlertText, 19, Color.white, TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 230 * u, ay + 1 * u, 460 * u, 40 * u), dayEvents.AlertText, 15, Color.white, TextAnchor.MiddleCenter);
             style.wordWrap = false;
-            hudStackY += 56 * u + 6 * u;
+            hudStackY += 42 * u + 4 * u;
         }
 
         Label(new Rect(20 * u, H - 30 * u, W * 0.62f, 26 * u), ControlsHint(), 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerLeft);   // 내비(오른쪽 아래)와 겹치지 않게 왼쪽 정렬
