@@ -274,7 +274,7 @@ public partial class DriveGame
                 bool moving = p.st == 3 || p.st == 1 || (p.st == 0 && Mathf.Abs(p.walkZ) > 0.05f && !p.caller);
                 Sprite sp;
                 // 갑자기 무단횡단할 사람(튀어나오는 사람)은 연석에서 멈칫하는 순간 하얗게 딱 한 번 번쩍여서 예고한다
-                bool flash = !fallen && p.kind == 2 && p.st == 2 && p.waitTime - p.pauseLeft < 0.22f;
+                bool flash = !fallen && p.kind == 2 && p.st == 2 && p.waitTime - p.pauseLeft < 0.22f && NightK < 0.3f;       // 밤이나 정전 때는 예고 없이 (어둠 속에서 갑자기 튀어나온다)
                 if (fallen) sp = p.art.death != null ? p.art.death.At(p.fallT) : p.art.idle.frames[0];
                 else sp = moving ? p.art.walk.At(tt, flash) : p.art.idle.At(tt, flash);
                 p.flashing = flash;

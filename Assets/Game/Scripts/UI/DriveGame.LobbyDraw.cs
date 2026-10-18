@@ -327,13 +327,32 @@ public partial class DriveGame
             if (lobby.NearTaxi) LobbyPrompt(LobbyManager.TaxiX, 395f + bounce, "Space  택시에 타고 영업 시작", 290f);
         }
 
-        // 위쪽 정보와 아래쪽 조작 안내
-        Label(new Rect(20 * u, 14 * u, 400 * u, 40 * u), lobbyDayText, 30, UiGold, TextAnchor.UpperLeft);
-        Label(new Rect(20 * u, 54 * u, 500 * u, 30 * u), shopCoinsText, 20, Color.white, TextAnchor.UpperLeft);
-        Label(new Rect(20 * u, 80 * u, 500 * u, 28 * u), lobbyProjText, 17, UiCyan, TextAnchor.UpperLeft);
-        Label(new Rect(20 * u, 104 * u, 500 * u, 28 * u), lobbyHeatText, 17, new Color(1f, 0.62f, 0.45f), TextAnchor.UpperLeft);
-        Label(new Rect(W - 760 * u, 18 * u, 740 * u, 28 * u), modeText, 18, UiGold, TextAnchor.UpperRight);
-        Label(new Rect(0, H - 34 * u, W, 28 * u), "A / D 이동      Space 말 걸기 / 타기      O 설정      Esc 타이틀", 16, new Color(1f, 1f, 1f, 0.7f), TextAnchor.LowerCenter);
+        // 위쪽 정보와 아래쪽 조작 안내: 대화 중에는 대화 상자가 위를 쓰니까 숨긴다
+        if (!lobby.InDialogue)
+        {
+            // 왼쪽 위: 날짜, 코인, 개조, 위험도를 한 상자에
+            Panel(new Rect(14 * u, 12 * u, 330 * u, 124 * u), 0.5f);
+            Label(new Rect(28 * u, 16 * u, 300 * u, 36 * u), lobbyDayText, 28, UiGold, TextAnchor.UpperLeft);
+            Label(new Rect(28 * u, 52 * u, 300 * u, 26 * u), shopCoinsText, 19, Color.white, TextAnchor.UpperLeft);
+            Label(new Rect(28 * u, 78 * u, 300 * u, 24 * u), lobbyProjText, 16, UiCyan, TextAnchor.UpperLeft);
+            Label(new Rect(28 * u, 102 * u, 300 * u, 24 * u), lobbyHeatText, 16, new Color(1f, 0.62f, 0.45f), TextAnchor.UpperLeft);
+
+            // 오른쪽 위: 영업 모드와 최고 점수, 모드 바꾸는 키
+            if (!ReferenceEquals(modeText, lobbyModeCached))
+            {
+                lobbyModeCached = modeText;
+                lobbyModeLine1 = shiftMode ? "하루 영업 모드 (" + Mathf.RoundToInt(shiftSeconds) + "초)" : "무한 모드";
+                int bb = shiftMode ? bestShift : best;
+                lobbyModeLine2 = (bb > 0 ? "최고 점수 " + bb + "      " : "") + "Tab  모드 변경";
+            }
+            Panel(new Rect(W - 304 * u, 12 * u, 290 * u, 62 * u), 0.5f);
+            Label(new Rect(W - 296 * u, 16 * u, 274 * u, 28 * u), lobbyModeLine1, 20, UiGold, TextAnchor.UpperRight);
+            Label(new Rect(W - 296 * u, 44 * u, 274 * u, 24 * u), lobbyModeLine2, 15, new Color(1f, 1f, 1f, 0.8f), TextAnchor.UpperRight);
+
+            // 아래: 조작 안내
+            Panel(new Rect(W * 0.5f - 300 * u, H - 44 * u, 600 * u, 30 * u), 0.45f);
+            Label(new Rect(W * 0.5f - 300 * u, H - 44 * u, 600 * u, 30 * u), "A / D 이동      Space 말 걸기 / 타기      O 설정      Esc 타이틀", 15, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
+        }
 
         if (lobby.InDialogue) DrawLobbyDialogue(W, H, u);
 
@@ -344,6 +363,8 @@ public partial class DriveGame
             if (lobby.BoardFade > 0.5f) Label(new Rect(0, H * 0.45f, W, 60 * u), "출발!", 46, new Color(1f, 0.9f, 0.4f, (lobby.BoardFade - 0.5f) * 2f), TextAnchor.MiddleCenter);
         }
     }
+
+    string lobbyModeCached, lobbyModeLine1 = "", lobbyModeLine2 = "";
 
     void LobbyPrompt(float wx, float y, string text, float w)
     {

@@ -61,7 +61,15 @@ public partial class DriveGame
         if (color.a > 0.05f && Event.current != null && Event.current.type == EventType.Repaint)
         {
             float o = Mathf.Max(1f, px * 0.065f);
-            style.normal.textColor = new Color(0f, 0f, 0f, Mathf.Min(0.8f, color.a * 0.8f));
+            var shadow = new Color(0f, 0f, 0f, Mathf.Min(0.8f, color.a * 0.8f));
+            style.normal.textColor = shadow;
+            style.hover.textColor = shadow;
+            style.active.textColor = shadow;
+            style.focused.textColor = shadow;
+            style.onNormal.textColor = shadow;
+            style.onHover.textColor = shadow;
+            style.onActive.textColor = shadow;
+            style.onFocused.textColor = shadow;
             var s = r;
             if (size >= 26)
             {
@@ -77,7 +85,90 @@ public partial class DriveGame
             }
         }
         style.normal.textColor = color;
+        style.hover.textColor = color;                       // 마우스를 올려도 글자색이 바뀌지 않게 (IMGUI 기본 스타일은 hover/active 때 색이 달라진다)
+        style.active.textColor = color;
+        style.focused.textColor = color;
+        style.onNormal.textColor = color;
+        style.onHover.textColor = color;
+        style.onActive.textColor = color;
+        style.onFocused.textColor = color;
         GUI.Label(r, text, style);
+    }
+
+    // 글자가 상자(width, 720p 기준 px)보다 길면 글자 크기를 줄여서(최소 11) 상자 안에 들어오게 한다. 바뀔 때만 한 번 불러 값을 보관해 쓸 것
+    int FitFont(string text, float width, int size)
+    {
+        if (string.IsNullOrEmpty(text)) return size;
+        if (style == null) style = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = false, clipping = TextClipping.Overflow };
+        if (uiFont != null && style.font != uiFont) style.font = uiFont;
+        var content = new GUIContent(text);
+        float k = Screen.height / 720f;
+        for (int sz = size; sz > 11; sz--)
+        {
+            style.fontSize = Mathf.RoundToInt(sz * k);
+            if (style.CalcSize(content).x <= width * k) return sz;
+        }
+        return 11;
+    }
+
+    int hudTripSize1 = 20, hudTripSize2 = 18, hudLine3Size = 17, hudWaitSize = 17, hudHintSize = 17;
+    string hudLine3Cached, hudHintCached;
+
+    // 깜빡이 화살표: 한 번 그려 둔 그림(Texture)을 룸미러 양옆에 쓴다. 오른쪽을 가리키는 두툼한 화살표에 안티앨리어싱, 위아래 밝기 차이,
+    // 어두운 테두리가 있다. 왼쪽은 좌우를 뒤집어서 쓴다. dir -1 왼쪽, +1 오른쪽
+    Texture2D blinkArrowTex;
+
+    Texture2D MakeBlinkArrow()
+    {
+        const int N = 128;
+        var tex = new Texture2D(N, N, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+        Vector2[] poly = { new Vector2(18, 50), new Vector2(66, 50), new Vector2(66, 24), new Vector2(112, 64), new Vector2(66, 104), new Vector2(66, 78), new Vector2(18, 78) };
+        var px = new Color32[N * N];
+        for (int y = 0; y < N; y++)
+        {
+            for (int x = 0; x < N; x++)
+            {
+                var p = new Vector2(x + 0.5f, y + 0.5f);
+                // 도형까지의 부호 있는 거리 (안쪽이 음수)
+                float dmin = 1e9f;
+                bool inside = false;
+                for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+                {
+                    var a0 = poly[j]; var a1 = poly[i];
+                    var e = a1 - a0;
+                    float t = Mathf.Clamp01(Vector2.Dot(p - a0, e) / e.sqrMagnitude);
+                    dmin = Mathf.Min(dmin, (p - (a0 + e * t)).magnitude);
+                    if ((a1.y > p.y) != (a0.y > p.y) && p.x < (a0.x - a1.x) * (p.y - a1.y) / (a0.y - a1.y) + a1.x) inside = !inside;
+                }
+                float d = inside ? -dmin : dmin;
+                // 본체(조금 둥글게 깎은 안쪽), 테두리, 빛 번짐
+                float fill = Mathf.Clamp01(0.5f - (d + 5f));                         // d < -5 이면 1
+                float body = Mathf.Clamp01(0.5f - (d + 5f) * 1.0f);
+                float rim = Mathf.Clamp01(0.5f - d) * (1f - body);                     // 테두리: 본체 바깥 ~ 도형 가장자리
+                float glow = 0f;                                                        // 바깥 빛 번짐은 뺐다
+                float grad = Mathf.Clamp01((y - 20f) / 90f);                           // 위(y 큼)로 갈수록 밝게
+                var bodyC = Color.Lerp(new Color(0.12f, 0.62f, 0.2f), new Color(0.55f, 1f, 0.55f), grad);
+                var rimC = new Color(0.02f, 0.22f, 0.05f);
+                var glowC = new Color(0.3f, 1f, 0.4f);
+                // 겹치기: 빛 -> 테두리 -> 본체
+                float aG = glow * (d > 0f ? 1f : 0f);
+                Color c = glowC; float a = aG;
+                if (rim > 0f) { c = Color.Lerp(c, rimC, rim / Mathf.Max(0.001f, a + rim)); a = a + rim * (1f - a); }
+                if (body > 0f) { c = Color.Lerp(c, bodyC, body / Mathf.Max(0.001f, a + body)); a = a + body * (1f - a); }
+                c.a = a;
+                px[y * N + x] = c;
+            }
+        }
+        tex.SetPixels32(px);
+        tex.Apply(false, true);
+        return tex;
+    }
+
+    void DrawBlinkArrow(Vector2 c, float size, int dir)
+    {
+        if (blinkArrowTex == null) blinkArrowTex = MakeBlinkArrow();
+        var r = new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size);
+        GUI.DrawTextureWithTexCoords(r, blinkArrowTex, dir < 0 ? new Rect(1f, 0f, -1f, 1f) : new Rect(0f, 0f, 1f, 1f), true);
     }
 
     // 어두운 반투명 상자 + 옅은 테두리와 윗줄 광택
@@ -148,11 +239,20 @@ public partial class DriveGame
 
     // 룸미러: 항상 같은 크기. 뒷유리 너머로 지나온 도로가 뒤로 흘러가고(낮/밤/노을 색, 구급차가 오면 여기에 비친다),
     // 앞좌석의 기사(플레이어)와 뒷좌석 손님이 가슴까지 보이는 전용 그림(Bust)으로 앉아 있다. 거울 밖으로는 잘려서 안 나온다.
+    // 룸미러 자리 (화면 위 가운데). 다른 가운데 UI 는 이 아래로 쌓고, 깜빡이 표시는 양옆에 둔다
+    Rect MirrorRect(float W, float H)
+    {
+        float mw = W * 0.19f, mh = H * 0.115f;
+        return new Rect(W * 0.5f - mw * 0.5f, H * 0.092f, mw, mh);
+    }
+
+    float hudStackY;                                  // 가운데 UI 를 위에서부터 쌓는 다음 자리 (OnGUI 가 룸미러 아래로 초기화하고, 칸마다 내려간다)
+
     void DrawRearMirror(float W, float H)
     {
         bool carrying = taxi.State == TaxiState.Carrying;
-        float mw = W * 0.19f, mh = H * 0.115f;
-        var r = new Rect(W * 0.5f - mw * 0.5f, H * 0.092f, mw, mh);
+        var r = MirrorRect(W, H);
+        float mw = r.width, mh = r.height;
         Fill(new Rect(r.x - 4f, r.y - 4f, r.width + 8f, r.height + 8f), new Color(0.1f, 0.1f, 0.12f));
         Fill(r, new Color(0.16f, 0.18f, 0.22f));                                               // 차 안 천장/벽
 
@@ -377,11 +477,17 @@ public partial class DriveGame
                 string tipStr = tipNow > 0 ? " (팁 +" + tipNow + ")" : "";
                 hudTripText = taxi.PaxName + " → " + taxi.DestName + "    남은 거리 " + (taxi.AlienTrip ? "???" : rem.ToString()) + " m" + (hudFlee ? "    경찰 추격!" : "");
                 hudTripText2 = timeStr + "      요금 " + fareNow + "원" + tipStr;
+                hudTripSize1 = FitFont(hudTripText, 456f, 20);                      // 목적지 이름이 길면 글자를 줄여서 상자 밖으로 안 나가게
+                hudTripSize2 = FitFont(hudTripText2, 440f, 18);
             }
-            Panel(new Rect(W * 0.5f - 285 * u, H * 0.20f - 6 * u, 570 * u, 100 * u), 0.55f);
-            Label(new Rect(W * 0.5f - 277 * u, H * 0.20f - 2 * u, 554 * u, 32 * u), hudTripText, 20, Color.white, TextAnchor.MiddleCenter);
-            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 30 * u, 524 * u, 28 * u), hudTripText2, 18, late ? UiRed : UiGold, TextAnchor.MiddleCenter);
-            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f + 62 * u, 524 * u, 28 * u), taxi.AlienTrip ? (nf < 0 ? "신호가 뒤쪽이에요! 다음 교차로에서 돌아가세요" : (nr > 0 ? "초록 빛줄기가 오른쪽에 보여요  (멈추면 도착)" : (nr < 0 ? "초록 빛줄기가 왼쪽에 보여요  (멈추면 도착)" : "초록 빛줄기를 향해 곧장 가세요  (멈추면 도착)"))) : hintText, 17, UiGreen, TextAnchor.MiddleCenter);
+            float py = hudStackY;
+            Panel(new Rect(W * 0.5f - 240 * u, py, 480 * u, 96 * u), 0.55f);
+            string line3 = taxi.AlienTrip ? (nf < 0 ? "신호가 뒤쪽이에요! 다음 교차로에서 돌아가세요" : (nr > 0 ? "초록 빛줄기가 오른쪽에 보여요  (멈추면 도착)" : (nr < 0 ? "초록 빛줄기가 왼쪽에 보여요  (멈추면 도착)" : "초록 빛줄기를 향해 곧장 가세요  (멈추면 도착)"))) : hintText;
+            if (!ReferenceEquals(line3, hudLine3Cached)) { hudLine3Cached = line3; hudLine3Size = FitFont(line3, 440f, 17); }
+            Label(new Rect(W * 0.5f - 232 * u, py + 3 * u, 464 * u, 30 * u), hudTripText, hudTripSize1, Color.white, TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 224 * u, py + 33 * u, 448 * u, 28 * u), hudTripText2, hudTripSize2, late ? UiRed : UiGold, TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 224 * u, py + 63 * u, 448 * u, 28 * u), line3, hudLine3Size, UiGreen, TextAnchor.MiddleCenter);
+            hudStackY += 96 * u + 6 * u;
         }
         else if (taxi.State == TaxiState.Waiting)
         {
@@ -390,39 +496,30 @@ public partial class DriveGame
             {
                 hudWaitLeft = left;
                 hudWaitText = "손님을 기다리는 중…  " + left + "초      브레이크를 밟고 이 자리에 계세요!";
+                hudWaitSize = FitFont(hudWaitText, 448f, 17);
             }
-            Panel(new Rect(W * 0.5f - 270 * u, H * 0.20f - 4 * u, 540 * u, 34 * u), 0.55f);
-            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f - 2 * u, 524 * u, 30 * u), hudWaitText, 17, UiGold, TextAnchor.MiddleCenter);
+            Panel(new Rect(W * 0.5f - 240 * u, hudStackY, 480 * u, 34 * u), 0.55f);
+            Label(new Rect(W * 0.5f - 232 * u, hudStackY + 2 * u, 464 * u, 30 * u), hudWaitText, hudWaitSize, UiGold, TextAnchor.MiddleCenter);
+            hudStackY += 34 * u + 6 * u;
         }
         else if (taxi.State == TaxiState.Cruise)
         {
             string hint = taxi.Caller != null
-                ? "손님이 기다린다! 손님 쪽 인도에 붙어서 브레이크로 멈추세요"
+                ? "손님이 기다려요!  인도에 붙어서 브레이크로 멈추세요"
                 : "손님을 찾는 중...";
-            Panel(new Rect(W * 0.5f - 270 * u, H * 0.20f - 4 * u, 540 * u, 34 * u), 0.45f);
-            Label(new Rect(W * 0.5f - 262 * u, H * 0.20f - 2 * u, 524 * u, 30 * u), hint, 17, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+            if (!ReferenceEquals(hint, hudHintCached)) { hudHintCached = hint; hudHintSize = FitFont(hint, 448f, 17); }
+            Panel(new Rect(W * 0.5f - 240 * u, hudStackY, 480 * u, 34 * u), 0.45f);
+            Label(new Rect(W * 0.5f - 232 * u, hudStackY + 2 * u, 464 * u, 30 * u), hint, hudHintSize, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+            hudStackY += 34 * u + 6 * u;
         }
 
-        // 깜빡이와 교차로 안내
-        bool blinkOn = Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.35f;
-        if (blinker != 0 && blinkOn)
-            Label(new Rect(blinker < 0 ? W * 0.5f - 260 * u : W * 0.5f + 120 * u, H * 0.145f, 140 * u, 40 * u),
-                  blinker < 0 ? "< 좌" : "우 >", 30, new Color(0.4f, 1f, 0.4f), blinker < 0 ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft);
-
-        int dm = Mathf.RoundToInt(nextInterDist / 5f) * 5;                        // 5m 단위로 (글자를 자주 새로 만들지 않게)
-        if (dm != hudInterDist || blinker != hudInterBlinker || heading != hudInterHeading || gx != hudInterGx || gy != hudInterGy)
+        // 깜빡이: 룸미러 양옆의 큰 초록 화살표 (깜빡임). "다음 교차로 N m" 는 내비 화면에 있다 (DriveGame.Navigator.cs)
+        if (blinker != 0 && Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.35f)
         {
-            hudInterGx = gx;
-            hudInterGy = gy;
-            hudInterDist = dm;
-            hudInterBlinker = blinker;
-            hudInterHeading = heading;
-            string bl = blinker < 0 ? "좌회전 예약" : (blinker > 0 ? "우회전 예약" : "직진 (Q / E 깜빡이)");
-            hudInterText = "방향 " + HeadNames[heading] + "   ·   다음 교차로 " + dm + " m   ·   " + bl;
+            var mr = MirrorRect(W, H);
+            float asz = 74 * u;
+            DrawBlinkArrow(new Vector2(blinker < 0 ? mr.x - 6 * u - asz * 0.5f : mr.xMax + 6 * u + asz * 0.5f, mr.center.y), asz, blinker);
         }
-        Panel(new Rect(W * 0.5f - 270 * u, H * 0.385f - 1 * u, 540 * u, 26 * u), 0.4f);
-        Label(new Rect(0, H * 0.385f, W, 26 * u), hudInterText, 16, UiCyan, TextAnchor.MiddleCenter);
-
 
         // 손님 대화 상자
         if (taxi.State == TaxiState.Talking && Mathf.Abs(Mathf.DeltaAngle(camYaw, camYawTarget)) < 3f)
@@ -460,7 +557,7 @@ public partial class DriveGame
             }
             else
             {
-                var box = new Rect(W - 340 * u, 196 * u, 326 * u, 118 * u);
+                var box = new Rect(W - 340 * u, ((shiftMode ? 160f : 126f) + 24f) * u, 326 * u, 118 * u);
                 Panel(box, 0.7f);
                 if (!DrawArtFace(new Vector2(box.x + 56 * u, box.center.y), 92 * u, taxi.PaxArt, angry, angry))
                     DrawFace(new Vector2(box.x + 56 * u, box.center.y), 84 * u, taxi.PaxSkin, taxi.PaxHair, angry);
@@ -581,15 +678,19 @@ public partial class DriveGame
         if (shiftMode) Label(new Rect(W - 336 * u, 98 * u, 312 * u, 34 * u), ShiftHudText(), 26, shiftLeft <= 30f ? UiRed : UiGold, TextAnchor.UpperRight);
         Label(new Rect(W - 336 * u, (shiftMode ? 132f : 98f) * u, 312 * u, 24 * u), dayEvents.DayLabel, 17, dayEvents.Active ? UiRed : new Color(1f, 1f, 1f, 0.8f), TextAnchor.UpperRight);
 
+        // 가운데 UI 쌓기 시작: 룸미러 바로 아래. 긴급 속보가 있으면 맨 위 칸을 차지한다
+        hudStackY = MirrorRect(W, H).yMax + 14 * u;
         if (!gameOver && Time.unscaledTime < dayEvents.AlertUntil)
         {
             // 긴급 속보: 붉게 깜빡이는 띠
             float pulse = 0.7f + 0.25f * Mathf.Sin(Time.unscaledTime * 10f);
-            Fill(new Rect(W * 0.5f - 262 * u, 6 * u, 524 * u, 60 * u), new Color(1f, 1f, 1f, 0.55f));
-            Fill(new Rect(W * 0.5f - 260 * u, 8 * u, 520 * u, 56 * u), new Color(0.6f, 0.05f, 0.05f, pulse));
+            float ay = hudStackY;
+            Fill(new Rect(W * 0.5f - 242 * u, ay, 484 * u, 56 * u), new Color(1f, 1f, 1f, 0.55f));
+            Fill(new Rect(W * 0.5f - 240 * u, ay + 2 * u, 480 * u, 52 * u), new Color(0.6f, 0.05f, 0.05f, pulse));
             style.wordWrap = true;
-            Label(new Rect(W * 0.5f - 250 * u, 8 * u, 500 * u, 56 * u), dayEvents.AlertText, 19, Color.white, TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 230 * u, ay + 2 * u, 460 * u, 52 * u), dayEvents.AlertText, 19, Color.white, TextAnchor.MiddleCenter);
             style.wordWrap = false;
+            hudStackY += 56 * u + 6 * u;
         }
 
         Label(new Rect(20 * u, H - 30 * u, W * 0.62f, 26 * u), "A/D 조향   S 브레이크   Q/E 좌/우 깜빡이   Space 손님 태우기   X 거절   R 재시작(게임오버 후)", 15, new Color(1f, 1f, 1f, 0.55f), TextAnchor.LowerLeft);   // 내비(오른쪽 아래)와 겹치지 않게 왼쪽 정렬
@@ -598,17 +699,20 @@ public partial class DriveGame
         if (!gameOver && flow != GameFlow.Paused) DrawTaxiGui(W, H, u);       // 게임오버/일시정지 글자와 겹치지 않게
         if (!gameOver && flow != GameFlow.Paused) DrawQuirkHud(W, H, u);
 
-        if (Time.unscaledTime < popupUntil && !gameOver)
+        // 팝업(쾅!, 아슬아슬! 등)과 도착 인사: 가운데 UI 쌓기 맨 아래의 한 자리에 차례로 (화면 한복판을 가리지 않는다)
+        float msgY = hudStackY + 2 * u;
+        bool popupOn = Time.unscaledTime < popupUntil && !gameOver;
+        if (popupOn)
         {
             float age = Time.unscaledTime - (popupUntil - 0.8f);
-            float pop = 1f + 0.45f * Mathf.Clamp01(1f - age / 0.15f);                         // 처음엔 크게 튀어나왔다가 제 크기로
+            float pop = 1f + 0.3f * Mathf.Clamp01(1f - age / 0.15f);                          // 처음엔 크게 튀어나왔다가 제 크기로
             float fadeP = Mathf.Clamp01((popupUntil - Time.unscaledTime) / 0.25f);           // 끝에서 부드럽게 사라진다
             Color pc = popupColor;
             pc.a *= fadeP;
-            Label(new Rect(0, H * 0.53f, W, 64 * u), popupText, Mathf.RoundToInt(38f * pop), pc, TextAnchor.MiddleCenter);
+            Label(new Rect(0, msgY, W, 52 * u), popupText, Mathf.RoundToInt(32f * pop), pc, TextAnchor.MiddleCenter);
         }
         if (!gameOver && (taxi.State == TaxiState.Cruise || taxi.State == TaxiState.Waiting) && Time.unscaledTime < taxi.ThanksUntil)
-            Label(new Rect(0, H * 0.385f + 30 * u, W, 34 * u), taxi.ThanksText, 22, new Color(1f, 1f, 1f, 0.95f), TextAnchor.MiddleCenter);
+            Label(new Rect(0, msgY + (popupOn ? 50 * u : 0f), W, 34 * u), taxi.ThanksText, 20, new Color(1f, 1f, 1f, 0.95f), TextAnchor.MiddleCenter);
 
         // 회전 중 장면 교체 순간에 잠깐 어두워진다
         if (fade > 0f) Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, Mathf.Clamp01(fade)));

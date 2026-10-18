@@ -22,7 +22,7 @@ public partial class DriveGame
     void DrawQuirkHud(float W, float H, float u)
     {
         if (taxi.State != TaxiState.Carrying || taxi.Pax == null || taxi.Pax.quirk == Quirk.None) return;
-        float y = H * 0.20f + 98f * u;
+        float y = hudStackY;                                   // 가운데 UI 쌓기의 다음 칸 (DriveGame.Gui.cs)
         var r = new Rect(W * 0.5f - 160 * u, y, 320 * u, 28 * u);
         switch (taxi.Pax.quirk)
         {
@@ -37,7 +37,7 @@ public partial class DriveGame
                 QuirkBar(r, "행복도", taxi.Happy, new Color(1f, 0.5f, 0.75f));
                 break;
             case Quirk.Alien:
-                r = new Rect(W * 0.5f - 230 * u, y, 460 * u, 28 * u);
+                r = new Rect(W * 0.5f - 220 * u, y, 440 * u, 28 * u);
                 Panel(r, 0.55f);
                 Label(r, "삐빅… 지구 지도 해독 불가", 17, UiGreen, TextAnchor.MiddleCenter);
                 break;
@@ -49,13 +49,14 @@ public partial class DriveGame
                     hudRacerKmh = kmh;
                     hudRacerText = "평균 " + kmh + " km/h    빠를수록 요금이 오른다";
                 }
-                r = new Rect(W * 0.5f - 230 * u, y, 460 * u, 28 * u);
+                r = new Rect(W * 0.5f - 220 * u, y, 440 * u, 28 * u);
                 Panel(r, 0.55f);
                 Label(r, hudRacerText, 17, UiGold, TextAnchor.MiddleCenter);
                 break;
             }
             case Quirk.Fighter:
             {
+                hudStackY -= 34 * u;                           // 이 손님은 평소에 칸을 쓰지 않는다 (아래에서 한꺼번에 더하는 칸을 되돌린다)
                 // 평소에는 아무 표시도 하지 않는다. 핸들을 잡히면 가운데에서 양쪽으로 차오르는 게이지가 나온다 (A 는 왼쪽, D 는 오른쪽)
                 if (!taxi.Grabbed) break;
                 float gw = 460 * u, gh = 30 * u, gx = W * 0.5f - gw * 0.5f, gy = H * 0.60f;
@@ -73,5 +74,6 @@ public partial class DriveGame
                 break;
             }
         }
+        hudStackY += 34 * u;                                   // 표시를 그린 만큼 아래로 (팝업 등이 겹치지 않게)
     }
 }

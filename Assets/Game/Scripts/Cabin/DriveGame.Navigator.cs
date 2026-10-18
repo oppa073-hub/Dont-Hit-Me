@@ -168,10 +168,13 @@ public partial class DriveGame
         navCar.localPosition = new Vector3(0f, carY, -0.003f);
         navCar.localScale = new Vector3(cs * 0.7f, cs * 0.8f, 1f);
 
-        if (h != navHead)
+        // 왼쪽 위: 다음 교차로까지 거리(5m 단위). 깜빡이를 켜면 "좌회전/우회전"으로 바뀜 (방향 글자는 뺐다)
+        int interKey = Mathf.RoundToInt(nextInterDist / 5f) * 3 + (blinker + 1);
+        if (interKey != navHead)
         {
-            navHead = h;
-            navHeadText.text = HeadNames[h];
+            navHead = interKey;
+            string label = blinker < 0 ? "좌회전 " : (blinker > 0 ? "우회전 " : "교차로 ");        // 깜빡이를 켜 두면 어느 쪽으로 돌 예정인지 보인다
+            navHeadText.text = label + Mathf.RoundToInt(nextInterDist / 5f) * 5 + "m";
         }
         if (carrying && taxi.AlienTrip) rem = -77;
         int infoKey = carrying ? rem : (callerM >= 0 ? -10 - callerM * 2 - (callerRight ? 1 : 0) : -1);

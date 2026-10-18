@@ -500,11 +500,11 @@ public partial class DriveGame
     void DrawNewsSubtitle(float W, float H, float u)
     {
         if (!newsActive || !newsShown || newsSubBeat < 0) return;
-        var r = new Rect(W * 0.5f - 400f * u, H * 0.585f, 800f * u, 78f * u);
-        Panel(r, 0.62f);
-        Label(new Rect(r.x + 14f * u, r.y + 4f * u, 400f * u, 22f * u), newsSubSpeaker, 17, newsSubColor, TextAnchor.UpperLeft);
+        var r = new Rect(W * 0.5f - 250f * u, H * 0.72f, 500f * u, 54f * u);           // 화면 아래쪽(대시보드 바로 위)의 작은 자막: 도로 한복판을 가리지 않고 한눈에 읽힌다
+        Panel(r, 0.6f);
+        Label(new Rect(r.x + 10f * u, r.y + 2f * u, 300f * u, 16f * u), newsSubSpeaker, 13, newsSubColor, TextAnchor.UpperLeft);
         style.wordWrap = true;
-        Label(new Rect(r.x + 14f * u, r.y + 26f * u, r.width - 28f * u, 50f * u), newsSubText, 24, Color.white, TextAnchor.UpperLeft);
+        Label(new Rect(r.x + 10f * u, r.y + 17f * u, r.width - 20f * u, 36f * u), newsSubText, 17, Color.white, TextAnchor.UpperLeft);
         style.wordWrap = false;
     }
 
