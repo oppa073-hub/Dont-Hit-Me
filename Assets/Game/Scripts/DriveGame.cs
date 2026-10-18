@@ -356,6 +356,17 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("화면 흔들림 세기 배율 (0이면 흔들리지 않음)")]
     public float endingShake = 1f;
 
+    [Header("City3D (3D 로우폴리 건물 테스트: Tools/stage-citykit.py 로 모델을 복사해 둬야 보인다. 끄면 예전 스프라이트 건물)")]
+    public bool use3DBuildings = true;
+    [Tooltip("모델 한 채가 도로를 따라 차지하는 길이(m). 모델 폭에 맞춰 크기를 정하는 기준 (6~12배 안으로 제한)")]
+    public float cityKitLength = 11.5f;
+    [Tooltip("3D 건물 크기 배율 (1 = 기본)")]
+    public float cityKitScale = 1f;
+    [Tooltip("건물 정면이 도로 반대쪽을 보면 켠다 (모델의 앞 방향이 반대일 때)")]
+    public bool cityKitFlip;
+    [Tooltip("교차로 옆길(아직 회전 전)에 미리 세워 두는 건물 수. 옆길 양쪽 가장자리마다 이만큼 (0이면 안 세움)")]
+    public int crossBuildings = 1;
+
     [Header("Heat (도시 위험도 0~5: Day 가 오를수록 어려워지고, 대신 요금에 위험수당이 붙는다)")]
     [Tooltip("이 Day 부터 위험도가 1, 2, 3, 4, 5 단계가 된다")]
     public int[] heatDays = { 6, 12, 18, 26, 36 };
@@ -514,7 +525,8 @@ public partial class DriveGame : MonoBehaviour
 
     public const float StripLen = 4f;
 
-    const int StripCount = 40;
+    const int BackStrips = 12;                    // 카메라 뒤쪽(48m)에도 도로/건물을 깐다: 손님이 뒤쪽에 있어 카메라가 뒤를 볼 때 빈 공간이 안 나오게
+    const int StripCount = 40 + BackStrips;
 
     public const float CarHalfWidth = 1.0f;       // 보행자 매니저도 충돌 판정에 쓴다
 
@@ -584,6 +596,7 @@ public partial class DriveGame : MonoBehaviour
             Mat(new Color(0.55f, 0.15f, 0.35f))
         };
         dashMat = Mat(new Color(0.95f, 0.9f, 0.5f));
+        groundMat = Mat(new Color(0.2f, 0.22f, 0.2f));         // 도로/인도/건물 아래 넓은 땅 (옆길 쪽이나 건물 밑이 비어 보이지 않게)
         darkMat = Mat(new Color(0.07f, 0.07f, 0.09f));
 
         hasCity = buildingTiles != null && decoTiles != null;
@@ -596,8 +609,11 @@ public partial class DriveGame : MonoBehaviour
                 road = Block("Road"),
                 swL = Block("SwL"),
                 swR = Block("SwR"),
-                dash = Block("Dash")
+                dash = Block("Dash"),
+                ground = Block("Ground")
             };
+            s.ground.GetComponent<Renderer>().sharedMaterial = groundMat;
+            s.ground.gameObject.layer = SideLayer;
             s.dash.GetComponent<Renderer>().sharedMaterial = dashMat;
             for (int k = 0; k < 2; k++) s.bldg[k] = Block("Bldg");
             // 인도와 건물 몸통은 헤드라이트를 받지 않는 레이어: 도로만 환하게 보인다 (스프라이트 쪽은 headlightSideLight 로 조절)

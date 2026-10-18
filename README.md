@@ -21,7 +21,10 @@
 - **원통형 도로**: 도로 구간을 곡선에 맞춰 배치하고 기울여서 앞쪽으로 휘어 내려가는 지평선을 만듭니다.
 - **코드로 만드는 장면**: 빈 씬에 컴포넌트 하나만 붙이면 도로, 보행자, 건물, 차 내부, HUD가 전부 코드로 생성됩니다.
 - **3D 팔 IK**: 어깨-팔꿈치-손목 2본 IK로 팔을 핸들에 올리고, 손가락은 핸들 접선축을 기준으로 굽혀 쥡니다.
-- **도시**: 상자 모양 건물 몸통에 타일 스프라이트를 붙입니다. 건물 스프라이트는 월드에 고정되고, 보행자만 카메라를 향하는 빌보드입니다.
+- **도시**: Kenney City Kit(CC0)의 로우폴리 3D 건물을 세 구간(12m)마다 한 채씩 세우고(해시로 같은 길은 항상 같은 건물), 길가 소품과 가로등은 코드로 만든 도형입니다. 사람과 차는 2D 스프라이트 빌보드입니다. 인스펙터에서 예전 스프라이트 건물과 전환할 수 있습니다.
+- **밤 조명**: 차 양쪽에서 나오는 실제 스포트라이트 두 개가 앞쪽 한 점에서 모이고 도로만 비춥니다. 빛을 못 받는 2D 스프라이트는 같은 원뿔 계산으로 색을 어둡게 칠합니다.
+- **자동 시험 봇**: 가상 키보드로 운전하는 봇이 Unity 배치모드에서 며칠 치 영업을 돌려 오류, 사고 원인, 수입, 난이도를 보고서로 남기고, 설정을 바꿔 가며 밸런스를 비교합니다 (`Tools/run-simbot.ps1`).
+- **구조**: 하나의 MonoBehaviour(`DriveGame`, partial class)가 뼈대이고, 보행자/택시/교차로/난이도/날씨/사건 등은 일반 C# 매니저 클래스가 이벤트로 결과를 알립니다.
 - 튜닝 값은 모두 public 필드로 노출해서 인스펙터에서 바로 조절할 수 있습니다.
 
 ## 실행 방법
@@ -34,16 +37,8 @@
 조작: A/D 조향, S 브레이크, Q/E 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작. 실행하면 타이틀 화면이 뜨고 Space 또는 Enter 로 시작합니다.
 
 ## 에셋
-라이선스상 재배포가 금지되어 저장소에는 포함하지 않았습니다.
-- GandalfHardcore City Tiles (도시 타일, 배경)
-- 3D 팔 모델 `arms.fbx`와 `arm_albedo_*.png`
-
-## 구조
-- `Assets/Game/Scripts/DriveGame.cs`: 게임의 뼈대(설정 값, 생명주기). 나머지는 같은 클래스를 역할별로 나눈 `DriveGame.*.cs`
-  - `World/` 도로·건물 만들기와 표시, `Gameplay/` 택시·교차로·안내·보행자, `Cabin/` 3D 운전석·내비·팔, `UI/` HUD
-- `Assets/Game/Scripts/Editor/DriveSceneCreator.cs`: 씬 생성 메뉴
-- `Assets/Game/Scenes/DriveScene.unity`: 플레이용 씬
-
-## 알려진 한계
-- 3D 팔 IK 자세와 주먹 모양은 아직 화면에서 충분히 검증되지 않았습니다.
-- 건물 스프라이트 수가 많아 성능 확인이 필요합니다.
+- **Kenney City Kit (Commercial)** — CC0 라이선스라서 저장소에 포함되어 있습니다 (`Assets/Game/Resources/CityKit/`). 만든 사람: [Kenney](https://www.kenney.nl) (크레딧 표기 권장, 필수 아님).
+- 아래는 라이선스상 **재배포가 금지되어 저장소에 포함하지 않았습니다.** `Assets/_External/`에 넣으면 쓰이고, 없으면 도형 그림으로 대체됩니다. 모두 [GandalfHardcore](https://gandalfhardcore.itch.io/)의 픽셀 아트입니다.
+  - City Tiles, Modern NPCs, Zombies, Modern Pixel Art Enemies (외계인/UFO), Farm Animals, Hell Asset Pack
+  - 이 팩들은 `python Tools/build-pixel-atlas.py`로 한 장의 아틀라스로 자른 뒤 사용합니다.
+- 3D 팔 모델 `arms.fbx`와 `arm_albedo_*.png` (저장소에 포함하지 않음)

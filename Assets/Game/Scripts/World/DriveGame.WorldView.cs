@@ -15,11 +15,16 @@ public partial class DriveGame
         public float propScale = 1f;
         public bool wantDoor, wantProp;   // 이 건물이 문/소품을 가졌는지 (가까울 때만 실제로 켠다)
         public bool far;                  // 마지막으로 적용한 원거리 단순화 상태
+        public GameObject[] props = new GameObject[5];   // 3D 길가 소품(1 가로등, 2 소화전, 3 쓰레기통, 4 우체통). 종류별로 한 번만 만든다
+        public SpriteRenderer lampGlow;                  // 가로등 불빛 번짐 (밤에만 보인다)
+        public GameObject model;          // 3D 건물 인스턴스 (use3DBuildings 일 때 세 구간 묶음의 가운데 구간이 가진다)
+        public int modelIdx = -1;
+        public bool legacyHidden;         // 예전 상자/스프라이트 건물을 꺼 둔 상태
     }
 
     class Strip
     {
-        public Transform road, swL, swR, dash;
+        public Transform road, swL, swR, dash, ground;
         public Transform[] bldg = new Transform[2];   // 건물 몸통(상자). 면마다 스프라이트를 붙인다
         public Side[] sides = { new Side(), new Side() };
         public int lastIdx = int.MinValue;
@@ -27,7 +32,7 @@ public partial class DriveGame
 
     readonly Strip[] strips = new Strip[StripCount];
 
-    Material roadA, roadB, swA, swB, dashMat, darkMat;
+    Material roadA, roadB, swA, swB, dashMat, darkMat, groundMat;
 
     Material[] bodyMats;
 
@@ -126,9 +131,10 @@ public partial class DriveGame
         for (int i = 0; i < StripCount; i++)
         {
             var s = strips[i];
-            int idxA = baseIdx + i;
-            int idx = idxA;
-            float zc = i * StripLen - 8f - frac + StripLen * 0.5f;
+            int ii = i - BackStrips;                           // 맨 앞(i=0)이 카메라 뒤 BackStrips 칸
+            int idxA = baseIdx + ii;
+            int idx = Mathf.Max(0, idxA);                      // 도로 시작점보다 뒤는 0번 구간 모양을 그대로 쓴다
+            float zc = ii * StripLen - 8f - frac + StripLen * 0.5f;
 
             bool roleB = false;
             int hideSide = -1;
@@ -163,6 +169,7 @@ public partial class DriveGame
             bool inter = IsIntersection(idx);
 
             Place(s.road, new Vector3(0f, drop - 0.1f, zc), pitchRot, new Vector3(rw * 2f, 0.2f, len));
+            Place(s.ground, new Vector3(0f, drop - 0.45f, zc), pitchRot, new Vector3(220f, 0.2f, len));          // 도로 양옆과 건물 밑을 채우는 땅
             if (inter)
             {
                 // 교차로: 인도 박스를 가로 도로 아스팔트로 쓰고, 중앙선 대신 횡단보도 줄을 하나 둔다
@@ -350,12 +357,268 @@ public partial class DriveGame
             }
         }
 
+        UpdateCrossBuildings();
         UpdateBattleVisuals();
     }
 
     // 건물 = 상자 몸통 + 각 면에 붙인 스프라이트. 도로 쪽 정면과 다가오는 쪽(-z) 면은 월드에 고정(카메라를 쳐다보지 않음).
+    // ---- 3D 로우폴리 건물 (테스트) ----
+
+    // ---- 교차로 옆길 건물 (회전하기 전에 옆길이 휑하지 않게, 건물 한 칸 정도를 미리 세워 둔다) ----
+
+    class CrossSet
+    {
+        public readonly List<GameObject> objs = new List<GameObject>();
+        public readonly List<int> models = new List<int>();
+        public readonly List<Vector4> spec = new List<Vector4>();     // x = 옆길 방향 위치, y = 교차로 중심에서 z 쪽으로 떨어진 거리, z = 회전(도), w = 크기
+    }
+
+    readonly Dictionary<int, CrossSet> crossSets = new Dictionary<int, CrossSet>();
+    readonly List<int> crossDrop = new List<int>();
+
+    void ReleaseCross(CrossSet cs)
+    {
+        for (int i = 0; i < cs.objs.Count; i++) CityKit.Release(cs.models[i], cs.objs[i]);
+        cs.objs.Clear();
+    }
+
+    void UpdateCrossBuildings()
+    {
+        bool on = use3DBuildings && CityKit.Available && crossBuildings > 0 && !turning;
+        int e = Mathf.Max(intersectionLen + 1, intersectionEvery);
+        float period = e * StripLen;
+        crossDrop.Clear();
+        foreach (var kv in crossSets) crossDrop.Add(kv.Key);
+        if (on)
+        {
+            int k0 = Mathf.FloorToInt((dist + 8f) / period);
+            for (int k = k0 - 1; k <= k0 + 2; k++)
+            {
+                float z0 = (k * e + intersectionLen * 0.5f) * StripLen - dist - 8f;          // 이 교차로 중심의 앞쪽 거리
+                if (z0 < -55f || z0 > 150f) continue;
+                crossDrop.Remove(k);
+                CrossSet cs;
+                if (!crossSets.TryGetValue(k, out cs)) crossSets[k] = cs = new CrossSet();
+                if (cs.objs.Count == 0) BuildCross(cs, k);
+                float half = intersectionLen * StripLen * 0.5f;
+                for (int i = 0; i < cs.objs.Count; i++)
+                {
+                    var sp = cs.spec[i];
+                    float z = z0 + sp.y;
+                    float pitch = Mathf.Atan(2f * curvature * z) * Mathf.Rad2Deg;
+                    var rot = Quaternion.Euler(pitch, 0f, 0f) * Quaternion.Euler(0f, sp.z, 0f);
+                    rendRot = false;
+                    Place(cs.objs[i].transform, new Vector3(sp.x, Drop(z) + 0.2f, z), rot, Vector3.one * sp.w);
+                }
+            }
+        }
+        foreach (int k in crossDrop)
+        {
+            ReleaseCross(crossSets[k]);
+            crossSets.Remove(k);
+        }
+    }
+
+    // 교차로 하나의 옆길 건물을 정한다: 옆길 양쪽(좌/우) x 옆길 앞/뒤 두 줄, 모퉁이 건물 바로 바깥에 crossBuildings 채씩
+    void BuildCross(CrossSet cs, int k)
+    {
+        float half = intersectionLen * StripLen * 0.5f;
+        for (int xs = -1; xs <= 1; xs += 2)
+        {
+            for (int zs = -1; zs <= 1; zs += 2)
+            {
+                float cursor = roadHalfWidth + 16f;                       // 도로 쪽 모퉁이 건물이 끝나는 자리 근처부터
+                for (int n = 0; n < crossBuildings; n++)
+                {
+                    int seed = unchecked(k * 7919 + (xs + 1) * 31 + (zs + 1) * 17 + n * 101);
+                    int mi = Mathf.Min(CityKit.Count - 1, Mathf.FloorToInt(Hash(seed) * CityKit.Count));
+                    var m = CityKit.Get(mi);
+                    float sc = Mathf.Clamp(cityKitLength / m.width, 6f, 12f) * cityKitScale;
+                    float wk = m.width * sc;
+                    float x = xs * (cursor + wk * 0.5f);
+                    float zoff = zs * (half + 0.5f + m.depth * sc * 0.5f);    // 정면이 옆길을 향하게: 앞쪽 줄은 +z 쪽 모델 정면을 -z 로 돌린다
+                    cs.objs.Add(CityKit.Acquire(mi, transform, SideLayer));
+                    cs.models.Add(mi);
+                    cs.spec.Add(new Vector4(x, zoff, zs > 0 ? 180f : 0f, sc));
+                    cursor += wk + 0.6f;
+                }
+            }
+        }
+    }
+
+    // ---- 3D 길가 소품 (가로등, 소화전, 쓰레기통, 우체통): 모양은 코드로 만든 간단한 도형 ----
+
+    static Sprite glowSprite;
+
+    GameObject MakeProp(int kind)
+    {
+        var root = new GameObject("Prop" + kind);
+        root.transform.SetParent(transform, false);
+        var dark = Mat(new Color(0.2f, 0.22f, 0.25f));
+        switch (kind)
+        {
+            case 1:      // 가로등: 기둥 + 도로 쪽으로 뻗은 팔 + 스스로 빛나는 등
+            {
+                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 2.1f, 0f), new Vector3(0.16f, 2.1f, 0.16f), dark);
+                PropPart(root, PrimitiveType.Cube, new Vector3(0.65f, 4.15f, 0f), new Vector3(1.4f, 0.08f, 0.08f), dark);
+                PropPart(root, PrimitiveType.Cube, new Vector3(1.3f, 4.05f, 0f), new Vector3(0.55f, 0.12f, 0.3f), Unlit(new Color(1f, 0.93f, 0.6f)));
+                break;
+            }
+            case 2:      // 소화전
+                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 0.35f, 0f), new Vector3(0.38f, 0.35f, 0.38f), Mat(new Color(0.8f, 0.12f, 0.1f)));
+                PropPart(root, PrimitiveType.Sphere, new Vector3(0f, 0.78f, 0f), new Vector3(0.4f, 0.3f, 0.4f), Mat(new Color(0.8f, 0.12f, 0.1f)));
+                break;
+            case 3:      // 쓰레기통
+                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 0.45f, 0f), new Vector3(0.55f, 0.45f, 0.55f), Mat(new Color(0.3f, 0.34f, 0.3f)));
+                break;
+            default:     // 우체통
+                PropPart(root, PrimitiveType.Cube, new Vector3(0f, 0.6f, 0f), new Vector3(0.5f, 1.2f, 0.45f), Mat(new Color(0.2f, 0.35f, 0.75f)));
+                break;
+        }
+        return root;
+    }
+
+    void PropPart(GameObject root, PrimitiveType type, Vector3 pos, Vector3 scale, Material m)
+    {
+        var t = CabinPart("Part", type, root.transform, m);          // 그림자 없는 단색 부품 (콜라이더도 지운다)
+        t.localPosition = pos;
+        t.localScale = scale;
+        t.gameObject.layer = SideLayer;
+    }
+
+    // 3D 소품 종류: 예전 스프라이트 소품과 같은 규칙 (0 없음)
+    int PropKind(int hidx, int sideC)
+    {
+        if (((hidx + sideC * 2) % 4 + 4) % 4 == 0) return 1;
+        if (Hash(hidx * 3 + sideC * 7) < 0.12f) return 2;
+        if (Hash(hidx * 5 + sideC * 11) < 0.15f) return 3;
+        if (Hash(hidx * 7 + sideC * 13) < 0.10f) return 4;
+        return 0;
+    }
+
+    void UpdateProp3D(Side sd, int kind, float sgn, float zc, float drop, Quaternion pitchRot, float rw)
+    {
+        for (int k = 1; k < sd.props.Length; k++)
+            if (sd.props[k] != null && sd.props[k].activeSelf != (k == kind)) sd.props[k].SetActive(k == kind);
+        if (kind == 0) { if (sd.lampGlow != null && sd.lampGlow.gameObject.activeSelf) sd.lampGlow.gameObject.SetActive(false); return; }
+        if (sd.props[kind] == null) sd.props[kind] = MakeProp(kind);
+        var go = sd.props[kind];
+        if (!go.activeSelf) go.SetActive(true);
+        // 가로등은 도로 쪽(-sgn 방향)으로 팔이 뻗게 좌우를 뒤집는다
+        float flip = -sgn;
+        go.transform.localScale = new Vector3(flip, 1f, 1f);
+        float x = sgn * (rw + 0.7f);
+        Place(go.transform, new Vector3(x, drop + 0.2f, zc), pitchRot, new Vector3(flip, 1f, 1f));
+
+        // 가로등 불빛 번짐: 밤에만
+        if (kind == 1)
+        {
+            if (sd.lampGlow == null)
+            {
+                if (glowSprite == null) glowSprite = Sprite.Create(circleTex, new Rect(0, 0, circleTex.width, circleTex.height), new Vector2(0.5f, 0.5f), circleTex.width);
+                var ggo = new GameObject("LampGlow");
+                ggo.transform.SetParent(transform, false);
+                sd.lampGlow = ggo.AddComponent<SpriteRenderer>();
+                sd.lampGlow.sprite = glowSprite;
+            }
+            float nk = NightK;
+            bool on = nk > 0.05f;
+            if (sd.lampGlow.gameObject.activeSelf != on) sd.lampGlow.gameObject.SetActive(on);
+            if (on)
+            {
+                sd.lampGlow.color = new Color(1f, 0.9f, 0.55f, 0.5f * nk);
+                float hx = x + (-sgn) * 1.3f;
+                Place(sd.lampGlow.transform, new Vector3(hx, drop + 0.2f + 4.0f, zc - 0.1f), Quaternion.identity, Vector3.one * 5f);
+            }
+        }
+    }
+
+    void ReleaseModel(Side sd)
+    {
+        for (int k = 1; k < sd.props.Length; k++) if (sd.props[k] != null && sd.props[k].activeSelf) sd.props[k].SetActive(false);
+        if (sd.lampGlow != null && sd.lampGlow.gameObject.activeSelf) sd.lampGlow.gameObject.SetActive(false);
+        if (sd.model == null) return;
+        CityKit.Release(sd.modelIdx, sd.model);
+        sd.model = null;
+        sd.modelIdx = -1;
+    }
+
+    // 건물 해시용 구간 번호 (UpdateBuilding 의 계산과 같다: 같은 길은 어느 방향으로 지나도 같은 건물)
+    int BuildingHash(int idx, int sideIdx, out int sideC)
+    {
+        int e = Mathf.Max(intersectionLen + 1, intersectionEvery);
+        int k = idx / e;
+        int j = idx - k * e;
+        int dk = k - rendNodeK;
+        int cx0 = rendNodeX + HeadX[rendHead] * dk;
+        int cy0 = rendNodeY + HeadY[rendHead] * dk;
+        int jc = j;
+        sideC = sideIdx;
+        if (rendHead >= 2)
+        {
+            cx0 += HeadX[rendHead];
+            cy0 += HeadY[rendHead];
+            jc = e + intersectionLen - 1 - j;
+            sideC = 1 - sideIdx;
+        }
+        int segKey = unchecked((cx0 * 73856093) ^ (cy0 * 19349663) ^ ((rendHead & 1) * 83492791)) & 0xFFFFF;
+        int stride = (e + 2) / 3 * 3;
+        return segKey * stride + jc;
+    }
+
+    // 3D 건물 한 면 갱신. 세 구간(12m)이 한 건물이라, 가운데 구간이 모델을 들고 있다. true = 이 면은 3D 로 처리했다(예전 방식은 건너뛴다)
+    bool UpdateBuilding3D(Strip s, Side sd, int sideIdx, int idx, float zc, float drop, Quaternion pitchRot, float rw)
+    {
+        // 예전 상자/스프라이트 건물은 꺼 둔다 (한 번만)
+        if (!sd.legacyHidden)
+        {
+            sd.legacyHidden = true;
+            s.bldg[sideIdx].gameObject.SetActive(false);
+            if (hasCity)
+                foreach (var sr in new[] { sd.upper, sd.ground, sd.cornice, sd.door, sd.prop, sd.fUpper, sd.fGround, sd.fCornice })
+                    if (sr != null) sr.gameObject.SetActive(false);
+        }
+        if (IsIntersection(idx)) { ReleaseModel(sd); return true; }
+
+        int sideC;
+        int hidx = BuildingHash(idx, sideIdx, out sideC);
+        if (((hidx % 3) + 3) % 3 != 1) { ReleaseModel(sd); return true; }          // 가운데 구간만 모델을 세운다
+
+        int run = hidx / 3;
+        int seed = run * 2 + sideC;
+        int mi = Mathf.Min(CityKit.Count - 1, Mathf.FloorToInt(Hash(seed * 31 + 7) * CityKit.Count));
+        if (sd.model == null || sd.modelIdx != mi)
+        {
+            ReleaseModel(sd);
+            sd.model = CityKit.Acquire(mi, transform, SideLayer);
+            sd.modelIdx = mi;
+        }
+        var m = CityKit.Get(mi);
+        float sgn = sideIdx == 0 ? -1f : 1f;
+        float k = Mathf.Clamp(cityKitLength / m.width, 6f, 12f) * cityKitScale;      // 모델 한 칸당 미터
+        float setback = Hash(seed * 29 + 5) * 1.5f;
+        float faceX = sgn * (rw + 5f + setback);                                      // 도로 쪽 정면의 위치 (예전 건물과 같다)
+        float cx = faceX + sgn * m.depth * k * 0.5f;
+        var rot = pitchRot * Quaternion.Euler(0f, (sgn < 0f ? 90f : -90f) + (cityKitFlip ? 180f : 0f), 0f);          // 정면(+z)이 도로를 향하게
+        Place(sd.model.transform, new Vector3(cx, drop + 0.2f, zc), rot, Vector3.one * k);
+        UpdateProp3D(sd, PropKind(hidx, sideC), sgn, zc, drop, pitchRot, rw);
+        return true;
+    }
+
     void UpdateBuilding(Strip s, Side sd, int sideIdx, int idx, float zc, float drop, Quaternion pitchRot, float rw)
     {
+        if (use3DBuildings && CityKit.Available)
+        {
+            if (UpdateBuilding3D(s, sd, sideIdx, idx, zc, drop, pitchRot, rw)) return;
+        }
+        else if (sd.legacyHidden)
+        {
+            // 3D 를 껐다: 모델을 치우고 예전 건물을 다시 켠다 (구간 번호를 지워서 처음부터 다시 구성하게 한다)
+            sd.legacyHidden = false;
+            ReleaseModel(sd);
+            s.lastIdx = int.MinValue;
+        }
+
         float sgn = sideIdx == 0 ? -1f : 1f;
         float ts = TileScale;
         const float depth = 6f;
