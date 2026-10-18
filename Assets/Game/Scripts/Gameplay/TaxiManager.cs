@@ -76,7 +76,16 @@ public class TaxiManager
     public float Happy { get; private set; }               // 결혼식 행복도 (1 ~ 0)
     public bool SteerFlip { get; private set; }            // 욱한 손님이 핸들을 잡고 있다 (조향 반대)
     public int SteerYank { get; private set; }             // 욱한 손님이 핸들을 확 잡아챈다 (-1 왼쪽, +1 오른쪽, 0 아님). 이때는 플레이어가 막을 수 없다
-    int fightPhase;                                        // 0 평소, 1 소리치며 덤빔, 2 확 잡아챔, 3 핸들을 잡고 반대로 돌림
+    int fightPhase;                                        // 0 평소, 1 소리치며 덤빔, 2 핸들을 잡힘(A/D 를 연타해 게이지를 채워야 풀림)
+    public float MashL, MashR;                             // 핸들을 뿌리치는 게이지 (가운데에서 양쪽으로 찬다, 각각 0~1)
+    public bool Grabbed { get { return fightPhase == 2; } }
+    /// <summary>핸들을 잡힌 동안 A(-1)/D(+1) 를 한 번 눌렀다: 그쪽 게이지가 찬다.</summary>
+    public void Mash(int dir)
+    {
+        if (fightPhase != 2) return;
+        if (dir < 0) MashL = Mathf.Min(1f, MashL + cfg.fighterMashStep);
+        else MashR = Mathf.Min(1f, MashR + cfg.fighterMashStep);
+    }
     float fightT;
     public float AvgSpeed { get { return TripT > 1f ? speedSum / TripT : 0f; } }
     public bool AlienTrip { get { return State == TaxiState.Carrying && Pax != null && Pax.quirk == Quirk.Alien; } }
@@ -253,6 +262,7 @@ public class TaxiManager
         SteerFlip = false;
         SteerYank = 0;
         fightPhase = 0;
+        MashL = MashR = 0f;
         ruffCool = 0f;
         speedSum = 0f;
         prevSpeed = 0f;
@@ -311,14 +321,31 @@ public class TaxiManager
                         if (WheelGrabbed != null) WheelGrabbed();
                     }
                 }
-                else
+                else if (fightPhase == 1)
                 {
                     fightT -= dt;
                     if (fightT <= 0f)
                     {
-                        if (fightPhase == 1) { fightPhase = 2; fightT = Mathf.Max(0.2f, cfg.fighterYankSeconds); SteerYank = yankDir; }
-                        else if (fightPhase == 2) { fightPhase = 3; fightT = Mathf.Max(1f, cfg.fighterFlipSeconds); SteerYank = 0; SteerFlip = true; }
-                        else { fightPhase = 0; SteerFlip = false; flipEventT = Random.Range(6f, 10f); }
+                        fightPhase = 2;                                           // 핸들을 잡혔다: 차는 한쪽으로 쏠리고, A/D 를 연타해 게이지를 채워야 풀린다
+                        fightT = Mathf.Max(2f, cfg.fighterYankMax);
+                        SteerYank = yankDir;
+                        MashL = MashR = 0f;
+                    }
+                }
+                else
+                {
+                    fightT -= dt;
+                    // 채우던 쪽은 서서히 줄어들어서 계속 눌러야 한다 (다 찬 쪽은 그대로)
+                    if (MashL < 1f) MashL = Mathf.Max(0f, MashL - cfg.fighterMashLeak * dt);
+                    if (MashR < 1f) MashR = Mathf.Max(0f, MashR - cfg.fighterMashLeak * dt);
+                    bool freed = MashL >= 1f && MashR >= 1f;
+                    if (freed || fightT <= 0f)
+                    {
+                        fightPhase = 0;
+                        SteerYank = 0;
+                        MashL = MashR = 0f;
+                        flipEventT = Random.Range(6f, 10f);
+                        if (freed) Popup("뿌리쳤다!", new Color(0.5f, 1f, 0.6f));
                     }
                 }
                 break;

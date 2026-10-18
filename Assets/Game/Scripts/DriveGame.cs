@@ -305,10 +305,12 @@ public partial class DriveGame : MonoBehaviour
     public float bombMinSpeed = 8f;
     [Tooltip("폭탄 손님: 느린 동안 초당 줄어드는 도화선 (0.3이면 약 3.3초 만에 폭발)")]
     public float bombDrain = 0.3f;
-    [Tooltip("욱한 손님: 핸들을 확 잡아채는 시간(초). 이 동안은 플레이어가 막을 수 없다")]
-    public float fighterYankSeconds = 0.7f;
-    [Tooltip("욱한 손님: 핸들을 쥐고 조향이 반대로 먹히는 시간(초)")]
-    public float fighterFlipSeconds = 4f;
+    [Tooltip("욱한 손님: 핸들을 잡힌 채 버티는 최대 시간(초). A/D 연타로 게이지를 못 채워도 이 시간이 지나면 풀린다")]
+    public float fighterYankMax = 8f;
+    [Tooltip("욱한 손님: A 또는 D 를 한 번 누를 때 그쪽 게이지가 차는 양 (0.15면 한쪽에 약 7번)")]
+    public float fighterMashStep = 0.15f;
+    [Tooltip("욱한 손님: 차던 게이지가 초당 줄어드는 양 (0.1이면 천천히 줄어듦. 클수록 더 빠르게 연타해야 함)")]
+    public float fighterMashLeak = 0.1f;
     [Tooltip("돼지 그림. 비우면 코드로 그린 임시 그림")]
     public Sprite pigSprite;
     [Tooltip("구급차 그림(뒷모습). 비우면 코드로 그린 임시 그림")]
@@ -814,6 +816,11 @@ public partial class DriveGame : MonoBehaviour
                     - (kb.aKey.isPressed || kb.leftArrowKey.isPressed ? 1f : 0f);
         if (taxi.State == TaxiState.Carrying)
         {
+            if (taxi.Grabbed)                                                          // 핸들을 잡혔다: A, D 를 번갈아 연타해 게이지를 채운다
+            {
+                if (kb.aKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame) taxi.Mash(-1);
+                if (kb.dKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame) taxi.Mash(1);
+            }
             if (taxi.SteerYank != 0) input = taxi.SteerYank;                           // 욱한 손님이 핸들을 확 잡아챈다: 막을 수 없다
             else if (taxi.SteerFlip) input = -input;                                   // 핸들을 쥔 채 반대로 돌린다
         }
