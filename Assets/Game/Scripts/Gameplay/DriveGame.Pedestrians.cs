@@ -13,6 +13,7 @@ public partial class DriveGame
     {
         if (p.zombie) { OnZombieHit(p); return; }
         AddBlood();                                         // 앞유리에 피가 튄다 (분노 중이든 무적 중이든)
+        if (p.art == null || p.art.cat != "alien") sound.PlayHurt(PassengerCatalog.IsMale(p.art));     // 맞은 사람의 성별에 맞는 비명
         if (rage.Active) { RageSmash(); return; }          // 분노 중에는 목숨/요금이 그대로
         speed *= hitSpeedFactor;
         hitStopUntil = Time.unscaledTime + hitStop;
@@ -30,6 +31,7 @@ public partial class DriveGame
     void OnZombieHit(PedestrianManager.Ped p)
     {
         AddZombieSplat();
+        sound.PlayZombie();
         speed *= 0.95f;
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.12f);
         sound.PlaySplat();

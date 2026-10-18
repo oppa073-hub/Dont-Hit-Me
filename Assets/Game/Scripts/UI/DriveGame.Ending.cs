@@ -25,7 +25,8 @@ public partial class DriveGame
         return taxi.Pax != null && !taxi.Pax.heist;
     }
 
-    void StartEnding()
+    // natural = false 면(디버그 F4 로 미리 보기) "엔딩을 봤다"고 기록하지 않아서, 나중에 진짜 조건(날개 개조 뒤 첫 손님)에 다시 나온다
+    void StartEnding(bool natural = true)
     {
         flow = GameFlow.Ending;
         endT = 0f;
@@ -39,8 +40,11 @@ public partial class DriveGame
             edHair = taxi.PaxHair;
             edName = string.IsNullOrEmpty(taxi.PaxName) ? "손님" : taxi.PaxName;
         }
-        PlayerPrefs.SetInt(EndingSeenKey, 1);
-        PlayerPrefs.Save();
+        if (natural)
+        {
+            PlayerPrefs.SetInt(EndingSeenKey, 1);
+            PlayerPrefs.Save();
+        }
         camYawTarget = 0f;
         camPitchTarget = 0f;
         EndNews();

@@ -473,6 +473,9 @@ public partial class DriveGame
         int chars = Mathf.Clamp(Mathf.FloorToInt(bt * 24f), 0, full.Length);
         if (chars != newsShownChars)
         {
+            if (newsShown)           // 앵커가 말하는 동안 두 글자에 한 번씩 웅얼
+                for (int ci = Mathf.Max(0, newsShownChars); ci < chars; ci++)
+                    if ((ci & 1) == 0) sound.PlayBlip(full[ci], field ? 2 : 1, voicePaxVolume);
             newsShownChars = chars;
             newsBodyText.text = full.Substring(0, chars);
         }

@@ -45,6 +45,19 @@ public partial class DriveGame
             if (kb.escapeKey.wasPressedThisFrame) { flow = GameFlow.Title; return; }
         }
         lobby.Tick(Time.unscaledDeltaTime, mv, act);
+        BossBabble();
+    }
+
+    int bossShownLen;
+
+    // 사장님 대사가 한 글자씩 나올 때마다 웅얼 (낮고 걸걸한 목소리). 두 글자에 한 번
+    void BossBabble()
+    {
+        string sh = lobby.InDialogue ? lobby.Shown : "";
+        if (sh.Length < bossShownLen) bossShownLen = 0;           // 새 대사
+        for (int i = bossShownLen; i < sh.Length; i++)
+            if ((i & 1) == 0) sound.PlayBlip(sh[i], 0, voiceBossVolume);
+        bossShownLen = sh.Length;
     }
 
     void OnNpcInteract()

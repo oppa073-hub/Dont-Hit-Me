@@ -82,6 +82,8 @@ public partial class DriveGame : MonoBehaviour
 
     [Tooltip("브레이크를 누를 때 목표 속도에 곱하는 값. 0 = 완전히 멈춤(택시는 정차해야 해서 0)")]
     public float brakeFactor = 0f;
+    bool wasBrake;
+    float screechAt;
 
     public float maxLateral = 6f;          // 최대 횡이동 속도
 
@@ -496,6 +498,10 @@ public partial class DriveGame : MonoBehaviour
     public AudioClip bgmClip;
     [Range(0f, 1f)]
     public float bgmVolume = 0.35f;
+    [Tooltip("손님이 말할 때(그리고 뉴스 앵커) 나는 웅얼 소리 크기 (동물의 숲 말투)")]
+    public float voicePaxVolume = 0.7f;
+    [Tooltip("로비 사장님(상점)의 웅얼 소리 크기")]
+    public float voiceBossVolume = 0.7f;
 
     [Header("Weather (낮/밤과 비)")]
     [Tooltip("끄면 항상 맑은 낮")]
@@ -825,6 +831,12 @@ public partial class DriveGame : MonoBehaviour
 
         // 속도
         bool brake = kb.sKey.isPressed || kb.downArrowKey.isPressed;
+        if (brake && !wasBrake && speed > 12f && Time.unscaledTime > screechAt)      // 빠르게 달리다 브레이크를 밟는 순간 타이어 끽
+        {
+            sound.PlayBrake();
+            screechAt = Time.unscaledTime + 1.5f;
+        }
+        wasBrake = brake;
         float target = Mathf.Min(Mathf.Min(maxSpeed, cruiseCap), baseSpeed + elapsed * speedRamp) * (brake ? brakeFactor : 1f);
         target *= rage.SpeedMul;                              // 분노 중에는 더 빨리 달린다
         if (turning) target = turnCruiseSpeed;                // 회전 중에는 자동으로 감속/가속해서 같은 속도로 돈다
@@ -870,7 +882,8 @@ public partial class DriveGame : MonoBehaviour
     {
         if (cam == null) return;
         sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
-        sound.TickMusic(weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f);
+        if (!gameOver) sound.StopStinger();
+        sound.TickMusic(weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f, MusicTrack());
         Vector3 off = shakeEnabled && Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;

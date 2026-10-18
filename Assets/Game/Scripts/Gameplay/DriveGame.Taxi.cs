@@ -26,6 +26,36 @@ public partial class DriveGame
     {
         taxi.HeistAllowed = heistOn && (!shiftMode || shiftLeft > 90f);        // 영업 시간이 모자라면 수상한 손님은 안 나온다
         taxi.Tick(dt, speed, carX, turning, SpawnZ);
+        TickBombBeep();
+        UpdateVoice();
+        TickKaijuStomp();
+    }
+
+    // 폭탄 손님: 도화선이 타는 동안 삐 삐 삐. 터질 때가 가까울수록 간격이 짧아지고 소리가 커진다
+    float nextBeepAt;
+
+    void TickBombBeep()
+    {
+        bool burning = taxi.State == TaxiState.Carrying && taxi.Pax != null && taxi.Pax.quirk == Quirk.Bomb && taxi.Fuse < 0.98f && !gameOver && flow == GameFlow.Playing;
+        if (!burning) return;
+        if (Time.unscaledTime < nextBeepAt) return;
+        float danger = 1f - Mathf.Clamp01(taxi.Fuse);
+        nextBeepAt = Time.unscaledTime + Mathf.Lerp(0.8f, 0.12f, danger);
+        sound.PlayBeep(Mathf.Lerp(0.5f, 1f, danger));
+    }
+
+    // 괴수가 서 있는 동안 쿵 쿵 쿵: 가까울수록 크고 땅이 흔들린다
+    float nextStompAt;
+
+    void TickKaijuStomp()
+    {
+        float d = traffic.KaijuDist;
+        if (d < 0f || gameOver || flow != GameFlow.Playing) return;
+        if (Time.unscaledTime < nextStompAt) return;
+        nextStompAt = Time.unscaledTime + 1.1f;
+        float near = 1f - Mathf.Clamp01(d / 140f);
+        sound.PlayStomp(Mathf.Lerp(0.35f, 1f, near));
+        if (d < 60f) shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.15f);
     }
 
     // 대화가 시작됐다: 차를 세우고 손님 쪽으로 시점을 돌린다
@@ -61,6 +91,8 @@ public partial class DriveGame
     {
         // 하늘을 나는 택시를 산 뒤 첫 일반 손님: 태우는 순간 엔딩이 시작된다
         if (ShouldStartEnding()) { StartEnding(); return; }
+        sound.PlayDoorOpen();                                // 손님이 타는 소리: 문 열고, 앉고, 닫는다
+        sound.PlayLater("doorclose", 0.7f, 0.9f);
         float cruise = Mathf.Min(Mathf.Min(maxSpeed, cruiseCap), baseSpeed + elapsed * speedRamp);
         taxi.Accept(gx, gy, heading, Period, cruise);
         EndNews();                                           // 손님을 태웠으니 내비는 지도로
@@ -81,5 +113,7 @@ public partial class DriveGame
     {
         session.AddScore(Mathf.RoundToInt(income / 100f));
         sound.PlayArrive();
+        sound.PlayLater("dooropen", 0.5f, 0.9f);              // 손님이 내리는 소리
+        sound.PlayLater("doorclose", 1.3f, 0.9f);
     }
 }

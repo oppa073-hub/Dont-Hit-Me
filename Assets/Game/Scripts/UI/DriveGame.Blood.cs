@@ -43,7 +43,7 @@ public partial class DriveGame
         if (splats.Count == 0 && bloodChain == 0) return;       // 닦을 게 없으면 그냥 둔다
         wipeStart = Time.unscaledTime;
         wipeCleared = false;
-        sound.PlayNearMiss();                                    // 쓰윽
+        sound.PlayWipe();                                        // 쓰윽
     }
 
     // 와이퍼 두 개가 앞유리를 쓸고 지나간다. 올라가는 중간쯤에 얼룩이 한꺼번에 지워진다. (비 오는 날의 와이퍼와는 별개)
@@ -76,6 +76,7 @@ public partial class DriveGame
     // 사람을 쳤다: 연쇄 횟수에 따라 얼룩 수와 크기가 늘어난다
     void AddBlood()
     {
+        sound.PlayBlood();
         float now = Time.unscaledTime;
         if (now - lastBloodT > BloodChainWindow) bloodChain = 0;
         bloodChain = Mathf.Min(8, bloodChain + 1);

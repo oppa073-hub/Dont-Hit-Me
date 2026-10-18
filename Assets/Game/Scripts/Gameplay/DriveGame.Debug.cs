@@ -74,7 +74,8 @@ public partial class DriveGame
             taxi.ForcePaxType = debugQuirk == 0 ? null : PassengerCatalog.ByQuirk(debugQuirk);
         }
         else if (kb.gKey.wasPressedThisFrame) debugGod = !debugGod;
-        else if (kb.f4Key.wasPressedThisFrame && flow == GameFlow.Playing && !gameOver) StartEnding();           // 엔딩 바로 보기
+        else if (kb.f4Key.wasPressedThisFrame && flow == GameFlow.Playing && !gameOver) StartEnding(false);           // 엔딩 바로 보기 (본 것으로 기록하지 않는다)
+        else if (kb.f6Key.wasPressedThisFrame) { PlayerPrefs.DeleteKey(EndingSeenKey); PlayerPrefs.Save(); Popup("엔딩 기록을 지웠다 (다음 손님에서 다시 나옴)", UiGold); }
         else changed = false;
         if (changed) RefreshDebug();
         return false;
@@ -119,7 +120,7 @@ public partial class DriveGame
                   + "V  다음 손님을 은행 강도로" + NL
                   + "Y 정전   K 라이벌   L 팬   J 돼지   M 구급차" + NL
                   + "B  다음 손님: " + DebugQuirkNames[debugQuirk] + NL
-                  + "F4  엔딩 바로 보기" + NL
+                  + "F4  엔딩 바로 보기   F6  엔딩 기록 지우기" + NL
                   + "G  무적 " + (debugGod ? "켜짐" : "꺼짐") + NL
                   + "Del 두 번  저장 데이터 전부 초기화" + NL
                   + "다음 판 날: " + DebugDayNames[Mathf.Clamp(forceDayType + 1, 0, 5)];

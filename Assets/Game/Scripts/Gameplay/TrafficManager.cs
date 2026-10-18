@@ -358,6 +358,7 @@ public partial class TrafficManager
 
         // 인스펙터에 넣은 스프라이트가 있으면 그걸 그대로 쓴다 (색칠/크기 조절 없음). 없으면 임시로 코드로 그린 그림.
         Sprite custom = kind == Truck ? (cfg.truckSprite != null ? cfg.truckSprite : cfg.carSprite) : cfg.carSprite;
+        if (custom == null) custom = CarArt.Rear(CarArt.RandomIndex());      // 외부 도트 자동차 그림(뒷모습)이 있으면 그걸 쓴다
         bool useCustom = custom != null;
         if (useCustom)
         {

@@ -46,6 +46,16 @@ public partial class DriveGame
         StartNews();                         // 운전을 시작하면 내비 화면에 아침 뉴스가 나온다
     }
 
+    // 지금 틀 음악: 타이틀/로비/상점은 로비 곡, 운전 중에는 시간대(낮/노을/밤)에 따라
+    int MusicTrack()
+    {
+        if (flow == GameFlow.Title || flow == GameFlow.Lobby || flow == GameFlow.Shop) return AudioManager.TrackLobby;
+        if (rage.Active && !gameOver) return AudioManager.TrackRage;
+        if (weather.Darkness > 0.5f) return AudioManager.TrackNight;
+        if (weather.Warm > 0.25f && weather.DayT > 0.5f) return AudioManager.TrackDusk;
+        return AudioManager.TrackDay;
+    }
+
     void ResetFlowState()
     {
         bestSaved = newBest = false;
@@ -57,6 +67,7 @@ public partial class DriveGame
     {
         if (bestSaved) return;
         bestSaved = true;
+        sound.PlayStinger(lives > 0);          // 하루를 무사히 마쳤으면 승리, 목숨이 다했으면 패배 효과음
         int total = session.TotalScore;
         int modeBest = shiftMode ? bestShift : best;
         if (total > modeBest)

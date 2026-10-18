@@ -33,6 +33,16 @@ public partial class TrafficManager
 
     public event System.Action KaijuSpawned, LaserFired;
 
+    /// <summary>괴수까지의 앞쪽 거리(m). 괴수가 없으면 -1.</summary>
+    public float KaijuDist
+    {
+        get
+        {
+            for (int i = 0; i < objs.Count; i++) if (objs[i].kind == Kaiju) return objs[i].z;
+            return -1f;
+        }
+    }
+
     public bool HasKaiju
     {
         get

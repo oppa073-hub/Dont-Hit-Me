@@ -252,6 +252,13 @@ public static class PassengerCatalog
     static readonly string[] Surnames = { "스미스", "존슨", "브라운", "밀러", "데이비스", "로시", "콜먼", "카터", "잭슨", "마르티네즈", "리", "오브라이언" };
     static readonly string[] AlienNames = { "조르그", "블립", "자프", "쿠르", "니블" };
 
+    /// <summary>그림이 남자인지 (목소리와 이름용). 그림이 없으면 무작위.</summary>
+    public static bool IsMale(PixelSet art)
+    {
+        if (art == null) return Random.value < 0.5f;
+        return System.Array.IndexOf(MaleSets, art.name) >= 0;
+    }
+
     /// <summary>그림(art)에 맞는 이름. 그림이 없으면(외부 에셋이 없을 때) 손님 유형의 예전 이름을 쓴다.</summary>
     public static string NameFor(PixelSet art, PaxType type)
     {

@@ -47,6 +47,7 @@ public class TaxiManager
     public bool ReactIsChat { get; private set; }                  // 한마디가 사고 반응이 아니라 수다인지
     public string ReactText { get; private set; }                  // 사람을 쳤을 때 손님의 한마디
     public float ReactUntil { get; private set; }
+    public bool PaxMale { get; private set; }                      // 손님이 남자인지 (비명 목소리)
     public string ThanksText { get; private set; }                 // 도착했을 때 손님의 한마디
     public float ThanksUntil { get; private set; }
 
@@ -414,6 +415,7 @@ public class TaxiManager
         Pax = rolledPax ?? RollPax();                        // 손님이 나타날 때 이미 정해 둔 유형
         rolledPax = null;
         PaxName = PassengerCatalog.NameFor(Caller.art, Pax);
+        PaxMale = PassengerCatalog.IsMale(Caller.art);
         DestName = PassengerCatalog.PickOne(Pax.dests);
         PaxLine = string.Format(PassengerCatalog.PickOne(Pax.hello), DestName);
         PaxSkin = PassengerCatalog.SkinTones[Random.Range(0, PassengerCatalog.SkinTones.Length)];

@@ -101,7 +101,7 @@ public partial class DriveGame
         lateralVel -= dir * 3f;
         session.ExtendInvuln(0.9f);                           // 넉백 동안 잠깐 무적
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.3f);
-        sound.PlayBonk();
+        sound.PlayCrash();
         Popup("박치기!  라이벌 체력 " + hpLeft, UiGold);
     }
 
@@ -140,7 +140,7 @@ public partial class DriveGame
             return;
         }
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.4f);
-        sound.PlayBonk();
+        sound.PlayCrash();
         if (rage.Active)
         {
             RageSmash();                                     // 분노 중에는 오히려 구급차를 박살
@@ -156,7 +156,7 @@ public partial class DriveGame
     void OnBombExploded()
     {
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.5f);
-        sound.PlayBonk();
+        sound.PlayBoom();
         if (rage.Active) return;                              // 분노 중에는 무적: 폭발해도 멀쩡하다
         speed *= 0.5f;
         hitStopUntil = Time.unscaledTime + hitStop;
@@ -167,13 +167,13 @@ public partial class DriveGame
     void OnWheelGrabbed()
     {
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.35f);
-        sound.PlayNearMiss();
+        sound.PlayGrab();
     }
 
     // 결혼식 커플이 흔들림에 부케를 던졌다
     void OnBouquetThrown()
     {
         AddBouquet();
-        sound.PlayNearMiss();
+        sound.PlaySlap();
     }
 }
