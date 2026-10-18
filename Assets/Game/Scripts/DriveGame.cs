@@ -693,6 +693,10 @@ public partial class DriveGame : MonoBehaviour
 
         ResetGame();
         BotInit();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (UiShotsRequested) StartCoroutine(UiShotsRoutine());      // 화면 점검 도구 (-uishots)
+        else InitUiAudit();                                          // -uiaudit: 평소 플레이 중에 글자 넘침/한국어 남음을 파일에 쌓는다
+#endif
     }
 
     // ---------- 게임 ----------

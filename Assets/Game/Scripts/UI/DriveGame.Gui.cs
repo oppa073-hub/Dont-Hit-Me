@@ -85,6 +85,9 @@ public partial class DriveGame
             }
         }
         style.normal.textColor = color;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (uiAuditOn) AuditLabel(r, text, size);
+#endif
         style.hover.textColor = color;                       // 마우스를 올려도 글자색이 바뀌지 않게 (IMGUI 기본 스타일은 hover/active 때 색이 달라진다)
         style.active.textColor = color;
         style.focused.textColor = color;
