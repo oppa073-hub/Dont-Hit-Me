@@ -356,6 +356,10 @@ public partial class DriveGame : MonoBehaviour
     [Tooltip("화면 흔들림 세기 배율 (0이면 흔들리지 않음)")]
     public float endingShake = 1f;
 
+    [Header("Lobby (로비)")]
+    [Tooltip("로비의 건물/스카이라인/소품을 도시 타일 그림으로 그린다 (끄면 예전 도형 맵). 택시와 사람은 이 값과 상관없이 픽셀 아트")]
+    public bool lobbyCityTiles = false;
+
     [Header("City3D (3D 로우폴리 건물 테스트: Tools/stage-citykit.py 로 모델을 복사해 둬야 보인다. 끄면 예전 스프라이트 건물)")]
     public bool use3DBuildings = true;
     [Tooltip("모델 한 채가 도로를 따라 차지하는 길이(m). 모델 폭에 맞춰 크기를 정하는 기준 (6~12배 안으로 제한)")]
@@ -438,6 +442,10 @@ public partial class DriveGame : MonoBehaviour
     public float laserFlameLife = 7f;
     [Tooltip("비워 두면 코드로 그린 임시 그림을 쓴다. 괴수/히어로/빌런은 정면 그림, 불길과 연기는 바닥이 아래")]
     public Sprite kaijuSprite;
+    [Tooltip("히어로와 빌런이 싸우는 곳까지의 거리(m). 멀수록 멀리서 싸우는 느낌 (예전 78)")]
+    public float battleDistance = 135f;
+    [Tooltip("히어로와 빌런이 화면에서 보이는 크기 배율 (예전 = 1). 작을수록 멀리 있는 것처럼 보인다")]
+    public float battleSize = 0.4f;
     public Sprite heroSprite;
     public Sprite villainSprite;
     public Sprite flameSprite;

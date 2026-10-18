@@ -57,24 +57,29 @@ public partial class DriveGame
 
         float t = elapsed;
         int st = traffic.StrikeState;
-        float wantX = st != 0 ? traffic.StrikeSide * 5f : -9f + 4f * Mathf.Sin(t * 0.9f);
-        heroX = Mathf.MoveTowards(heroX, wantX, 14f * Time.deltaTime);
-        Vector3 hp = new Vector3(heroX, 26f + 2f * Mathf.Sin(t * 1.7f), 78f);
-        Vector3 vp = new Vector3(9f + 4f * Mathf.Sin(t * 0.9f + 2f), 29f + 2f * Mathf.Sin(t * 1.3f + 1f), 84f + 5f * Mathf.Cos(t * 0.7f));
+        // 멀리서 싸운다: 예전(거리 78) 배치를 battleDistance 로 늘리고(보이는 각도는 그대로), 크기는 battleSize 만큼 작게 그린다
+        float f = Mathf.Max(20f, battleDistance) / 78f;
+        float sc = Mathf.Max(0.05f, battleSize) * f;
+        float wantX = (st != 0 ? traffic.StrikeSide * 5f : -9f + 4f * Mathf.Sin(t * 0.9f)) * f;
+        heroX = Mathf.MoveTowards(heroX, wantX, 14f * f * Time.deltaTime);
+        Vector3 hp = new Vector3(heroX, (26f + 2f * Mathf.Sin(t * 1.7f)) * f, 78f * f);
+        Vector3 vp = new Vector3((9f + 4f * Mathf.Sin(t * 0.9f + 2f)) * f, (29f + 2f * Mathf.Sin(t * 1.3f + 1f)) * f, (84f + 5f * Mathf.Cos(t * 0.7f)) * f);
         heroSr.transform.position = hp;
         villainSr.transform.position = vp;
+        heroSr.transform.localScale = Vector3.one * sc;
+        villainSr.transform.localScale = Vector3.one * sc;
 
         // 히어로의 눈 레이저: 경고 때는 얇고, 쓸어 올 때는 굵다
         if (st != 0)
         {
             float sz = Mathf.Max(5f, traffic.StrikeZ);
             Vector3 target = new Vector3(traffic.StrikeSide * 2f, Drop(sz) + 0.3f, sz);
-            PlaceBeam(beamHero, hp + new Vector3(0f, 1.3f, 0f), target, st == 1 ? 0.08f : 0.5f);
+            PlaceBeam(beamHero, hp + new Vector3(0f, 1.3f * sc, 0f), target, (st == 1 ? 0.08f : 0.5f) * Mathf.Max(1f, f * 0.7f));
         }
         else if (beamHero.gameObject.activeSelf) beamHero.gameObject.SetActive(false);
 
         // 빌런이 히어로에게 쏘는 보라색 빛 (2.4초마다 잠깐)
-        if (Mathf.Repeat(t, 2.4f) < 0.35f) PlaceBeam(beamVillain, vp + new Vector3(0f, 1.3f, 0f), hp, 0.35f);
+        if (Mathf.Repeat(t, 2.4f) < 0.35f) PlaceBeam(beamVillain, vp + new Vector3(0f, 1.3f * sc, 0f), hp, 0.35f * f * Mathf.Max(0.4f, battleSize));
         else if (beamVillain.gameObject.activeSelf) beamVillain.gameObject.SetActive(false);
     }
 }

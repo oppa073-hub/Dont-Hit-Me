@@ -110,6 +110,12 @@ def build_sets():
     im = load(os.path.join(NPC, "Police car sheet.png"))
     sets.append(S("police", "PoliceCar", "w", 4.4).add("idle", 6, True, row_frames(im, 128, 48, 0)))
 
+    # 로비의 주인공 택시: Retro car (옆모습 128x48, 줄 0 서 있기 5칸, 줄 1 달리기 4칸). 오른쪽을 본다
+    im = load(os.path.join(NPC, "Retro car sheet.png"))
+    sets.append(S("lobbycar", "RetroCar", "w", 5.0)
+                .add("idle", 6, True, row_frames(im, 128, 48, 0))
+                .add("walk", 10, True, row_frames(im, 128, 48, 1)))
+
     # 괴수: 가마솥 악마 "The Devil" (96x112, 한 줄 7칸. 정면을 보고 있다)
     im = load(os.path.join(HELL, "The Devil.png"))
     sets.append(S("kaiju", "TheDevil", "w", 16.0).add("idle", 6, True, row_frames(im, 96, 112, 0, 7)))

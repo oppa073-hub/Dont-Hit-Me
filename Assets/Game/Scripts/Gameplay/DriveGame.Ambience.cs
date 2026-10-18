@@ -74,9 +74,8 @@ public partial class DriveGame
     Light MakeHeadlight(string name)
     {
         var go = new GameObject(name);
-        go.transform.SetParent(cam.transform, false);
-        go.transform.localPosition = new Vector3(0.4f, -0.35f, 1.0f);          // 가로 위치는 매 프레임 headlightSpacing 으로 맞춘다 (카메라는 차 가운데보다 0.4m 왼쪽)
-        go.transform.localRotation = Quaternion.Euler(3f, 0f, 0f);
+        go.transform.SetParent(transform, false);                              // 카메라가 아니라 월드에 둔다: 손님 쪽으로 카메라가 돌아가도 차의 불빛은 앞을 향해 고정
+        go.transform.position = new Vector3(carX, camHeight - 0.35f, 1.0f);
         var l = go.AddComponent<Light>();
         l.type = LightType.Spot;
         l.color = new Color(1f, 0.95f, 0.75f);
@@ -141,8 +140,8 @@ public partial class DriveGame
                 for (int side = 0; side < 2; side++)
                 {
                     var l = side == 0 ? headLightL : headLightR;
-                    l.transform.localRotation = Quaternion.Euler(3f, (side == 0 ? 1f : -1f) * Mathf.Atan2(headlightSpacing, Mathf.Max(5f, headlightConverge)) * Mathf.Rad2Deg, 0f);
-                    l.transform.localPosition = new Vector3(0.4f + (side == 0 ? -headlightSpacing : headlightSpacing), -0.35f, 1.0f);
+                    l.transform.rotation = Quaternion.Euler(3f, (side == 0 ? 1f : -1f) * Mathf.Atan2(headlightSpacing, Mathf.Max(5f, headlightConverge)) * Mathf.Rad2Deg, 0f);
+                    l.transform.position = new Vector3(carX + (side == 0 ? -headlightSpacing : headlightSpacing), camHeight - 0.35f, 1.0f);
                     l.range = headlightRange;
                     l.spotAngle = headlightAngle;
                     l.innerSpotAngle = headlightAngle * 0.5f;

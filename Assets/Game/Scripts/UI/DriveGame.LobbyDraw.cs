@@ -46,7 +46,7 @@ public partial class DriveGame
     // 로비 장면의 사람 그림 (로비 좌표). scale 1 = 키 약 112 로비 px
     void DrawLobbySprite(Sprite sp, float x, float scale, bool flip, float dark)
     {
-        float k = 2.49f * scale * lbU;                                   // 로비 px/스프라이트 px (사람 그림은 25.7 픽셀/미터)
+        float k = 64f / sp.pixelsPerUnit * scale * lbU;                  // 로비는 1m = 64 로비 px: 스프라이트 한 픽셀이 화면 몇 px 인가
         float shade = 1f - 0.5f * dark;
         DrawSpriteGui(sp, (x - lbCam) * lbU, GroundY * lbU, k, flip, new Color(shade, shade, shade * 1.05f, 1f));
     }
@@ -70,8 +70,41 @@ public partial class DriveGame
     }
 
     // lift = 엔딩에서 하늘로 떠오른 높이. 개조한 만큼 택시가 달라진다 (황금 도색, 지붕 양옆 미니건, 날개)
+    // 주인공 택시를 Retro car 그림으로 그리고, 택시 개조(황금 도색, 미니건, 날개)는 그 위에 도형으로 얹는다
+    void LTaxiSprite(PixelSet car, float tx, float dark)
+    {
+        bool gold = projects.Done(1), guns = projects.Done(ProjectManager.Minigun), wings = projects.Done(ProjectManager.Wings);
+        float f = GroundY;
+        float shade = 1f - 0.5f * dark;
+        if (wings)
+        {
+            Color wc = new Color(0.95f, 0.97f, 1f);
+            LR(tx - 230f, f - 130f, 190f, 14f, wc);                                  // 날개 (뒤로 젖혀진 세 겹)
+            LR(tx - 200f, f - 116f, 160f, 10f, Mul(wc, 0.92f));
+            LR(tx - 170f, f - 106f, 130f, 8f, Mul(wc, 0.85f));
+        }
+        var clip = lobby.BoardFade >= 0f ? car.walk : car.idle;
+        var sp = clip.At(Time.unscaledTime);
+        Color tint = gold ? new Color(1f, 0.85f, 0.4f) : Color.white;
+        tint = new Color(tint.r * shade, tint.g * shade, tint.b * shade, 1f);
+        DrawSpriteGui(sp, (tx - lbCam) * lbU, f * lbU, 64f / sp.pixelsPerUnit * lbU, false, tint);
+        if (gold) LR(tx - 150f, f - 6f, 300f, 6f, new Color(0.3f, 0.95f, 1f, 0.6f));      // 언더네온
+        LR(tx - 22f, f - 112f, 44f, 15f, Color.white);                                    // 지붕 TAXI 표시등
+        Label(new Rect((tx - 22f - lbCam) * lbU, (f - 112f) * lbU, 44f * lbU, 15f * lbU), "TAXI", 11, Color.black, TextAnchor.MiddleCenter);
+        if (guns)
+        {
+            Color gm = new Color(0.2f, 0.21f, 0.25f), gb = new Color(0.46f, 0.48f, 0.53f);
+            LR(tx + 20f, f - 126f, 40f, 16f, gm);
+            for (int k = 0; k < 3; k++) LR(tx + 60f, f - 124f + k * 5f, 80f, 3f, gb);
+            LR(tx - 90f, f - 124f, 34f, 14f, Mul(gm, 0.8f));
+            for (int k = 0; k < 3; k++) LR(tx - 56f, f - 122f + k * 5f, 66f, 3f, Mul(gb, 0.8f));
+        }
+    }
+
     void LTaxi(float tx, float dark, float lift)
     {
+        var carArt = PixelArt.Get("lobbycar");
+        if (carArt != null) { LTaxiSprite(carArt, tx, dark); return; }
         bool gold = projects.Done(1), guns = projects.Done(ProjectManager.Minigun), wings = projects.Done(ProjectManager.Wings);
         Color yellow = gold ? new Color(0.98f, 0.72f, 0.1f) : new Color(1f, 0.8f, 0.1f);
         float f = GroundY - lift;
@@ -109,6 +142,85 @@ public partial class DriveGame
         }
     }
 
+    // 텍스처 한 장을 IMGUI 로 (점 필터 그대로)
+    void DrawTexGui(Texture2D tex, Rect r, Color tint)
+    {
+        if (Event.current == null || Event.current.type != EventType.Repaint) return;
+        tex.filterMode = FilterMode.Point;
+        GUI.color = tint;
+        GUI.DrawTexture(r, tex, ScaleMode.StretchToFill, true);
+        GUI.color = Color.white;
+    }
+
+    // 타일 스프라이트 한 칸을 로비 좌표(lx, ly, lw, lh)에 그린다. 화면 밖이면 건너뛴다
+    void DrawTile(Sprite sp, float lx, float ly, float lw, float lh, Color tint)
+    {
+        if (sp == null || Event.current == null || Event.current.type != EventType.Repaint) return;
+        float vw = Screen.width / lbU;
+        if (lx - lbCam > vw || lx + lw - lbCam < 0f) return;
+        var tex = sp.texture;
+        var r = sp.textureRect;
+        var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
+        GUI.color = tint;
+        GUI.DrawTextureWithTexCoords(new Rect((lx - lbCam) * lbU, ly * lbU, lw * lbU, lh * lbU), tex, uv, true);
+        GUI.color = Color.white;
+    }
+
+    // 타일 건물 하나: 1층 상점 + 윗층 창문 + 지붕 장식. 타일 한 칸 = 로비 52 x 128 (원본 26 x 64 의 두 배)
+    // x = 왼쪽 위치, cols = 가로 칸, floors = 윗층 수, pal = 창문 색(0~3), shop = 1층 상점 모양(0~2), doorCol = 문이 있는 칸 (-1 이면 없음)
+    void LTileBuilding(float x, int cols, int floors, int pal, int shop, int doorCol, float shade)
+    {
+        const float cw = 52f, rh = 128f, baseY = 560f;
+        Color tint = new Color(shade, shade, shade * 1.06f, 1f);
+        for (int c = 0; c < cols; c++)
+        {
+            float cx = x + c * cw;
+            if (c == doorCol) DrawTile(doorTiles[pal], cx - 6f, baseY - rh, 64f, rh, tint);
+            else DrawTile(shopTiles[shop], cx, baseY - rh, cw, rh, tint);
+            for (int r = 0; r < floors; r++) DrawTile(winTiles[pal], cx, baseY - rh * (2 + r), cw, rh, tint);
+            DrawTile(corniceTile, cx, baseY - rh * (1 + floors) - 64f, cw, 64f, tint);
+        }
+    }
+
+    void DrawLobbyBuildings(float dark)
+    {
+        float shade = 1f - 0.62f * dark;
+        // 택시 회사 건물 (왼쪽, 사장이 앉은 자리 뒤): 차고 + 간판
+        LTileBuilding(150f, 10, 2, 1, 0, 7, shade);
+        Color navy = Color.Lerp(new Color(0.1f, 0.12f, 0.18f), new Color(0.04f, 0.05f, 0.09f), dark);
+        LR(150f + 52f * 5f, 560f - 128f - 96f, 52f * 5f, 64f, navy);
+        Label(new Rect((150f + 52f * 5f - lbCam) * lbU, (560f - 128f - 96f) * lbU, 52f * 5f * lbU, 64f * lbU), "박 택시", 34, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
+        LR(150f + 52f * 1f, 560f - 128f, 52f * 3f, 128f, new Color(0.08f, 0.08f, 0.1f));                      // 열린 차고
+        LR(150f + 52f * 1f, 560f - 128f, 52f * 3f, 56f, new Color(0.5f, 0.53f, 0.58f) * shade);              // 반쯤 내려온 셔터
+        for (int k = 0; k < 4; k++) LR(150f + 52f * 1f, 560f - 120f + k * 14f, 52f * 3f, 3f, new Color(0.4f, 0.43f, 0.48f) * shade);
+        if (projects.Done(0))
+        {
+            // 차고 증축 + 네온간판: 오른쪽에 라면 휴게실을 붙인다
+            LTileBuilding(150f + 52f * 10f + 8f, 3, 1, 2, 2, 1, shade);
+            Color neon = new Color(1f, 0.4f, 0.8f, 0.7f + 0.3f * Mathf.Sin(Time.unscaledTime * 5f));
+            LR(150f + 52f * 10f + 8f, 560f - 128f - 150f, 52f * 3f, 3f, neon);
+            LR(150f + 52f * 10f + 8f, 560f - 128f - 100f, 52f * 3f, 3f, neon);
+            Label(new Rect((150f + 52f * 10f + 8f - lbCam) * lbU, (560f - 128f - 146f) * lbU, 52f * 3f * lbU, 44f * lbU), "라면 휴게실", 17, new Color(0.5f, 1f, 1f), TextAnchor.MiddleCenter);
+        }
+        // 이웃 건물들
+        LTileBuilding(900f, 5, 3, 0, 0, 1, shade);
+        LTileBuilding(1210f, 6, 2, 2, 1, 4, shade);
+        LTileBuilding(1850f, 6, 4, 3, 2, 1, shade);
+    }
+
+    void DrawLobbyProps(float dark)
+    {
+        float shade = 1f - 0.55f * dark;
+        Color tint = new Color(shade, shade, shade * 1.05f, 1f);
+        foreach (float lx in LampXs)
+        {
+            DrawTile(lampSprite, lx - 28f, 592f - 192f, 64f, 192f, Color.white);                               // 가로등은 스스로 빛난다
+            LD(lx + 18f, 592f - 178f, 50f + 28f * dark, new Color(1f, 0.95f, 0.65f, 0.2f + 0.45f * dark));
+        }
+        DrawTile(trashSprite, 800f, 592f - 64f, 64f, 64f, tint);
+        DrawTile(mailSprite, 1560f, 592f - 64f, 64f, 64f, tint);
+    }
+
     void DrawLobbyScene(float W, float H, float u, bool interactive)
     {
         lbU = u;
@@ -121,56 +233,80 @@ public partial class DriveGame
 
         Fill(new Rect(0, 0, W, H), weather.SkyColor);
 
-        // 먼 건물 (천천히 움직이는 배경)
-        Color far = Color.Lerp(new Color(0.50f, 0.60f, 0.70f), new Color(0.08f, 0.10f, 0.18f), dark);
-        for (int i = 0; i < 16; i++)
+        // 먼 스카이라인: 도시 배경 그림이 있으면 그것을 천천히 움직이게 (없으면 도형)
+        if (lobbyCityTiles && cityBackground != null)
         {
-            float bh = 120f + Frac(Mathf.Sin(i * 7.13f) * 1000f) * 230f;
-            float bw = 110f + Frac(Mathf.Sin(i * 3.7f) * 500f) * 60f;
-            Fill(new Rect((i * 150f - lbCam * 0.4f) * u, (560f - bh) * u, bw * u, (bh + 40f) * u), far);
+            float sc = 360f / cityBackground.height;
+            float bw = cityBackground.width * sc;
+            float sx = -Mathf.Repeat(lbCam * 0.35f, bw);
+            Color bt = weather.BackdropTint;
+            for (float x = sx; x < viewW; x += bw)
+                DrawTexGui(cityBackground, new Rect(x * u, (560f - 360f) * u, bw * u, 360f * u), bt);
+        }
+        else
+        {
+            Color far = Color.Lerp(new Color(0.50f, 0.60f, 0.70f), new Color(0.08f, 0.10f, 0.18f), dark);
+            for (int i = 0; i < 16; i++)
+            {
+                float bh = 120f + Frac(Mathf.Sin(i * 7.13f) * 1000f) * 230f;
+                float bw = 110f + Frac(Mathf.Sin(i * 3.7f) * 500f) * 60f;
+                Fill(new Rect((i * 150f - lbCam * 0.4f) * u, (560f - bh) * u, bw * u, (bh + 40f) * u), far);
+            }
+
         }
 
-        // 정비소 건물
-        Color wall = Color.Lerp(new Color(0.60f, 0.52f, 0.45f), new Color(0.22f, 0.2f, 0.24f), dark * 0.7f);
-        LR(180f, 330f, 580f, 260f, wall);
-        if (projects.Done(0))
+        // 건물: 도시 타일 그림으로 (없으면 도형)
+        if (lobbyCityTiles && hasCity) DrawLobbyBuildings(dark);
+        else
         {
-            // 정비소 증축: 오른쪽에 휴게실을 붙이고 간판에 네온을 단다
-            LR(770f, 400f, 170f, 190f, Mul(wall, 0.95f));
-            LR(760f, 384f, 190f, 18f, new Color(0.25f, 0.25f, 0.3f));
-            LR(790f, 424f, 130f, 64f, new Color(0.08f, 0.1f, 0.18f));
-            Label(new Rect((790f - lbCam) * u, 424f * u, 130f * u, 64f * u), "라면 휴게실", 18, new Color(0.5f, 1f, 1f), TextAnchor.MiddleCenter);
-            Color neon = new Color(1f, 0.4f, 0.8f, 0.7f + 0.3f * Mathf.Sin(t * 5f));
-            LR(326f, 258f, 288f, 3f, neon);
-            LR(326f, 312f, 288f, 3f, neon);
-            LR(326f, 258f, 3f, 57f, neon);
-            LR(611f, 258f, 3f, 57f, neon);
+            // 정비소 건물
+            Color wall = Color.Lerp(new Color(0.60f, 0.52f, 0.45f), new Color(0.22f, 0.2f, 0.24f), dark * 0.7f);
+            LR(180f, 330f, 580f, 260f, wall);
+            if (projects.Done(0))
+            {
+                // 정비소 증축: 오른쪽에 휴게실을 붙이고 간판에 네온을 단다
+                LR(770f, 400f, 170f, 190f, Mul(wall, 0.95f));
+                LR(760f, 384f, 190f, 18f, new Color(0.25f, 0.25f, 0.3f));
+                LR(790f, 424f, 130f, 64f, new Color(0.08f, 0.1f, 0.18f));
+                Label(new Rect((790f - lbCam) * u, 424f * u, 130f * u, 64f * u), "라면 휴게실", 18, new Color(0.5f, 1f, 1f), TextAnchor.MiddleCenter);
+                Color neon = new Color(1f, 0.4f, 0.8f, 0.7f + 0.3f * Mathf.Sin(t * 5f));
+                LR(326f, 258f, 288f, 3f, neon);
+                LR(326f, 312f, 288f, 3f, neon);
+                LR(326f, 258f, 3f, 57f, neon);
+                LR(611f, 258f, 3f, 57f, neon);
+            }
+            LR(165f, 312f, 610f, 22f, new Color(0.25f, 0.25f, 0.3f));
+            LR(330f, 262f, 280f, 50f, new Color(0.1f, 0.12f, 0.18f));
+            Label(new Rect((330f - lbCam) * u, 262f * u, 280f * u, 50f * u), "박 택시", 30, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
+            LR(250f, 430f, 190f, 160f, new Color(0.08f, 0.08f, 0.1f));                     // 열린 차고
+            LR(250f, 430f, 190f, 66f, new Color(0.5f, 0.53f, 0.58f));                       // 반쯤 내려온 셔터
+            for (int k = 0; k < 4; k++) LR(250f, 438f + k * 16f, 190f, 3f, new Color(0.4f, 0.43f, 0.48f));
+            Color win = Color.Lerp(new Color(0.7f, 0.85f, 0.95f), new Color(1f, 0.88f, 0.5f), dark);
+            LR(540f, 380f, 170f, 100f, win);
+            LR(540f, 427f, 170f, 5f, Mul(wall, 0.8f));
+            LR(623f, 380f, 5f, 100f, Mul(wall, 0.8f));
+
         }
-        LR(165f, 312f, 610f, 22f, new Color(0.25f, 0.25f, 0.3f));
-        LR(330f, 262f, 280f, 50f, new Color(0.1f, 0.12f, 0.18f));
-        Label(new Rect((330f - lbCam) * u, 262f * u, 280f * u, 50f * u), "박 택시", 30, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
-        LR(250f, 430f, 190f, 160f, new Color(0.08f, 0.08f, 0.1f));                     // 열린 차고
-        LR(250f, 430f, 190f, 66f, new Color(0.5f, 0.53f, 0.58f));                       // 반쯤 내려온 셔터
-        for (int k = 0; k < 4; k++) LR(250f, 438f + k * 16f, 190f, 3f, new Color(0.4f, 0.43f, 0.48f));
-        Color win = Color.Lerp(new Color(0.7f, 0.85f, 0.95f), new Color(1f, 0.88f, 0.5f), dark);
-        LR(540f, 380f, 170f, 100f, win);
-        LR(540f, 427f, 170f, 5f, Mul(wall, 0.8f));
-        LR(623f, 380f, 5f, 100f, Mul(wall, 0.8f));
 
         // 인도와 도로
         LR(0f, 560f, LobbyManager.WorldW, 44f, Color.Lerp(new Color(0.65f, 0.63f, 0.58f), new Color(0.25f, 0.25f, 0.3f), dark * 0.7f));
         LR(0f, 604f, LobbyManager.WorldW, 120f, Color.Lerp(new Color(0.24f, 0.24f, 0.27f), new Color(0.1f, 0.1f, 0.13f), dark * 0.7f));
         for (int i = 0; i < 14; i++) LR(i * 170f + 30f, 664f, 80f, 6f, new Color(0.85f, 0.85f, 0.75f, 0.8f));
 
-        // 가로등과 상자
-        foreach (float lx in LampXs)
+        // 가로등과 소품
+        if (lobbyCityTiles && hasCity) DrawLobbyProps(dark);
+        else
         {
-            LR(lx, 380f, 8f, 190f, new Color(0.25f, 0.27f, 0.3f));
-            LR(lx - 22f, 372f, 52f, 10f, new Color(0.25f, 0.27f, 0.3f));
-            LD(lx + 4f, 390f, 40f + 20f * dark, new Color(1f, 0.95f, 0.65f, 0.25f + 0.4f * dark));
+            foreach (float lx in LampXs)
+            {
+                LR(lx, 380f, 8f, 190f, new Color(0.25f, 0.27f, 0.3f));
+                LR(lx - 22f, 372f, 52f, 10f, new Color(0.25f, 0.27f, 0.3f));
+                LD(lx + 4f, 390f, 40f + 20f * dark, new Color(1f, 0.95f, 0.65f, 0.25f + 0.4f * dark));
+            }
+            LR(790f, 540f, 62f, 50f, new Color(0.55f, 0.38f, 0.2f));
+            LR(852f, 562f, 40f, 28f, new Color(0.5f, 0.34f, 0.18f));
+
         }
-        LR(790f, 540f, 62f, 50f, new Color(0.55f, 0.38f, 0.2f));
-        LR(852f, 562f, 40f, 28f, new Color(0.5f, 0.34f, 0.18f));
 
         // 정비사, 택시, 주인공
         var bossArt = PixelArt.Get("boss");                                  // 택시 회사 사장 (안락의자에 앉아 있다)
