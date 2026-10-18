@@ -149,7 +149,7 @@ public partial class TrafficManager
 
             if (o.kind == Broken && o.lamps != null)
                 for (int k = 0; k < o.lamps.Length; k++) o.lamps[k].enabled = lampOn;
-            else if (o.kind == Police && o.lamps != null)
+            else if (o.kind == Police && o.lamps != null && o.lamps.Length >= 2)
             {
                 o.lamps[0].enabled = lampOn;            // 경광등: 빨강/파랑이 번갈아 번쩍인다
                 o.lamps[1].enabled = !lampOn;
