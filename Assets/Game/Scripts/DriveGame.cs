@@ -500,6 +500,17 @@ public partial class DriveGame : MonoBehaviour
     public AudioClip bgmClip;
     [Range(0f, 1f)]
     public float bgmVolume = 0.35f;
+    [Header("Rain Glass")]
+    [Tooltip("비 올 때 앞유리에 물방울이 맺히는 속도 (초당 개수, 비가 가장 셀 때). 많이 맺힐수록 앞유리가 뿌옇게도 흐려진다")]
+    public float rainDropsPerSec = 18f;
+    [Tooltip("앞유리에 동시에 맺힐 수 있는 최대 물방울 수")]
+    public int rainDropLimit = 280;
+    [Tooltip("가장 큰 물방울의 지름 (720p 화면 기준 px)")]
+    public float rainDropBig = 36f;
+    [Tooltip("와이퍼가 한 번 닦고 난 뒤 다음 닦기까지의 시간(초). 비가 세면 더 자주")]
+    public float rainWipeInterval = 8f;
+    [Tooltip("와이퍼가 한 번 왕복하는 데 걸리는 시간(초)")]
+    public float rainWipeSeconds = 1.3f;
     [Tooltip("손님이 말할 때(그리고 뉴스 앵커) 나는 웅얼 소리 크기 (동물의 숲 말투)")]
     public float voicePaxVolume = 0.7f;
     [Tooltip("로비 사장님(상점)의 웅얼 소리 크기")]

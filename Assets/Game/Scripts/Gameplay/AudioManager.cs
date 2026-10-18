@@ -451,7 +451,7 @@ public class AudioManager
         if (rain > 0.02f)
         {
             if (!rainSrc.isPlaying) rainSrc.Play();
-            rainSrc.volume = cfg.masterVolume * 0.4f * rain;
+            rainSrc.volume = cfg.masterVolume * 0.35f * rain;
         }
         else if (rainSrc.isPlaying) rainSrc.Pause();
     }

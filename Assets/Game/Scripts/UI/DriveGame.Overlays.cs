@@ -30,28 +30,33 @@ public partial class DriveGame
 
         if (weather.Rain <= 0.02f) return;
 
-        // 빗줄기 (그리기 이벤트에서만)
+        // 빗줄기 (그리기 이벤트에서만): 앞유리 안에서만 (기둥/천장/계기판 위에는 안 내림)
         if (Event.current.type == EventType.Repaint)
         {
+            ComputeGlass(W, H, u);
+            UpdateRainGlass(W, H, u);
             int n = Mathf.RoundToInt(160f * weather.Rain);
             Color streak = new Color(0.8f, 0.86f, 0.95f, 0.28f);
             float t = Mathf.Repeat(Time.unscaledTime, 600f);
+            float gy0 = glassOk ? gTop : 0f, gh = glassOk ? gBot - gTop : H;
             for (int i = 0; i < n; i++)
             {
                 float h1 = Frac(Mathf.Sin(i * 12.9898f) * 43758.5453f);
                 float h2 = Frac(Mathf.Sin((i + 0.5f) * 78.233f) * 12345.678f);
-                float y = Mathf.Repeat(h2 * H + t * (700f + h1 * 400f) * u, H);
-                Fill(new Rect(h1 * W, y, 2f * u, 22f * u), streak);
+                float y = gy0 + Mathf.Repeat(h2 * gh + t * (700f + h1 * 400f) * u, gh);
+                float x = h1 * W;
+                if (!InGlass(x, y) || !InGlass(x, y + 22f * u)) continue;
+                Fill(new Rect(x, y, 2f * u, 22f * u), streak);
             }
+            DrawRainDrops(u);
         }
 
         // 와이퍼: 앞유리 아래쪽 대시보드 뒤에서 올라와 쓸고 내려간다 (화면 위 80% 안에서만 보이게 잘라 그린다)
-        if (weather.Rain > 0.15f)
+        if (cabinVisible && (weather.Rain > 0.15f || wiperSweepT >= 0f))
         {
             float clipH = H * 0.80f;
             GUI.BeginClip(new Rect(0, 0, W, clipH));
-            float sweep = Mathf.PingPong(Time.unscaledTime * (0.8f + 0.8f * weather.Rain), 1f);
-            sweep = sweep * sweep * (3f - 2f * sweep);
+            float sweep = WiperSweep01();                      // 평소엔 아래에 접혀 있다가 일정 시간마다 한 번 쓸고 간다 (UpdateRainGlass)
             float ang = Mathf.Lerp(-78f, -8f, sweep);
             float len = H * 0.55f;
             for (int k = 0; k < 2; k++)
