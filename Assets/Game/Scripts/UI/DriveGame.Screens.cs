@@ -6,40 +6,63 @@ using UnityEngine.Rendering;
 // 화면: 타이틀, 일시정지, 게임오버 결과 (IMGUI). 색은 DriveGame.Gui.cs 의 Ui* 팔레트, 상자는 Panel() 로 통일한다.
 public partial class DriveGame
 {
-    static readonly string ControlsText =
-        "A / D  조향      S  브레이크      Q / E  좌 / 우 깜빡이" + ((char)10) +
-        "손님 `!` 옆에 정차 →  Space 태우기  /  X 거절" + ((char)10) +
-        "목적지 교차로에서 브레이크로 정차하면 요금 정산" + ((char)10) +
-        "횡단하는 사람이나 차에 부딪히면 목숨이 줄고, 모두 잃으면 끝";
+    // 키 하나를 키보드 키캡 모양으로 (둥근 느낌의 밝은 판 + 아래 그림자 + 글자). 가로 폭은 글자 수에 맞춘다
+    float KeyCap(float x, float y, string key, float u)
+    {
+        float w = Mathf.Max(30f, 16f + key.Length * 13f) * u, h = 28f * u;
+        Fill(new Rect(x, y + 3 * u, w, h), new Color(0f, 0f, 0f, 0.5f));                                   // 아래 그림자
+        Fill(new Rect(x, y, w, h), new Color(0.9f, 0.92f, 0.96f, 0.96f));
+        Fill(new Rect(x + 2 * u, y + 2 * u, w - 4 * u, h * 0.45f), new Color(1f, 1f, 1f, 0.5f));            // 윗면 광택
+        Label(new Rect(x, y, w, h), key, 16, new Color(0.1f, 0.12f, 0.18f), TextAnchor.MiddleCenter);
+        return w;
+    }
+
+    // 조작 한 줄: 키캡들 + 설명. 다음 줄을 그릴 때 쓸 키캡 폭 합계는 필요 없어서 돌려주지 않는다
+    void ControlRow(float x, float y, string[] keys, string what, float u)
+    {
+        float cx = x;
+        foreach (var k in keys) cx += KeyCap(cx, y, k, u) + 6 * u;
+        Label(new Rect(cx + 6 * u, y, 260 * u, 28 * u), what, 19, new Color(1f, 1f, 1f, 0.92f), TextAnchor.MiddleLeft);
+    }
 
     void DrawTitle(float W, float H, float u)
     {
-        Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.58f));
+        // 화면 전체를 어둡게 + 위아래 가장자리는 더 어둡게 (가운데 글자에 눈이 가게)
+        Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.5f));
+        for (int i = 0; i < 8; i++)
+        {
+            float a = 0.28f * (1f - i / 8f);
+            Fill(new Rect(0, H * 0.05f * i * 0.5f, W, H * 0.025f + 1f), new Color(0f, 0f, 0f, a));
+            Fill(new Rect(0, H - H * 0.025f * (i + 1), W, H * 0.025f + 1f), new Color(0f, 0f, 0f, a));
+        }
 
-        // 로고
-        float ly = H * 0.12f;
-        Label(new Rect(0, ly, W, 100 * u), "DON'T HIT ME", 82, UiGold, TextAnchor.MiddleCenter);
-        Fill(new Rect(W * 0.5f - 270 * u, ly + 104 * u, 540 * u, 3 * u), new Color(UiGold.r, UiGold.g, UiGold.b, 0.85f));
-        Label(new Rect(0, ly + 114 * u, W, 34 * u), "택시 기사가 되어 무단횡단자를 피하며 손님을 모셔다 드리세요", 22, new Color(1f, 1f, 1f, 0.9f), TextAnchor.MiddleCenter);
+        // 로고 + 택시 체커 띠 + 한 줄 소개
+        float ly = H * 0.09f;
+        Label(new Rect(0, ly, W, 100 * u), "DON'T HIT ME", 84, UiGold, TextAnchor.MiddleCenter);
+        float cw = 14 * u, cx0 = W * 0.5f - 22 * cw, cy = ly + 104 * u;
+        for (int i = 0; i < 44; i++)                                                                       // 택시 지붕의 체커 무늬
+            for (int j = 0; j < 2; j++)
+                Fill(new Rect(cx0 + i * cw, cy + j * cw * 0.6f, cw, cw * 0.6f), ((i + j) & 1) == 0 ? new Color(0.05f, 0.05f, 0.06f, 0.9f) : new Color(UiGold.r, UiGold.g, UiGold.b, 0.9f));
+        Label(new Rect(0, cy + 26 * u, W, 34 * u), "택시 기사가 되어 무단횡단자를 피하며 손님을 모셔다 드리세요", 21, new Color(1f, 1f, 1f, 0.88f), TextAnchor.MiddleCenter);
 
-        // 조작 안내
-        Panel(new Rect(W * 0.5f - 380 * u, 292 * u, 760 * u, 142 * u), 0.55f);
-        style.wordWrap = true;
-        Label(new Rect(W * 0.5f - 360 * u, 302 * u, 720 * u, 124 * u), ControlsText, 20, new Color(1f, 1f, 1f, 0.92f), TextAnchor.UpperCenter);
-        style.wordWrap = false;
+        // 조작 안내: 키캡으로 세 줄 x 두 칸 (상자는 가운데 하나)
+        var cp = new Rect(W * 0.5f - 400 * u, 292 * u, 800 * u, 144 * u);
+        Panel(cp, 0.5f);
+        float c1 = cp.x + 36 * u, c2 = cp.x + 420 * u, r1 = cp.y + 14 * u, step = 40 * u;
+        ControlRow(c1, r1, new[] { "A", "D" }, "조향", u);
+        ControlRow(c1, r1 + step, new[] { "S" }, "브레이크 (손님 앞에서 멈추기)", u);
+        ControlRow(c1, r1 + step * 2, new[] { "Q", "E" }, "좌 / 우 깜빡이 (교차로 회전)", u);
+        ControlRow(c2, r1, new[] { "Space" }, "손님 태우기", u);
+        ControlRow(c2, r1 + step, new[] { "X" }, "손님 거절", u);
+        ControlRow(c2, r1 + step * 2, new[] { "Esc" }, "일시정지", u);
 
-        // 모드, 코인
-        Label(new Rect(0, 452 * u, W, 30 * u), modeText, 20, UiGold, TextAnchor.MiddleCenter);
-        Label(new Rect(0, 482 * u, W, 30 * u), shopTitleText, 20, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
-
-        // 시작 안내는 깜빡이지 않고 부드럽게 숨 쉰다
+        // 시작 안내: 상자 없이 큰 글자 하나만, 부드럽게 숨 쉰다
         float breathe = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-        Label(new Rect(0, 520 * u, W, 44 * u), "Space 또는 Enter 로 로비에 입장", 32, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 486 * u, W, 56 * u), "Space  /  Enter  로비에 입장", 38, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
 
-        // 오늘의 목표
-        Panel(new Rect(W * 0.5f - 300 * u, 582 * u, 600 * u, 118 * u), 0.5f);
-        Label(new Rect(0, 586 * u, W, 26 * u), "오늘의 목표", 19, UiGold, TextAnchor.MiddleCenter);
-        DrawGoals(0, 614 * u, W, u, 16, TextAnchor.UpperCenter);
+        // 맨 아래: 모드와 코인 한 줄씩, 조용하게
+        Label(new Rect(0, H - 76 * u, W, 26 * u), modeText, 17, new Color(UiGold.r, UiGold.g, UiGold.b, 0.85f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, H - 50 * u, W, 26 * u), shopTitleText, 16, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter);
     }
 
     void DrawPause(float W, float H, float u)
