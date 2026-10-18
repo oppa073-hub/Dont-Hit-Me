@@ -80,6 +80,8 @@ public class TaxiManager
     public float AvgSpeed { get { return TripT > 1f ? speedSum / TripT : 0f; } }
     public bool AlienTrip { get { return State == TaxiState.Carrying && Pax != null && Pax.quirk == Quirk.Alien; } }
     public bool NoPenalty;                                 // 분노 중: 폭탄/부케로 요금이 깎이지 않는다 (DriveGame 이 매 프레임 알려 준다)
+    public System.Func<float, bool> InIntersection;       // 앞쪽 z(m) 가 교차로 안인가 (DriveGame 이 알려 준다): 교차로 한가운데서 손님이 부르지 않게
+    PaxType rolledPax;                                     // 손님이 나타날 때 미리 정한 유형 (외계인/강도는 처음부터 그 모습으로 나온다)
     public PaxType ForcePaxType;                           // 시험용: 다음 손님 유형을 고정
     public event System.Action BombExploded, BouquetThrown, WheelGrabbed;
     float speedSum, prevSpeed, ruffCool, flipEventT;
@@ -354,31 +356,69 @@ public class TaxiManager
 
     void MakeCaller(float spawnZ)
     {
-        var p = peds.Spawn(spawnZ, 0, cfg.callerDistance);
+        var p = peds.Spawn(spawnZ, 0, ClearOfIntersection(cfg.callerDistance, spawnZ));
         p.caller = true;
         p.walkZ = 0f;                                        // 연석에서 제자리
         p.x = p.side * (cfg.roadHalfWidth + 1.2f);
+        rolledPax = RollPax();
+        GiveCallerArt(p, rolledPax);
         Caller = p;
         if (CallerAppeared != null) CallerAppeared();
+    }
+
+    // 손님의 모습: 외계인 손님은 처음부터 외계인, 은행 강도는 처음부터 강도 그림, 나머지는 걷는 사람과 서 있는 사람 중 아무나 (그림이 없으면 기존 그림 그대로)
+    static void GiveCallerArt(PedestrianManager.Ped p, PaxType pax)
+    {
+        PixelSet a = null;
+        if (pax != null && pax.heist) a = PixelArt.Get("robber");
+        else if (pax != null && pax.quirk == Quirk.Alien) a = PixelArt.Get("alien");
+        if (a == null) a = PixelArt.RandomMix("npc", "stand");
+        if (a == null) return;
+        p.art = a;
+        p.baseColor = Color.white;
+        p.sr.sprite = a.First;
+        p.sr.color = Color.white;
+    }
+
+    // 손님 유형을 정한다 (가끔 수상한 손님=은행 강도). 시험용 고정 값도 여기서 쓴다.
+    PaxType RollPax()
+    {
+        bool heist = HeistAllowed && HeistStage == 0 && (ForceHeistNext || Random.value < cfg.heistChance);
+        ForceHeistNext = false;
+        var t = heist ? PassengerCatalog.Heist : PassengerCatalog.PickType();
+        if (ForcePaxType != null)
+        {
+            t = ForcePaxType;                                // 시험용 고정
+            ForcePaxType = null;
+        }
+        return t;
+    }
+
+    // 교차로 안(옆길 한가운데)이 아닌 자리로 손님 위치를 옮긴다: 교차로 구간의 인도 상자는 옆길 아스팔트라서 거기서 부르면 도로 한복판이다
+    float ClearOfIntersection(float z0, float spawnZ)
+    {
+        if (InIntersection == null) return z0;
+        const float Strip = 4f;
+        for (int k = 0; k < 16; k++)
+        {
+            float z = z0 + ((k + 1) / 2) * Strip * (k % 2 == 1 ? 1f : -1f);
+            if (z < 18f || z > spawnZ + 25f) continue;
+            if (!InIntersection(z - Strip) && !InIntersection(z) && !InIntersection(z + Strip)) return z;
+        }
+        return z0;
     }
 
     void BeginTalk()
     {
         State = TaxiState.Talking;
-        bool heist = HeistAllowed && HeistStage == 0 && (ForceHeistNext || Random.value < cfg.heistChance);       // 가끔 수상한 손님
-        ForceHeistNext = false;
-        Pax = heist ? PassengerCatalog.Heist : PassengerCatalog.PickType();
-        if (ForcePaxType != null)
-        {
-            Pax = ForcePaxType;                              // 시험용 고정
-            ForcePaxType = null;
-        }
-        PaxName = PassengerCatalog.PickOne(Pax.names);
+        Pax = rolledPax ?? RollPax();                        // 손님이 나타날 때 이미 정해 둔 유형
+        rolledPax = null;
+        PaxName = PassengerCatalog.NameFor(Caller.art, Pax);
         DestName = PassengerCatalog.PickOne(Pax.dests);
         PaxLine = string.Format(PassengerCatalog.PickOne(Pax.hello), DestName);
         PaxSkin = PassengerCatalog.SkinTones[Random.Range(0, PassengerCatalog.SkinTones.Length)];
         PaxHair = PassengerCatalog.HairTones[Pax.hair >= 0 ? Pax.hair % PassengerCatalog.HairTones.Length : Random.Range(0, PassengerCatalog.HairTones.Length)];
-        PaxShirt = Caller.baseColor;
+        PaxShirt = Caller.art != null ? Random.ColorHSV(0f, 1f, 0.5f, 0.7f, 0.8f, 1f) : Caller.baseColor;       // 룸미러 얼굴의 셔츠 색
         FaceCaller();
     }
 
@@ -423,8 +463,12 @@ public class TaxiManager
         p.caller = true;
         p.walkZ = 0f;
         p.x = side * (cfg.roadHalfWidth + 1.2f);
-        p.baseColor = PaxShirt;
-        p.sr.color = PaxShirt;
+        GiveCallerArt(p, PassengerCatalog.Heist);
+        if (p.art == null)
+        {
+            p.baseColor = PaxShirt;
+            p.sr.color = PaxShirt;
+        }
         Caller = p;
         DestName = PassengerCatalog.PickOne(PassengerCatalog.HeistHideouts);
         PaxLine = string.Format(PassengerCatalog.PickOne(PassengerCatalog.HeistReturnLines), DestName);

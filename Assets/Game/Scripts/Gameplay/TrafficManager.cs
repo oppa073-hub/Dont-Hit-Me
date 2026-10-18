@@ -37,6 +37,7 @@ public partial class TrafficManager
         public float age, hitCool;          // 라이벌 택시: 나타난 뒤 시간, 박치기 재사용 대기
         public Color baseColor = Color.white;
         public float phase;                 // 흔들림/깜빡임이 물체마다 다르게 보이게 하는 값
+        public PixelSet art;                // 외부 픽셀 아트 애니메이션 (돼지, 경찰차, 괴수). 없으면 예전 그림
     }
 
     readonly DriveGame cfg;

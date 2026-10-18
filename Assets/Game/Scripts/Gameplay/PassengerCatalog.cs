@@ -245,6 +245,22 @@ public static class PassengerCatalog
         return a[Random.Range(0, a.Length)];
     }
 
+    // 손님 이름: 뉴욕이 배경이라 영어 이름을 한글로. 그림이 남자면 남자 이름, 여자면 여자 이름, 외계인은 외계 이름.
+    static readonly string[] MaleSets = { "Businessman", "Japanese guy", "Policeman", "Policeman 2", "SWAT", "SWAT 2", "Photographer", "Dealer", "Ambulance", "Bodybuilder", "Robber" };
+    static readonly string[] MaleNames = { "존", "마이클", "데이비드", "제임스", "로버트", "윌리엄", "토니", "프랭크", "빈센트", "리키", "잭", "댄", "스티브", "조", "에디" };
+    static readonly string[] FemaleNames = { "제니퍼", "에밀리", "사라", "멜리사", "재닛", "로라", "샐리", "브렌다", "트리샤", "니콜", "메리", "린다", "캐럴", "다이앤", "리사" };
+    static readonly string[] Surnames = { "스미스", "존슨", "브라운", "밀러", "데이비스", "로시", "콜먼", "카터", "잭슨", "마르티네즈", "리", "오브라이언" };
+    static readonly string[] AlienNames = { "조르그", "블립", "자프", "쿠르", "니블" };
+
+    /// <summary>그림(art)에 맞는 이름. 그림이 없으면(외부 에셋이 없을 때) 손님 유형의 예전 이름을 쓴다.</summary>
+    public static string NameFor(PixelSet art, PaxType type)
+    {
+        if (art == null) return PickOne(type.names);
+        if (art.cat == "alien") return "지구인(자칭) " + AlienNames[Random.Range(0, AlienNames.Length)];
+        bool male = System.Array.IndexOf(MaleSets, art.name) >= 0;
+        return (male ? MaleNames : FemaleNames)[Random.Range(0, male ? MaleNames.Length : FemaleNames.Length)] + " " + Surnames[Random.Range(0, Surnames.Length)];
+    }
+
     // 가중치에 따라 손님 유형을 하나 뽑는다
     public static PaxType PickType()
     {

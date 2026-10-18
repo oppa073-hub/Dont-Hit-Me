@@ -21,6 +21,7 @@ public class PedestrianManager
         public float triggerT;            // 건너기 시작하는 시점: 차가 도착하기 이만큼(초) 전에 (속도가 빨라도 같은 여유 시간). 0 이면 triggerZ(m) 를 쓴다
         public bool bypassCap;            // 동시 횡단 인원 제한을 받지 않는다 (팬 습격, 분노 때 몰려든 사람)
         public bool caller;               // 택시를 부르는 손님 (머리 위에 !)
+        public PixelSet art;              // 외부 픽셀 아트 애니메이션 세트 (없으면 예전 도형 그림)
         public bool zombie;               // 좀비: 치면 보상 (좀비의 날)
         public bool survivor;             // 생존자: 좀비의 날에 섞여 나오는, 치면 안 되는 사람
     }
@@ -152,6 +153,14 @@ public class PedestrianManager
             phase = Random.value * 6f
         };
         peds.Add(p);
+        var npcArt = PixelArt.Random("npc");                     // 외부 에셋이 있으면 사람 그림을 쓴다 (옷 색은 그림 그대로)
+        if (npcArt != null)
+        {
+            p.art = npcArt;
+            p.baseColor = Color.white;
+            sr.sprite = npcArt.First;
+            sr.color = Color.white;
+        }
         if (ZombieMode) Infect(p, false);
         return p;
     }
@@ -165,12 +174,19 @@ public class PedestrianManager
         if (p.kind >= 1 && roll < cfg.zombieSurvivorRatio)
         {
             p.survivor = true;
-            p.baseColor = SurvivorColor;
+            p.baseColor = p.art != null ? new Color(1f, 0.7f, 0.3f) : SurvivorColor;           // 그림이 있으면 주황 빛을 입힌다
         }
         else if (preferZombie || roll < cfg.zombieSurvivorRatio + cfg.zombieRatio)
         {
             p.zombie = true;
-            p.baseColor = new Color(Random.Range(0.12f, 0.28f), Random.Range(0.6f, 0.8f), Random.Range(0.08f, 0.22f));       // 진한 초록
+            var zart = PixelArt.Random("zombie");
+            if (zart != null)
+            {
+                p.art = zart;
+                p.baseColor = Color.white;
+                p.sr.sprite = zart.First;
+            }
+            else p.baseColor = new Color(Random.Range(0.12f, 0.28f), Random.Range(0.6f, 0.8f), Random.Range(0.08f, 0.22f));       // 진한 초록
             p.walkSpeed *= p.kind == 2 ? Mathf.Lerp(1f, cfg.zombieSlow, 0.6f) : cfg.zombieSlow;
         }
         p.sr.color = p.baseColor;
@@ -183,7 +199,13 @@ public class PedestrianManager
         {
             if (!p.zombie && !p.survivor) continue;
             p.zombie = p.survivor = false;
-            p.baseColor = Random.ColorHSV(0f, 1f, 0.5f, 0.7f, 0.8f, 1f);
+            var back = PixelArt.Random("npc");
+            if (back != null)
+            {
+                p.art = back;
+                p.baseColor = Color.white;
+            }
+            else p.baseColor = Random.ColorHSV(0f, 1f, 0.5f, 0.7f, 0.8f, 1f);
             if (p.sr != null) p.sr.color = p.baseColor;
         }
     }

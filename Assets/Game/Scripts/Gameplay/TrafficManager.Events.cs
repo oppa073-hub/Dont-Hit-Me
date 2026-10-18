@@ -120,6 +120,13 @@ public partial class TrafficManager
         o.x = side * (cfg.roadHalfWidth + 0.4f);
         o.z = Mathf.Min(spawnZ - 6f, Random.Range(26f, 60f));
         o.body.flipX = o.dir < 0f;                           // 그림은 오른쪽을 본다
+        var pigArt = cfg.pigSprite == null ? PixelArt.Random("pig") : null;
+        if (pigArt != null)
+        {
+            o.art = pigArt;
+            o.body.sprite = pigArt.First;
+            o.centerY = -o.body.sprite.bounds.min.y;
+        }
     }
 
     void SetRivalAlpha(Obj o, float a)
@@ -206,8 +213,20 @@ public partial class TrafficManager
         go.transform.SetParent(parent, false);
         o.t = go.transform;
         o.body = go.AddComponent<SpriteRenderer>();
+        var policeArt = useCustom ? null : PixelArt.Get("police");
+        if (policeArt != null)
+        {
+            // 옆으로 선 경찰차(경광등이 번갈아 켜진다)로 길을 막는다
+            o.art = policeArt;
+            bodySprite = policeArt.First;
+            sb = bodySprite.bounds;
+            o.centerY = -sb.min.y;
+            o.halfW = Mathf.Max(0.5f, sb.extents.x * 0.8f);
+            o.body.color = Color.white;
+            useCustom = true;
+        }
         o.body.sprite = bodySprite;
-        o.body.color = useCustom ? Color.white : new Color(0.14f, 0.22f, 0.6f);
+        if (policeArt == null) o.body.color = useCustom ? Color.white : new Color(0.14f, 0.22f, 0.6f);
         if (!useCustom)
         {
             var dgo = new GameObject("Detail");
@@ -216,8 +235,8 @@ public partial class TrafficManager
             o.detail = dgo.AddComponent<SpriteRenderer>();
             o.detail.sprite = sprites.carDetail;
         }
-        o.lamps = new SpriteRenderer[2];
-        for (int k = 0; k < 2; k++)
+        o.lamps = new SpriteRenderer[policeArt != null ? 0 : 2];
+        for (int k = 0; k < o.lamps.Length; k++)
         {
             var lgo = new GameObject("Light");
             lgo.transform.SetParent(go.transform, false);
@@ -276,6 +295,13 @@ public partial class TrafficManager
         float zk = nextInterDist + 16f;                         // 교차로 바로 뒤에 선다. 도로가 보이는 거리(spawnZ) 밖이어도 먼 곳에 거대한 모습이 보인다
 
         var o = MakeSpriteObj("Kaiju", Kaiju, cfg.kaijuSprite != null ? cfg.kaijuSprite : sprites.kaiju);
+        var kaijuArt = cfg.kaijuSprite == null ? PixelArt.Get("kaiju") : null;
+        if (kaijuArt != null)
+        {
+            o.art = kaijuArt;
+            o.body.sprite = kaijuArt.First;
+            o.centerY = -o.body.sprite.bounds.min.y;
+        }
         o.halfW = 4.5f;                                         // 도로 전체를 막는다
         o.x = 0f;
         o.z = zk;
@@ -287,6 +313,7 @@ public partial class TrafficManager
         fgo.transform.localPosition = new Vector3(0f, b.center.y + b.extents.y * 0.50f, -0.05f);
         var fsr = fgo.AddComponent<SpriteRenderer>();
         fsr.sprite = cfg.flameSprite != null ? cfg.flameSprite : sprites.flame;
+        fsr.enabled = kaijuArt == null;                          // 새 그림(지옥의 거인)은 입에서 불을 뿜지 않는다
         o.lamps = new[] { fsr };
 
         // 무너진 건물에서 피어오르는 연기 기둥

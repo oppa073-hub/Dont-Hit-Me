@@ -375,7 +375,7 @@ public partial class DriveGame
         if (ti != newsTickIdx)
         {
             newsTickIdx = ti;
-            newsTickerText.text = ti < 0 ? "N 키: 뉴스 건너뛰기" : (ad ? "▶ 광고 문의: 박 정비소 (합법 아님)" : NewsCatalog.Tick(newsType, ti));
+            newsTickerText.text = ti < 0 ? "N 키: 뉴스 건너뛰기" : (ad ? "▶ 광고 문의: 박 택시 (합법 아님)" : NewsCatalog.Tick(newsType, ti));
         }
 
         // 앵커 (광고에는 나오지 않는다)

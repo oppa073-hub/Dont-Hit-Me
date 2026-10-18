@@ -62,7 +62,7 @@ public partial class DriveGame
         Label(new Rect(W * 0.5f - 370 * u, H * 0.14f + 108 * u, 740 * u, 270 * u), resultText, 24, Color.white, TextAnchor.UpperCenter);
 
         float breathe = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-        Label(new Rect(0, H * 0.84f, W, 40 * u), "R 바로 다시 영업      U 로비로 (정비소)", 28, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.84f, W, 40 * u), "R 바로 다시 영업      U 로비로 (사장님께)", 28, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
         Label(new Rect(0, H * 0.84f + 42 * u, W, 30 * u), modeText, 17, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
     }
 }

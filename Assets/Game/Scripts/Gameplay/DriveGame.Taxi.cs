@@ -11,6 +11,7 @@ public partial class DriveGame
     void CreateTaxi()
     {
         taxi = new TaxiManager(this, peds, DestRel);
+        taxi.InIntersection = z => IsIntersection(Mathf.FloorToInt((dist + z + 8f) / StripLen));       // 교차로 한가운데서 손님이 부르지 않게
         taxi.PopupRequested += Popup;
         taxi.TalkStarted += OnTalkStarted;
         taxi.Arrived += OnTaxiArrived;
@@ -30,6 +31,7 @@ public partial class DriveGame
     // 대화가 시작됐다: 차를 세우고 손님 쪽으로 시점을 돌린다
     void OnTalkStarted(float yaw)
     {
+
         speed = 0f;
         camYawTarget = yaw;
         camPitchTarget = TalkPitch();

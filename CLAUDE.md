@@ -58,9 +58,10 @@
   - Gameplay/TrafficManager.Events.cs : 괴수(다음 교차로 뒤에서 도로 전체를 막음, 연기 기둥, 부딪히면 목숨 -1)와 히어로 레이저(경고 뒤 한쪽 차선을 쓸며 불길을 남김, 반대 차선으로 피함). 월드 연출은 World/DriveGame.Battle.cs, 연결은 Gameplay/DriveGame.Events.cs
   - 좀비의 날(DayType.Zombie): 괴수/히어로처럼 하루 중 갑자기 시작해 zombieDuration(45초) 동안. PedestrianManager.ZombieMode 동안 새 보행자가 좀비(초록, 느리고 비틀거림, Ped.zombie)나 생존자(주황, Ped.survivor)가 되고 좀비가 도로로 추가로 몰려나옴(zombieInterval). 좀비를 치면 사고가 아니라 보상(점수 zombieScore, 분노 게이지 zombieRageGain, 초록 얼룩, 철퍽 소리, 손님 환호, 니어미스 없음), 생존자를 치면 평소 사고. 미니건은 생존자를 쏘지 않음. 사태가 끝나면 남은 좀비는 평범한 시민이 됨. 튜닝은 인스펙터 Zombie 헤더, 연결은 DriveGame.Pedestrians.cs(OnZombieHit)/Events.cs. 디버그 0 키. 뉴스 한 벌은 NewsCatalog.Kits 의 Zombie 항목
   - Gameplay/DriveGame.Heat.cs : 도시 위험도 0~5단계(Day 6/12/18/26/36 부터, 인스펙터 Heat 헤더 heatDays). 단계마다 판 시작 레벨 상승(DifficultyManager.Heat), 동시 횡단 인원 +1(2단계마다), 랜덤 인카운트 간격 단축(EncounterManager.IntervalMul), 사건 있는 날 확률 증가(EventManager.Heat), 대신 요금 위험수당(+6%/단계). 로비와 아침 뉴스에 표시. 후반에 업그레이드로 쉬워지는 것을 상쇄하려는 장치
+  - 외부 픽셀 아트 적용(World/PixelArt.cs + Tools/build-pixel-atlas.py): 산 에셋(Modern NPCs, Zombies, Pixel Art Enemies(외계인/UFO), Farm Animals(돼지), 지옥의 거인)을 파이썬이 잘라(Aseprite 태그를 보고 줄/칸을 정함) Assets/_External/_Generated/Resources/PixelAtlas.png + PixelAtlasData.json 한 장으로 만들고, 게임은 Resources 로 읽어 PixelArt.Random/Get(종류)로 애니메이션 세트(idle/walk/death)를 받음. 아틀라스는 _External 이라 git 에 안 올라가니 새 컴퓨터에서는 `python Tools/build-pixel-atlas.py` 를 먼저 돌릴 것. 파일이 없으면 예전 도형 그림으로 돌아감. 사람/좀비/외계인 그림은 왼쪽을 보고(PixelSet.Flip 이 뒤집음) 발이 기준점(ppu 는 몸 크기로 1.75m 에 맞춤). 쓰이는 곳: 보행자(Ped.art, 좀비/생존자 포함), 외계인 손님(대화 시작 때), 돼지(Obj.art), 경찰 바리케이드(옆으로 선 경찰차), 괴수(지옥 팩의 가마솥 악마 The Devil), 외계인 목적지 UFO(WorldView.ShowUfo). 새 캐릭터는 build_sets() 에 한 줄 추가. 길가에서 기다리는 손님은 걷는 사람+서 있는 "stand" 그림(handbag, tablet, military, coffee girl, bodybuilder, flight attendant) 중 아무나, 외계인 손님은 처음부터 외계인, 은행 강도는 처음부터 Robber 그림(손님 유형은 나타날 때 미리 정함: TaxiManager.RollPax/GiveCallerArt). 이름은 그림의 성별에 맞는 영어 이름을 한글로(PassengerCatalog.NameFor, 배경은 뉴욕). 교차로 구간에서는 손님이 부르지 않게 위치를 옮김(TaxiManager.ClearOfIntersection). 새 그림은 발이 기준이라 인도 위에서는 SidewalkLift 만큼 올림, 로비의 사장(택시 회사 사장, Mafia Boss, "boss")과 플레이어(Japanese guy)도 스프라이트(DrawLobbySprite, 상점 초상). 쓰지 말 것: Blonde Glamour Model(원본/altered 둘 다). 아직 안 쓴 것: 소/닭, 지옥 팩의 나머지(히어로/빌런), 자동차(옆모습이라 같은 방향 교통에는 못 씀), 나머지 NPC
   - Gameplay/DriveGame.Debug.cs : 디버그 패널(에디터/개발 빌드만, Del 두 번 = 저장 데이터(PlayerPrefs) 전부 초기화 후 장면 다시 불러오기). F1 로 열고 1 괴수 2 히어로 3 사람 많은 날 4 평범한 날 5 무작위 6 비 7 시각+3h 8 레벨+1 G 무적. 1~4 는 다음 판의 날 종류(forceDayType)도 고정
   - Gameplay/RageManager.cs : 분노 게이지(시간으로 rageFillSeconds 에 가득, 니어미스마다 rageNearMissGain 만큼 더 참). 가득 차면(손님을 태운 상태일 때만. 손님이 없으면 가득 찬 채로 대기하다가 태우는 순간) 자동 발동해 rageDuration 초 동안 무적(부딪혀도 목숨/요금/사고 기록 없음, 점수만)+rageSpeedMul 배 가속. 게이지는 팔(손) 색이 붉어지는 것으로 보여 줌. 연결은 Gameplay/DriveGame.Rage.cs
-  - Gameplay/LobbyManager.cs + Gameplay/DriveGame.Lobby.cs + UI/DriveGame.LobbyDraw.cs : 로비(2D 횡스크롤, 모두 도형으로 그린 임시 그림). 타이틀에서 Space → 로비 → 정비사(박 정비사) 옆 Space = 대사 후 상점 / 택시 옆 Space = 화면이 어두워지며 영업 시작. 게임오버에서 U = 로비, R = 바로 재시작. 흐름 enum GameFlow.Lobby
+  - Gameplay/LobbyManager.cs + Gameplay/DriveGame.Lobby.cs + UI/DriveGame.LobbyDraw.cs : 로비(2D 횡스크롤, 건물은 도형, 사람은 픽셀 아트). 타이틀에서 Space → 로비 → 택시 회사 사장(박 사장) 옆 Space = 대사 후 상점 / 택시 옆 Space = 화면이 어두워지며 영업 시작. 게임오버에서 U = 로비, R = 바로 재시작. 흐름 enum GameFlow.Lobby
   - Gameplay/StoryCatalog.cs : 정비사 대사(첫 방문 소개, 어제 날 종류에 따른 인사, 분노 힌트, 상점 대사)와 아침 뉴스 원고. 스토리 대사는 이 파일만 고치면 됨
   - Cabin/DriveGame.News.cs + Gameplay/NewsCatalog.cs : 내비 뉴스. 토막(NewsBeat: 앵커/현장 연결/광고/긴급 속보)의 연속으로, 영업 시작 때 아침 뉴스, 괴수/히어로 사건이 시작되면 손님을 찾는 중에만 긴급 속보가 끼어듦. 날 종류별 "뉴스 한 벌"(배경 그림, 머리 띠 문구/점멸, 앵커 연기, 원고 풀, 자막)은 NewsCatalog.Kits 표에 있음. **새 날 종류(이벤트)를 만들면 NewsCatalog.Kits 에 한 줄을 추가하고, 배경이 새로 필요하면 DriveGame.News.cs 의 DrawNewsBg switch 에 한 가지를 더 그릴 것.** N 키로 건너뛰기, 손님을 태우면 지도로 복귀
   - Gameplay/ProjectManager.cs : 택시 개조 4단계(정비소 증축=업그레이드 20% 할인 / 황금 도색=분노 1.5배 오래+요금 / 지붕 양옆 미니건 / 하늘을 나는 택시=엔딩). 상점에서 Tab 으로 쪽을 넘겨 숫자키로 구매, 앞 단계를 먼저 끝내야 함, 끝내면 로비 모습이 바뀌고 정비사 병맛 대사
@@ -116,8 +117,8 @@
 - 사용자는 개발 입문에 가깝고 한국어를 쓰므로 쉽게 설명한다.
 
 ## 에셋 라이선스
-- GandalfHardcore City Tiles: 상업 사용과 수정 허용, 재판매·재배포 금지. 저장소는 Private 유지.
+- GandalfHardcore 팩들(City Tiles, Modern NPCs, Zombies, Pixel Art Enemies, Farm Animals, Hell Asset Pack): 상업 사용과 수정 허용, 재판매·재배포·AI 학습 금지. 저장소가 공개라서 에셋 파일은 올리지 않는다. 크레딧 표기는 필수는 아니지만 권장(README 에 적을 것).
 
 ## Git
 - 원격: https://github.com/oppa073-hub/Dont-Hit-Me.git
-- 저장소는 Private. 푸시 전 확인받을 것.
+- 저장소는 **Public(포트폴리오용)**. 구매한 에셋(Assets/_External/)은 라이선스상 재배포 금지라 절대 커밋하지 말 것(.gitignore 로 제외, 이력에도 없음). 푸시 전에 `git status` 에 _External, 이미지/모델/소리 파일이 없는지 확인하고, 푸시는 확인받을 것.

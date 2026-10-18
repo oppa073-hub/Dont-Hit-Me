@@ -52,6 +52,40 @@ public partial class DriveGame
 
     // ---------- 월드 표현 ----------
 
+    // 외계인 손님의 목적지: 빛줄기 위에 UFO 가 떠 있다 (픽셀 아트가 있을 때)
+    SpriteRenderer ufoSr;
+    PixelSet ufoArt;
+
+    void ShowUfo(float x, float z)
+    {
+        if (ufoSr == null)
+        {
+            ufoArt = PixelArt.Get("ufo");
+            if (ufoArt == null) return;
+            var go = new GameObject("UFO");
+            go.transform.SetParent(transform, false);
+            ufoSr = go.AddComponent<SpriteRenderer>();
+        }
+        if (!ufoSr.gameObject.activeSelf) ufoSr.gameObject.SetActive(true);
+        float zz = Mathf.Clamp(z, 20f, 540f);
+        float scale = Mathf.Clamp(zz / 40f, 1.2f, 10f);                                   // 멀수록 크게 해서 멀리서도 보인다
+        float y = Mathf.Min(198f, 0.45f * zz + 30f) + Mathf.Sin(elapsed * 1.6f) * 1.2f;    // 가까워져도 화면 위쪽에서 안 사라지게 낮게 떠 있다
+
+        ufoSr.sprite = ufoArt.idle.At(elapsed);
+        Place(ufoSr.transform, new Vector3(x, y, zz), Quaternion.identity, Vector3.one * scale);
+    }
+
+    void HideUfo()
+    {
+        if (ufoSr != null && ufoSr.gameObject.activeSelf) ufoSr.gameObject.SetActive(false);
+    }
+
+    // 인도 상자의 윗면은 도로보다 이만큼 높다 (도로 바깥으로 갈수록 서서히 올라간다)
+    static float SidewalkLift(float x, float roadHalf)
+    {
+        return 0.22f * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(roadHalf - 0.3f, roadHalf + 0.2f, Mathf.Abs(x)));
+    }
+
     bool wvTint, wvWasTinted;                // 이번 프레임에 스프라이트 색을 밤 조명으로 칠하는가 (낮이 되면 한 번 더 칠해 원래대로)
 
     static Color Lit(Color c, float k) { return new Color(c.r * k, c.g * k, c.b * k * 1.06f, c.a); }       // 밤빛은 살짝 푸르게
@@ -195,10 +229,13 @@ public partial class DriveGame
                     float bx = mr == 0 ? roadHalfWidth + 1.2f : mr * Period;
                     float bw = 2.5f + Mathf.Clamp(ufoZ, 0f, 700f) * 0.012f;
                     Place(destMarker, new Vector3(bx, 100f, Mathf.Max(ufoZ, 3f)), Quaternion.identity, new Vector3(bw, 200f, bw));
+                    ShowUfo(bx, ufoZ);
                 }
                 else Place(destMarker, new Vector3(roadHalfWidth + 0.8f, Drop(mz) + 3f, mz), Quaternion.identity, new Vector3(0.4f, 6f, 0.4f));
             }
         }
+
+        if (!(taxi.AlienTrip && !turning)) HideUfo();
 
         for (int pi = 0; pi < peds.Count; pi++)
         {
@@ -206,6 +243,7 @@ public partial class DriveGame
             bool fallen = p.fallT >= 0f;
             float bob = (!fallen && p.pauseLeft <= 0f) ? Mathf.Sin((elapsed + p.phase) * 10f) * 0.05f : 0f;
             float h = fallen ? 0.35f : 0.875f + bob;
+            if (p.art != null) h = SidewalkLift(p.x, rw);       // 새 그림은 발이 기준점이다: 인도 위에서는 인도 높이만큼 올려 발이 묻히지 않게
             float px = p.x, pz = p.z;
             if (turning)
             {
@@ -221,7 +259,22 @@ public partial class DriveGame
             p.t.position = new Vector3(px, Drop(pz) + h, pz);
             // 옆 시점으로 손님을 볼 때는 손님이 카메라를 향하게 돌린다 (평소 보행자는 정면 고정)
             float faceYaw = (taxi.State == TaxiState.Talking && p == taxi.Caller) ? camYaw : 0f;
-            p.t.rotation = Quaternion.Euler(0f, faceYaw, fallen ? -p.dir * 85f : (p.zombie ? Mathf.Sin((elapsed + p.phase) * 3f) * 9f : 0f));         // 좀비는 비틀거린다
+            float roll = fallen ? -p.dir * 85f : (p.zombie && p.art == null ? Mathf.Sin((elapsed + p.phase) * 3f) * 9f : 0f);         // 도형 좀비는 비틀거린다
+            if (p.art != null)
+            {
+                // 외부 픽셀 아트: 서 있기/걷기/쓰러지기 애니메이션, 가는 쪽(도로 쪽)을 보게 뒤집는다
+                float tt = elapsed + p.phase;
+                bool moving = p.st == 3 || p.st == 1 || (p.st == 0 && Mathf.Abs(p.walkZ) > 0.05f && !p.caller);
+                Sprite sp;
+                if (fallen) sp = p.art.death != null ? p.art.death.At(p.fallT) : p.art.idle.frames[0];
+                else sp = moving ? p.art.walk.At(tt) : p.art.idle.At(tt);
+                if (p.sr.sprite != sp) p.sr.sprite = sp;
+                float face = p.st == 3 ? p.dir : (p.st == 1 ? Mathf.Sign(p.curbX - p.x) : -p.side);
+                if (Mathf.Abs(face) < 0.5f) face = -p.side;
+                p.sr.flipX = p.art.Flip(face);
+                roll = (fallen && p.art.death == null) ? -p.dir * 85f : 0f;
+            }
+            p.t.rotation = Quaternion.Euler(0f, faceYaw, roll);
             float pk = wvTint ? NightLight(p.x, p.z) : 1f;
             if (p.pauseLeft > 0f) p.sr.color = Lit(Color.Lerp(p.baseColor, Color.white, 0.5f), pk);
             else if (!fallen) p.sr.color = Lit(p.baseColor, pk);
@@ -273,10 +326,20 @@ public partial class DriveGame
             }
             // 괴수와 연기 기둥은 도로가 휘어 사라지는 거리 밖에 있어도 지평선 위로 보이게, 휘어짐(Drop)은 도로 끝 거리까지만 적용한다
             float dropZ = (o.kind == TrafficManager.Kaiju || o.kind == TrafficManager.Smoke) ? Mathf.Min(oz, SpawnZ) : oz;
-            o.t.position = new Vector3(ox, Drop(dropZ) + o.centerY * sy, oz);
+            float lift = (o.art != null && o.kind == TrafficManager.Pig) ? SidewalkLift(o.x, rw) : 0f;           // 인도에 오른 돼지는 발이 묻히지 않게
+            o.t.position = new Vector3(ox, Drop(dropZ) + o.centerY * sy + lift, oz);
             float tilt = o.angle;                                           // 공: 구르는 각도
             if (o.fallT >= 0f) tilt = -o.kickDir * Mathf.Min(o.fallT * 4f, 1f) * 35f;   // 부딪힌 차/콘: 옆으로 기울며 밀려난다
             o.t.rotation = Quaternion.Euler(0f, 0f, tilt);
+
+            if (o.art != null && o.body != null)
+            {
+                Sprite asp = o.kind == TrafficManager.Pig
+                    ? (o.fallT >= 0f ? o.art.idle.frames[0] : o.art.walk.At(elapsed + o.phase))
+                    : o.art.idle.At(elapsed + o.phase);
+                if (o.body.sprite != asp) o.body.sprite = asp;
+                if (o.kind == TrafficManager.Pig) o.body.flipX = o.art.Flip(o.dir);
+            }
 
             // 밤: 차와 장애물 그림은 헤드라이트가 닿는 만큼만 환하다 (불길, 폭발, 괴수, 연기, 구급차는 스스로 빛나니 제외)
             if (wvTint && o.body != null && o.kind != TrafficManager.Flame && o.kind != TrafficManager.Boom && o.kind != TrafficManager.Kaiju && o.kind != TrafficManager.Smoke && o.kind != TrafficManager.Ambulance && o.kind != TrafficManager.Police)

@@ -26,6 +26,31 @@ public partial class DriveGame
         Dot(new Vector2((cx - lbCam) * lbU, cy * lbU), size * lbU, c);
     }
 
+    // 스프라이트 하나를 IMGUI 로 그린다. footX/footY = 발(피벗) 위치(화면 px), k = 스프라이트 한 픽셀이 화면 몇 px 인가, flip = 좌우 뒤집기
+    void DrawSpriteGui(Sprite sp, float footX, float footY, float k, bool flip, Color tint)
+    {
+        if (sp == null || Event.current == null || Event.current.type != EventType.Repaint) return;
+        var tex = sp.texture;
+        var r = sp.textureRect;
+        float w = r.width * k, h = r.height * k;
+        float pivX = sp.pivot.x * k;
+        float left = flip ? footX - (w - pivX) : footX - pivX;
+        float top = footY + sp.pivot.y * k - h;
+        var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
+        if (flip) { uv.x += uv.width; uv.width = -uv.width; }
+        GUI.color = tint;
+        GUI.DrawTextureWithTexCoords(new Rect(left, top, w, h), tex, uv, true);
+        GUI.color = Color.white;
+    }
+
+    // 로비 장면의 사람 그림 (로비 좌표). scale 1 = 키 약 112 로비 px
+    void DrawLobbySprite(Sprite sp, float x, float scale, bool flip, float dark)
+    {
+        float k = 2.49f * scale * lbU;                                   // 로비 px/스프라이트 px (사람 그림은 25.7 픽셀/미터)
+        float shade = 1f - 0.5f * dark;
+        DrawSpriteGui(sp, (x - lbCam) * lbU, GroundY * lbU, k, flip, new Color(shade, shade, shade * 1.05f, 1f));
+    }
+
     // 옆모습 사람 하나. 걸을 때 다리와 팔이 번갈아 움직인다.
     void LPerson(float x, float s, int facing, float phase, bool moving, Color jacket, Color pants, Color hat, Color skin, bool mustache)
     {
@@ -123,7 +148,7 @@ public partial class DriveGame
         }
         LR(165f, 312f, 610f, 22f, new Color(0.25f, 0.25f, 0.3f));
         LR(330f, 262f, 280f, 50f, new Color(0.1f, 0.12f, 0.18f));
-        Label(new Rect((330f - lbCam) * u, 262f * u, 280f * u, 50f * u), "박 정비소", 30, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
+        Label(new Rect((330f - lbCam) * u, 262f * u, 280f * u, 50f * u), "박 택시", 30, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
         LR(250f, 430f, 190f, 160f, new Color(0.08f, 0.08f, 0.1f));                     // 열린 차고
         LR(250f, 430f, 190f, 66f, new Color(0.5f, 0.53f, 0.58f));                       // 반쯤 내려온 셔터
         for (int k = 0; k < 4; k++) LR(250f, 438f + k * 16f, 190f, 3f, new Color(0.4f, 0.43f, 0.48f));
@@ -148,9 +173,13 @@ public partial class DriveGame
         LR(852f, 562f, 40f, 28f, new Color(0.5f, 0.34f, 0.18f));
 
         // 정비사, 택시, 주인공
-        LPerson(LobbyManager.NpcX, 1.18f, lobby.PlayerX < LobbyManager.NpcX ? 1 : -1, 0f, false, NpcShirt, new Color(0.18f, 0.22f, 0.35f), new Color(0.75f, 0.2f, 0.18f), NpcSkin, true);
+        var bossArt = PixelArt.Get("boss");                                  // 택시 회사 사장 (안락의자에 앉아 있다)
+        if (bossArt != null) DrawLobbySprite(bossArt.idle.At(t), LobbyManager.NpcX, 1.1f, bossArt.Flip(lobby.PlayerX > LobbyManager.NpcX ? 1f : -1f), dark);
+        else LPerson(LobbyManager.NpcX, 1.18f, lobby.PlayerX < LobbyManager.NpcX ? 1 : -1, 0f, false, NpcShirt, new Color(0.18f, 0.22f, 0.35f), new Color(0.75f, 0.2f, 0.18f), NpcSkin, true);
         LTaxi(LobbyManager.TaxiX, dark, 0f);
-        LPerson(lobby.PlayerX, 1f, lobby.Facing, lobby.WalkPhase, lobby.Moving, new Color(0.2f, 0.35f, 0.72f), new Color(0.22f, 0.22f, 0.28f), new Color(0.1f, 0.1f, 0.12f), new Color(0.96f, 0.8f, 0.66f), false);
+        var driverArt = PixelArt.GetByName("npc", "Japanese guy");           // 주인공 (남자 택시 기사)
+        if (driverArt != null) DrawLobbySprite((lobby.Moving ? driverArt.walk : driverArt.idle).At(t), lobby.PlayerX, 1f, driverArt.Flip(lobby.Facing), dark);
+        else LPerson(lobby.PlayerX, 1f, lobby.Facing, lobby.WalkPhase, lobby.Moving, new Color(0.2f, 0.35f, 0.72f), new Color(0.22f, 0.22f, 0.28f), new Color(0.1f, 0.1f, 0.12f), new Color(0.96f, 0.8f, 0.66f), false);
 
         if (!interactive) return;
 

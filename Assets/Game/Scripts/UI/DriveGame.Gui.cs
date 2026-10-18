@@ -209,7 +209,7 @@ public partial class DriveGame
         // 손님 머리 위 느낌표
         if (taxi.Caller != null && taxi.Caller.t != null && taxi.State != TaxiState.Carrying && !(turning && retargeted))
         {
-            Vector3 sp = cam.WorldToScreenPoint(taxi.Caller.t.position + Vector3.up * 1.2f);
+            Vector3 sp = cam.WorldToScreenPoint(taxi.Caller.t.position + Vector3.up * (taxi.Caller.art != null ? 2.3f : 1.2f));
             if (sp.z > 0f)
             {
                 float size = Mathf.Clamp(1100f / sp.z, 26f, 90f);

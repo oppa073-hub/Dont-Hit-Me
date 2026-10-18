@@ -9,15 +9,20 @@ public partial class DriveGame
     void DrawShop(float W, float H, float u)
     {
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.72f));
-        Label(new Rect(0, 56 * u, W, 70 * u), shopPage == 0 ? "박 정비소" : "택시 개조", 52, UiGold, TextAnchor.MiddleCenter);
+        Label(new Rect(0, 56 * u, W, 70 * u), shopPage == 0 ? "박 택시 사장실" : "택시 개조", 52, UiGold, TextAnchor.MiddleCenter);
         Label(new Rect(0, 124 * u, W, 36 * u), shopCoinsText, 28, new Color(1f, 0.92f, 0.5f), TextAnchor.MiddleCenter);
         Label(new Rect(0, 160 * u, W, 26 * u), shopPage == 0 ? "Tab  택시 개조 보기" : "Tab  업그레이드 보기", 17, UiCyan, TextAnchor.MiddleCenter);
 
         // 정비사 초상과 말풍선
         Panel(new Rect(W * 0.02f, 196 * u, W * 0.23f, 420 * u), 0.5f);
         var fc = new Vector2(W * 0.135f, 300 * u);
-        DrawFace(fc, 190 * u, NpcSkin, NpcHair, false);
-        Dot(new Vector2(fc.x, 410 * u), 110 * u, NpcShirt);
+        var bossArt = PixelArt.Get("boss");
+        if (bossArt != null) DrawSpriteGui(bossArt.idle.At(Time.unscaledTime), fc.x, 440 * u, 5.3f * u, bossArt.Flip(1f), Color.white);       // 택시 회사 사장
+        else
+        {
+            DrawFace(fc, 190 * u, NpcSkin, NpcHair, false);
+            Dot(new Vector2(fc.x, 410 * u), 110 * u, NpcShirt);
+        }
         Label(new Rect(W * 0.03f, 450 * u, W * 0.2f, 30 * u), StoryCatalog.NpcName, 22, UiGold, TextAnchor.MiddleCenter);
         style.wordWrap = true;
         Label(new Rect(W * 0.03f, 482 * u, W * 0.2f, 120 * u), shopNpcLine, 18, Color.white, TextAnchor.UpperCenter);
