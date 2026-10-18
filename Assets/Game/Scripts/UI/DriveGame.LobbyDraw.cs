@@ -357,8 +357,11 @@ public partial class DriveGame
         var box = new Rect(W * 0.08f, H * 0.05f, W * 0.84f, H * 0.26f);       // 위쪽에 둬서 캐릭터를 가리지 않는다
         Panel(box, 0.92f);
         var fc = new Vector2(box.x + box.height * 0.55f, box.center.y);
-        DrawFace(fc, box.height * 0.62f, NpcSkin, NpcHair, false);
-        Dot(new Vector2(fc.x, box.yMax - box.height * 0.10f), box.height * 0.36f, NpcShirt);
+        if (!DrawArtFace(fc, box.height * 0.80f, PixelArt.Get("boss"), false, false))          // 택시 회사 사장의 얼굴
+        {
+            DrawFace(fc, box.height * 0.62f, NpcSkin, NpcHair, false);
+            Dot(new Vector2(fc.x, box.yMax - box.height * 0.10f), box.height * 0.36f, NpcShirt);
+        }
         float tx = box.x + box.height * 1.15f;
         Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), StoryCatalog.NpcName, 24, UiGold, TextAnchor.UpperLeft);
         style.wordWrap = true;

@@ -121,45 +121,151 @@ public partial class DriveGame
         else Fill(new Rect(c.x - s * 0.12f, c.y + s * 0.27f, s * 0.24f, Mathf.Max(2f, s * 0.04f)), new Color(0.35f, 0.12f, 0.1f));
     }
 
-    // 룸미러: 평소엔 빈 거울, 손님을 태우면 기사 얼굴 뒤로 손님 얼굴이 보인다
+    // 도트 그림의 얼굴(머리 부분만 자른 것)을 그린다. 그림이 없으면 false (호출한 쪽이 예전 도형 얼굴을 그린다).
+    // 놀라면 얼굴이 떨리고, 화나면 붉게 물든다. 그림은 왼쪽을 보고 있어서 대화 글자 쪽(오른쪽)을 보게 뒤집는다
+    bool DrawArtFace(Vector2 c, float size, PixelSet art, bool shocked, bool angry)
+    {
+        if (art == null || art.Face == null) return false;
+        if (Event.current == null || Event.current.type != EventType.Repaint) return true;
+        var bg = new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size);
+        Fill(bg, new Color(0.12f, 0.14f, 0.2f, 0.9f));                                   // 얼굴 뒤 어두운 배경
+        DrawArtSprite(art.Face, c, size, art.faceLeft, shocked, angry);
+        return true;
+    }
+
+    // 스프라이트 하나를 정사각형 칸에 그린다 (flip 이면 좌우 뒤집기)
+    void DrawArtSprite(Sprite sp, Vector2 c, float size, bool flip, bool shocked, bool angry)
+    {
+        if (shocked) c += new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)) * (Screen.height / 720f);
+        var tex = sp.texture;
+        var r = sp.textureRect;
+        var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
+        if (flip) { uv.x += uv.width; uv.width = -uv.width; }
+        GUI.color = angry ? new Color(1f, 0.68f, 0.68f) : Color.white;
+        GUI.DrawTextureWithTexCoords(new Rect(c.x - size * 0.5f, c.y - size * 0.5f, size, size), tex, uv, true);
+        GUI.color = Color.white;
+    }
+
+    // 룸미러: 항상 같은 크기. 뒷유리 너머로 지나온 도로가 뒤로 흘러가고(낮/밤/노을 색, 구급차가 오면 여기에 비친다),
+    // 앞좌석의 기사(플레이어)와 뒷좌석 손님이 가슴까지 보이는 전용 그림(Bust)으로 앉아 있다. 거울 밖으로는 잘려서 안 나온다.
     void DrawRearMirror(float W, float H)
     {
         bool carrying = taxi.State == TaxiState.Carrying;
-        float mw = carrying ? W * 0.16f : W * 0.106f;
-        float mh = carrying ? H * 0.085f : H * 0.04f;
-        var r = new Rect(W * 0.5f - mw * 0.5f, H * 0.098f, mw, mh);
+        float mw = W * 0.19f, mh = H * 0.115f;
+        var r = new Rect(W * 0.5f - mw * 0.5f, H * 0.092f, mw, mh);
         Fill(new Rect(r.x - 4f, r.y - 4f, r.width + 8f, r.height + 8f), new Color(0.1f, 0.1f, 0.12f));
-        Fill(r, new Color(0.35f, 0.4f, 0.45f));
+        Fill(r, new Color(0.16f, 0.18f, 0.22f));                                               // 차 안 천장/벽
 
-        // 구급차가 뒤에서 오면 룸미러에 붉은/푸른 빛과 점점 커지는 흰 차체가 보인다
+        GUI.BeginClip(r);                                    // 거울 안에서만 그린다 (좌표는 거울 왼쪽 위가 0,0)
+        var win = new Rect(mw * 0.10f, mh * 0.08f, mw * 0.80f, mh * 0.64f);          // 뒷유리
+        DrawMirrorBackdrop(win);
+
+        // 구급차가 뒤에서 오면 뒷유리에 붉은/푸른 빛과 점점 커지는 앞모습이 보인다
         float amb = traffic.AmbulanceDist;
         if (amb >= 0f && !gameOver && flow == GameFlow.Playing)
         {
             float k = Mathf.Clamp01(1f - amb / 70f);
             bool blink = Mathf.Repeat(Time.unscaledTime, 0.25f) < 0.125f;
-            Fill(r, blink ? new Color(1f, 0.1f, 0.1f, 0.35f * k + 0.1f) : new Color(0.15f, 0.3f, 1f, 0.35f * k + 0.1f));
-            var front = CarArt.AmbulanceFront();                           // 흰 차의 앞모습에 경광등을 얹어 구급차로 (룸미러에 비친 앞모습)
+            Fill(new Rect(0f, 0f, mw, mh), blink ? new Color(1f, 0.1f, 0.1f, 0.30f * k + 0.08f) : new Color(0.15f, 0.3f, 1f, 0.30f * k + 0.08f));
+            var front = CarArt.AmbulanceFront();                           // 흰 차의 앞모습에 경광등을 얹어 구급차로
             if (front != null)
             {
-                float hh = Mathf.Max(4f, (mh - 8f) * Mathf.Lerp(0.3f, 1f, k));         // 가까워질수록 커진다 (거울 안에 들어오게 제한)
+                float hh = Mathf.Max(4f, win.height * 0.9f * Mathf.Lerp(0.3f, 1f, k));          // 가까워질수록 커진다 (뒷유리 안에 들어오게 제한)
                 float px = hh / front.rect.height;
-                DrawSpriteGui(front, r.center.x, r.yMax - 3f, px, false, Color.white);
-                float lw = front.rect.width * px * 0.3f, lh = Mathf.Max(2f, hh * 0.14f), ly = r.yMax - 3f - hh - lh * 0.4f;
-                Fill(new Rect(r.center.x - lw * 1.05f, ly, lw, lh), blink ? new Color(1f, 0.1f, 0.1f) : new Color(0.4f, 0.1f, 0.1f));
-                Fill(new Rect(r.center.x + lw * 0.05f, ly, lw, lh), blink ? new Color(0.1f, 0.2f, 0.5f) : new Color(0.2f, 0.4f, 1f));
+                float footY = win.yMax - 1f;
+                DrawSpriteGui(front, win.center.x, footY, px, false, Color.white);
+                float lw = front.rect.width * px * 0.3f, lh = Mathf.Max(2f, hh * 0.14f), ly = footY - hh - lh * 0.4f;
+                Fill(new Rect(win.center.x - lw * 1.05f, ly, lw, lh), blink ? new Color(1f, 0.1f, 0.1f) : new Color(0.4f, 0.1f, 0.1f));
+                Fill(new Rect(win.center.x + lw * 0.05f, ly, lw, lh), blink ? new Color(0.1f, 0.2f, 0.5f) : new Color(0.2f, 0.4f, 1f));
             }
             else
             {
-                float sz = k * mh * 0.7f;
-                Fill(new Rect(r.center.x - sz * 0.9f, r.center.y - sz * 0.4f, sz * 1.8f, sz * 0.8f), new Color(1f, 1f, 0.92f, 0.9f));
+                float sz = k * mh * 0.5f;
+                Fill(new Rect(win.center.x - sz * 0.9f, win.center.y - sz * 0.4f, sz * 1.8f, sz * 0.8f), new Color(1f, 1f, 0.92f, 0.9f));
             }
         }
-        if (!carrying) return;
 
-        float s = mh * 0.62f;
+        // 뒷좌석 손님: 오른쪽, 가슴까지. 어깨 아래는 뒷좌석 등받이에 가려진다
         bool shocked = Time.unscaledTime < taxi.ReactUntil && !taxi.ReactIsChat;
-        DrawFace(new Vector2(r.center.x + mw * 0.16f, r.center.y - mh * 0.02f), s * 0.85f, taxi.PaxSkin, taxi.PaxHair, shocked);   // 뒤쪽 손님
-        DrawFace(new Vector2(r.center.x - mw * 0.14f, r.center.y + mh * 0.06f), s, PassengerCatalog.SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);   // 기사
+        if (carrying)
+        {
+            float ps = mh * 1.02f;
+            var pc = new Vector2(mw * 0.70f, mh * 0.52f);
+            if (taxi.PaxArt != null && taxi.PaxArt.Bust != null) DrawArtSprite(taxi.PaxArt.Bust, pc, ps, false, shocked, false);
+            else DrawFace(new Vector2(pc.x, pc.y - ps * 0.1f), ps * 0.6f, taxi.PaxSkin, taxi.PaxHair, shocked);
+        }
+        Fill(new Rect(0f, mh * 0.80f, mw, mh * 0.20f), new Color(0.07f, 0.08f, 0.1f));    // 뒷좌석 등받이
+
+        // 앞좌석 기사(플레이어): 왼쪽, 가슴까지, 손님보다 가까우니 더 크게. 손님 쪽(오른쪽)을 향한다
+        var playerArt = PixelArt.GetByName("npc", "Japanese guy");
+        float ds = mh * 1.28f;
+        var dc = new Vector2(mw * 0.28f, mh * 0.62f);
+        if (playerArt != null && playerArt.Bust != null) DrawArtSprite(playerArt.Bust, dc, ds, true, false, false);
+        else DrawFace(new Vector2(dc.x, dc.y - ds * 0.1f), ds * 0.6f, PassengerCatalog.SkinTones[0], new Color(0.12f, 0.09f, 0.07f), false);
+        Fill(new Rect(0f, mh * 0.93f, mw, mh * 0.07f), new Color(0.05f, 0.06f, 0.08f));  // 아래 가장자리
+        GUI.EndClip();
+    }
+
+    // 뒷유리(bounds) 밖으로 삐져나가는 부분은 잘라서 칠한다 (풍경이 차 안쪽 벽 위로 번지지 않게)
+    void FillIn(Rect r, Rect bounds, Color c)
+    {
+        float x0 = Mathf.Max(r.x, bounds.x), y0 = Mathf.Max(r.y, bounds.y), x1 = Mathf.Min(r.xMax, bounds.xMax), y1 = Mathf.Min(r.yMax, bounds.yMax);
+        if (x1 <= x0 || y1 <= y0) return;
+        Fill(new Rect(x0, y0, x1 - x0, y1 - y0), c);
+    }
+
+    static Color Dk(Color c, float k) { return new Color(c.r * k, c.g * k, c.b * k, 1f); }       // 알파는 그대로 두고 밝기만 줄인다
+
+    // 뒷유리 너머 풍경: 하늘색(시간대), 지나온 도로가 소실점으로 모이며 중앙선이 뒤로 달아나고, 양옆 건물이 가장자리로 흘러간다
+    void DrawMirrorBackdrop(Rect win)
+    {
+        float dark = Mathf.Lerp(1f, 0.28f, Mathf.Clamp01(weather.Darkness));
+        Color sky = weather.SkyColor;
+        Fill(win, new Color(sky.r * 0.8f, sky.g * 0.8f, sky.b * 0.85f));
+        float vx = win.center.x, vy = win.y + win.height * 0.42f;        // 소실점
+        Color fog = Dk(new Color(0.55f, 0.6f, 0.66f), dark);
+        // 먼 건물 윤곽
+        for (int i = 0; i < 9; i++)
+        {
+            float bh = (0.12f + 0.3f * Frac(Mathf.Sin((i + 3) * 12.9f) * 4375f)) * win.height;
+            float bw = win.width * 0.085f;
+            FillIn(new Rect(win.x + (i + 0.3f) * win.width / 9f, vy - bh, bw, bh + 1f), win, Dk(new Color(0.33f, 0.37f, 0.45f), dark));
+        }
+        Fill(new Rect(win.x, vy, win.width, win.yMax - vy), Dk(new Color(0.26f, 0.28f, 0.3f), dark));      // 땅
+        // 도로 (소실점에서 아래로 넓어지는 사다리꼴을 가로 줄로 나눠 칠한다)
+        const int Rows = 10;
+        for (int i = 0; i < Rows; i++)
+        {
+            float t0 = i / (float)Rows, t1 = (i + 1) / (float)Rows;
+            float y0 = Mathf.Lerp(vy, win.yMax, t0), y1 = Mathf.Lerp(vy, win.yMax, t1);
+            float hw = win.width * 0.52f * (t0 + t1) * 0.5f;
+            FillIn(new Rect(vx - hw, y0, hw * 2f, y1 - y0 + 1f), win, Dk(new Color(0.2f, 0.21f, 0.24f), dark));
+        }
+        // 중앙선: 지나온 거리(dist)에 따라 뒤로 달아난다 (소실점 쪽으로 모인다)
+        for (int k = 0; k < 6; k++)
+        {
+            float z = Mathf.Repeat(k / 6f - dist * 0.04f, 1f);               // 0 = 소실점(멀리), 1 = 바로 뒤
+            float t = z * z;
+            float y = Mathf.Lerp(vy, win.yMax, t);
+            float len = Mathf.Max(1.5f, win.height * 0.10f * t), wd = Mathf.Max(1f, win.width * 0.012f * (0.3f + t));
+            Fill(new Rect(vx - wd * 0.5f, y, wd, len), Dk(new Color(0.9f, 0.85f, 0.5f), dark));
+        }
+        // 길가 건물: 양옆에서 가장자리 쪽으로 커지며 흘러간다
+        for (int side = -1; side <= 1; side += 2)
+        {
+            for (int k = 0; k < 5; k++)
+            {
+                float z = Mathf.Repeat(k / 5f - dist * 0.025f, 1f);
+                float t = z * z;
+                float x = vx + side * win.width * (0.16f + 0.44f * t);
+                float bh = win.height * (0.18f + 0.34f * Frac(Mathf.Sin((k + side * 7 + Mathf.Floor(dist * 0.025f - k / 5f)) * 78.2f) * 4375f)) * (0.25f + t);
+                float bw = win.width * 0.10f * (0.25f + t);
+                float by = Mathf.Lerp(vy, win.yMax, t);
+                Color bc = Color.Lerp(fog, Dk(new Color(0.3f, 0.34f, 0.42f), dark), t);
+                FillIn(new Rect(side < 0 ? x - bw : x, by - bh, bw, bh), win, bc);
+            }
+        }
+        Fill(new Rect(win.x, win.y, win.width, 2f), new Color(0f, 0f, 0f, 0.25f));       // 창틀 그림자
     }
 
     void DrawCabin()
@@ -323,8 +429,11 @@ public partial class DriveGame
         {
             var box = new Rect(W * 0.10f, H * 0.62f, W * 0.80f, H * 0.30f);
             Panel(box, 0.9f);
-            DrawFace(new Vector2(box.x + box.height * 0.55f, box.center.y), box.height * 0.62f, taxi.PaxSkin, taxi.PaxHair, false);
-            Dot(new Vector2(box.x + box.height * 0.55f, box.yMax - box.height * 0.10f), box.height * 0.36f, taxi.PaxShirt);
+            if (!DrawArtFace(new Vector2(box.x + box.height * 0.55f, box.center.y), box.height * 0.80f, taxi.PaxArt, false, false))
+            {
+                DrawFace(new Vector2(box.x + box.height * 0.55f, box.center.y), box.height * 0.62f, taxi.PaxSkin, taxi.PaxHair, false);
+                Dot(new Vector2(box.x + box.height * 0.55f, box.yMax - box.height * 0.10f), box.height * 0.36f, taxi.PaxShirt);
+            }
             float tx = box.x + box.height * 1.15f;
             Label(new Rect(tx, box.y + 12 * u, box.width - box.height * 1.2f, 36 * u), taxi.PaxName, 24, UiGold, TextAnchor.UpperLeft);
             style.wordWrap = true;
@@ -343,7 +452,8 @@ public partial class DriveGame
             {
                 Vector2 c = new Vector2(W * 0.5f, H * 0.62f);
                 Panel(new Rect(c.x - 230 * u, c.y - 120 * u, 460 * u, 240 * u), 0.7f);
-                DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, angry);
+                if (!DrawArtFace(new Vector2(c.x - 130 * u, c.y), 170 * u, taxi.PaxArt, angry, angry))
+                    DrawFace(new Vector2(c.x - 130 * u, c.y), 150 * u, taxi.PaxSkin, taxi.PaxHair, angry);
                 style.wordWrap = true;
                 Label(new Rect(c.x - 40 * u, c.y - 60 * u, 260 * u, 120 * u), taxi.ReactText, 28, new Color(1f, 0.9f, 0.6f), TextAnchor.MiddleLeft);
                 style.wordWrap = false;
@@ -352,7 +462,8 @@ public partial class DriveGame
             {
                 var box = new Rect(W - 340 * u, 196 * u, 326 * u, 118 * u);
                 Panel(box, 0.7f);
-                DrawFace(new Vector2(box.x + 56 * u, box.center.y), 84 * u, taxi.PaxSkin, taxi.PaxHair, angry);
+                if (!DrawArtFace(new Vector2(box.x + 56 * u, box.center.y), 92 * u, taxi.PaxArt, angry, angry))
+                    DrawFace(new Vector2(box.x + 56 * u, box.center.y), 84 * u, taxi.PaxSkin, taxi.PaxHair, angry);
                 style.wordWrap = true;
                 Label(new Rect(box.x + 108 * u, box.y + 8 * u, box.width - 118 * u, box.height - 16 * u), taxi.ReactText, 18, new Color(1f, 0.92f, 0.65f), TextAnchor.MiddleLeft);
                 style.wordWrap = false;

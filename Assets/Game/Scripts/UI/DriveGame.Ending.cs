@@ -17,6 +17,7 @@ public partial class DriveGame
     int edLineIdx;
     Color edSkin = new Color(0.96f, 0.8f, 0.66f), edHair = new Color(0.15f, 0.1f, 0.08f);
     string edName = "손님";
+    PixelSet edArt;
 
     // 날개를 단 뒤 처음 태우는 일반 손님이면 엔딩 (은행 강도 같은 특수 손님은 건너뛴다)
     bool ShouldStartEnding()
@@ -39,6 +40,7 @@ public partial class DriveGame
         if (taxi.Pax != null)
         {
             edSkin = taxi.PaxSkin;
+            edArt = taxi.PaxArt;
             edHair = taxi.PaxHair;
             edName = string.IsNullOrEmpty(taxi.PaxName) ? "손님" : taxi.PaxName;
         }
@@ -348,7 +350,9 @@ public partial class DriveGame
         bool shout = text.Contains("!!");
         var r = new Rect(W * 0.5f - 450 * u, H - 150 * u, 900 * u, 108 * u);
         Panel(r, 0.72f);
-        DrawFace(new Vector2(r.x + 62 * u, r.y + 56 * u), 74 * u, edSkin, edHair, idx >= 2 && !text.StartsWith("…"));
+        bool edShock = idx >= 2 && !text.StartsWith("…");
+        if (!DrawArtFace(new Vector2(r.x + 62 * u, r.y + 56 * u), 88 * u, edArt, edShock && t < A, edShock))
+            DrawFace(new Vector2(r.x + 62 * u, r.y + 56 * u), 74 * u, edSkin, edHair, edShock);
         Label(new Rect(r.x + 120 * u, r.y + 6 * u, 400 * u, 24 * u), edName, 17, UiGold, TextAnchor.UpperLeft);
         float jx = 0f, jy = 0f;
         if (shout && t < A) { jx = Random.Range(-3f, 3f) * u; jy = Random.Range(-3f, 3f) * u; }

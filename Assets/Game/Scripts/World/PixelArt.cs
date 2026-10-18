@@ -8,7 +8,7 @@ using UnityEngine;
 public class PixelClipData { public string name; public float fps; public bool loop; public int[] rects; }
 
 [System.Serializable]
-public class PixelSetData { public string cat, name; public float ppu, px, py, mx, my; public bool faceLeft; public List<PixelClipData> clips; }
+public class PixelSetData { public string cat, name; public float ppu, px, py, mx, my; public bool faceLeft; public int[] head, bust; public List<PixelClipData> clips; }
 
 [System.Serializable]
 public class PixelAtlasData { public int w, h; public List<PixelSetData> sets; }
@@ -16,15 +16,17 @@ public class PixelAtlasData { public int w, h; public List<PixelSetData> sets; }
 public sealed class PixelClip
 {
     public Sprite[] frames;
+    public Sprite[] white;                                 // 같은 그림을 하얀 실루엣으로 칠한 것 (없으면 null)
     public float fps;
     public bool loop;
 
-    /// <summary>시각 t(초)의 그림. 반복이 아니면 마지막 그림에서 멈춘다.</summary>
-    public Sprite At(float t)
+    /// <summary>시각 t(초)의 그림. 반복이 아니면 마지막 그림에서 멈춘다. flash 이면 하얀 실루엣 버전(있을 때)을 돌려준다.</summary>
+    public Sprite At(float t, bool flash = false)
     {
         int n = frames.Length;
         int i = Mathf.FloorToInt(Mathf.Max(0f, t) * fps);
-        return frames[loop ? i % n : Mathf.Min(i, n - 1)];
+        i = loop ? i % n : Mathf.Min(i, n - 1);
+        return flash && white != null ? white[i] : frames[i];
     }
 
     public float Length { get { return frames.Length / Mathf.Max(1f, fps); } }
@@ -36,6 +38,8 @@ public sealed class PixelSet
     public bool faceLeft;
     public PixelClip idle, walk, death, attack;
     public Vector2 muzzle;                                 // 포신 끝(미터, 기준점에서). UFO 가 레이저를 쏘는 자리
+    public Sprite Bust;                                    // 룸미러용 상반신(머리~가슴): 서 있는 첫 칸을 정사각형으로 잘라 낸 것
+    public Sprite Face;                                    // 대화창에 쓰는 얼굴: 서 있는 첫 칸에서 머리 부분만 정사각형으로 잘라 낸 것 (없으면 null)
 
     public Sprite First { get { return (idle ?? walk).frames[0]; } }
 
@@ -69,6 +73,9 @@ public static class PixelArt
         if (data == null || data.sets == null) return;
         tex.filterMode = FilterMode.Point;                    // 도트가 번지지 않게
         tex.wrapMode = TextureWrapMode.Clamp;
+        var wtex = Resources.Load<Texture2D>("PixelAtlasWhite");        // 하얀 실루엣 아틀라스 (같은 배치). 없으면 깜빡임은 생략
+        if (wtex != null && (wtex.width != tex.width || wtex.height != tex.height)) wtex = null;
+        if (wtex != null) { wtex.filterMode = FilterMode.Point; wtex.wrapMode = TextureWrapMode.Clamp; }
 
         foreach (var sd in data.sets)
         {
@@ -76,17 +83,30 @@ public static class PixelArt
             foreach (var cd in sd.clips)
             {
                 int n = cd.rects.Length / 4;
-                var clip = new PixelClip { frames = new Sprite[n], fps = cd.fps, loop = cd.loop };
+                var clip = new PixelClip { frames = new Sprite[n], white = wtex != null ? new Sprite[n] : null, fps = cd.fps, loop = cd.loop };
                 for (int i = 0; i < n; i++)
                 {
                     int x = cd.rects[i * 4], y = cd.rects[i * 4 + 1], w = cd.rects[i * 4 + 2], h = cd.rects[i * 4 + 3];
                     var rect = new Rect(x, tex.height - y - h, w, h);                  // 아틀라스는 위에서부터 센 좌표
                     clip.frames[i] = Sprite.Create(tex, rect, new Vector2(sd.px / w, sd.py / h), sd.ppu, 0, SpriteMeshType.FullRect);
+                    if (wtex != null) clip.white[i] = Sprite.Create(wtex, rect, new Vector2(sd.px / w, sd.py / h), sd.ppu, 0, SpriteMeshType.FullRect);
                 }
                 if (cd.name == "idle") set.idle = clip;
                 else if (cd.name == "walk") set.walk = clip;
                 else if (cd.name == "death") set.death = clip;
                 else if (cd.name == "attack") set.attack = clip;
+            }
+            if (sd.head != null && sd.head.Length == 4 && sd.clips.Count > 0 && sd.clips[0].rects.Length >= 4)
+            {
+                var c0 = sd.clips[0].rects;                                        // 첫 클립의 첫 칸 (아틀라스는 위에서부터 센 좌표)
+                var hr = new Rect(c0[0] + sd.head[0], tex.height - (c0[1] + sd.head[1] + sd.head[3]), sd.head[2], sd.head[3]);
+                set.Face = Sprite.Create(tex, hr, new Vector2(0.5f, 0.5f), 32f, 0, SpriteMeshType.FullRect);
+            }
+            if (sd.bust != null && sd.bust.Length == 4 && sd.clips.Count > 0 && sd.clips[0].rects.Length >= 4)
+            {
+                var c0 = sd.clips[0].rects;
+                var br = new Rect(c0[0] + sd.bust[0], tex.height - (c0[1] + sd.bust[1] + sd.bust[3]), sd.bust[2], sd.bust[3]);
+                set.Bust = Sprite.Create(tex, br, new Vector2(0.5f, 0.5f), 32f, 0, SpriteMeshType.FullRect);
             }
             if (set.idle == null && set.walk == null) continue;
             if (set.idle == null) set.idle = set.walk;

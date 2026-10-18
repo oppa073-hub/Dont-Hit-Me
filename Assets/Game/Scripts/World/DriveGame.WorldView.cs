@@ -273,8 +273,11 @@ public partial class DriveGame
                 float tt = elapsed + p.phase;
                 bool moving = p.st == 3 || p.st == 1 || (p.st == 0 && Mathf.Abs(p.walkZ) > 0.05f && !p.caller);
                 Sprite sp;
+                // 갑자기 무단횡단할 사람(튀어나오는 사람)은 연석에서 멈칫하는 순간 하얗게 딱 한 번 번쩍여서 예고한다
+                bool flash = !fallen && p.kind == 2 && p.st == 2 && p.waitTime - p.pauseLeft < 0.22f;
                 if (fallen) sp = p.art.death != null ? p.art.death.At(p.fallT) : p.art.idle.frames[0];
-                else sp = moving ? p.art.walk.At(tt) : p.art.idle.At(tt);
+                else sp = moving ? p.art.walk.At(tt, flash) : p.art.idle.At(tt, flash);
+                p.flashing = flash;
                 if (p.sr.sprite != sp) p.sr.sprite = sp;
                 float face = p.st == 3 ? p.dir : (p.st == 1 ? Mathf.Sign(p.curbX - p.x) : -p.side);
                 if (Mathf.Abs(face) < 0.5f) face = -p.side;
@@ -283,7 +286,8 @@ public partial class DriveGame
             }
             p.t.rotation = Quaternion.Euler(0f, faceYaw, roll);
             float pk = wvTint ? NightLight(p.x, p.z) : 1f;
-            if (p.pauseLeft > 0f) p.sr.color = Lit(Color.Lerp(p.baseColor, Color.white, 0.5f), pk);
+            if (p.art != null && p.flashing) p.sr.color = Color.white;                       // 하얀 실루엣은 밤에도 또렷하게 (어둡게 칠하지 않는다)
+            else if (p.pauseLeft > 0f) p.sr.color = Lit(Color.Lerp(p.baseColor, Color.white, 0.5f), pk);
             else if (!fallen) p.sr.color = Lit(p.baseColor, pk);
         }
 

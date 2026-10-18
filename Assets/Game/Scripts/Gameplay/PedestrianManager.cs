@@ -11,6 +11,7 @@ public class PedestrianManager
         public Transform t;
         public SpriteRenderer sr;
         public float x, z, dir, walkSpeed, pauseLeft = -1f, minLat = 999f, fallT = -1f, phase;
+        public bool flashing;             // 지금 하얗게 점멸 중 (곧 무단횡단 예고, WorldView 가 정한다)
         public bool scored, crossed;      // crossed: 도로에 나온 적이 있는 사람만 충돌/니어미스 점수 대상
         public Color baseColor;
         public int kind;                  // 0 인도 보행자, 1 멀리서 이미 건너는 사람, 2 가까이서 갑자기 튀어나오는 사람

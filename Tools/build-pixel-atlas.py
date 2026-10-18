@@ -145,6 +145,46 @@ def metrics(s):
     return ppu, px, py
 
 
+def head_rect(s):
+    """대화창 얼굴용: 첫 칸(서 있기)에서 몸이 시작하는 맨 위 줄부터 키의 약 1/3 높이까지를 머리로 보고,
+    그 안에서 그림이 있는 가로 범위를 정사각형으로 맞춰 [x, y, w, h](칸 안 좌표, 위에서부터)로 돌려준다."""
+    f = s.clips[0][3][0]
+    alpha = f.split()[3]
+    left, top, right, bottom = alpha.getbbox()
+    frac = 0.28 if s.cat in ("npc", "stand", "boss", "robber") else (0.34 if s.cat == "zombie" else 0.5)
+    hh = max(6, int(round((bottom - top) * frac)))
+    band = alpha.crop((0, top, f.size[0], min(f.size[1], top + hh)))
+    bl, bt, br, bb = band.getbbox()
+    # 가로 범위는 머리가 있는 위쪽 60% 줄로만 정한다 (들고 있는 총/몽둥이가 얼굴 칸을 넓히지 않게)
+    upper = alpha.crop((0, top, f.size[0], top + max(4, int(hh * 0.6)))).getbbox()
+    if upper:
+        bl, br = upper[0], upper[2]
+        bb = max(bt + 1, min(bb, bt + (br - bl)))
+    side = max(br - bl, bb - bt) + 2
+    cx = (bl + br) / 2.0
+    x = int(round(cx - side / 2.0))
+    y = top + bt - 1
+    x = max(0, min(f.size[0] - side, x))
+    y = max(0, min(f.size[1] - side, y))
+    side = min(side, f.size[0], f.size[1])
+    return [x, y, side, side]
+
+
+def bust_rect(s, head):
+    """룸미러용 상반신: 머리 맨 위부터 가슴께(키의 절반쯤)까지를 정사각형으로 [x, y, w, h]."""
+    f = s.clips[0][3][0]
+    left, top, right, bottom = f.split()[3].getbbox()
+    frac = 0.52 if s.cat in ("npc", "stand", "boss", "robber") else (0.58 if s.cat == "zombie" else 0.9)
+    side = max(head[2] + 6, int(round((bottom - top) * frac)))
+    cx = head[0] + head[2] / 2.0
+    x = int(round(cx - side / 2.0))
+    y = max(0, head[1] - 1)
+    side = min(side, f.size[0], f.size[1])
+    x = max(0, min(f.size[0] - side, x))
+    y = max(0, min(f.size[1] - side, y))
+    return [x, y, side, side]
+
+
 def main():
     sets = build_sets()
     items = []  # (set, clip index, frame index, image)
@@ -186,7 +226,7 @@ def main():
             clips.append({"name": name, "fps": fps, "loop": loop, "rects": rects})
         # 그림이 기본으로 어느 쪽을 보는가: 사람/좀비/외계인은 왼쪽, 돼지/경찰차는 오른쪽 (게임이 방향에 맞춰 뒤집는다)
         face_left = s.cat in ("npc", "zombie", "alien", "stand", "boss", "robber")
-        data["sets"].append({"cat": s.cat, "name": s.name, "ppu": round(ppu, 3), "px": px, "py": py, "faceLeft": face_left, "clips": clips, **s.extra})
+        data["sets"].append({"cat": s.cat, "name": s.name, "ppu": round(ppu, 3), "px": px, "py": py, "faceLeft": face_left, "head": head_rect(s), "bust": bust_rect(s, head_rect(s)), "clips": clips, **s.extra})
 
     os.makedirs(OUT_DIR, exist_ok=True)
     png = os.path.join(OUT_DIR, "PixelAtlas.png")
@@ -194,11 +234,26 @@ def main():
     with open(os.path.join(OUT_DIR, "PixelAtlasData.json"), "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False)
 
+    # 하얀 실루엣 버전: 같은 배치에서 그림이 있는 칸을 전부 흰색으로 칠한 것 (무단횡단하려는 사람이 하얗게 깜빡이는 연출용)
+    white = atlas.copy()
+    px = white.load()
+    for yy in range(white.size[1]):
+        for xx in range(white.size[0]):
+            a = px[xx, yy][3]
+            if a:
+                px[xx, yy] = (255, 255, 255, a)
+    wpng = os.path.join(OUT_DIR, "PixelAtlasWhite.png")
+    white.save(wpng)
+
     # 유니티가 처음 불러올 때 점 필터/무압축으로 읽게 .meta 를 미리 만든다 (이미 있으면 건드리지 않는다)
     meta = png + ".meta"
     if not os.path.exists(meta):
         with open(meta, "w", encoding="utf-8") as fh:
             fh.write(META)
+    wmeta = wpng + ".meta"
+    if not os.path.exists(wmeta):
+        with open(wmeta, "w", encoding="utf-8") as fh:
+            fh.write(META.replace("7f3c2a9d5b1e4c6f8a0d9e2b4c7a1f53", "7f3c2a9d5b1e4c6f8a0d9e2b4c7a1f54"))
     print("아틀라스 %dx%d, 세트 %d개, 칸 %d개 -> %s" % (W, H, len(sets), len(items), png))
 
 
