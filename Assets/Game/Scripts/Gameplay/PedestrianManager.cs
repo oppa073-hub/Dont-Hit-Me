@@ -175,7 +175,7 @@ public class PedestrianManager
         if (p.kind >= 1 && roll < cfg.zombieSurvivorRatio)
         {
             p.survivor = true;
-            p.baseColor = p.art != null ? new Color(1f, 0.7f, 0.3f) : SurvivorColor;           // 그림이 있으면 주황 빛을 입힌다
+            p.baseColor = p.art != null ? Color.white : SurvivorColor;           // 그림이 있으면 색을 입히지 않는다 (좀비와 생존자는 플레이어가 모습으로 알아본다). 도형 그림일 때만 주황으로 구분
         }
         else if (preferZombie || roll < cfg.zombieSurvivorRatio + cfg.zombieRatio)
         {

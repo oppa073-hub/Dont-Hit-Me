@@ -120,7 +120,7 @@ public class EventManager
         AlertText = Type == DayType.Kaiju
             ? Loc.T("긴급 속보! 괴수가 나타났습니다 — 다음 교차로에서 돌아가세요!", "BREAKING NEWS! A monster has appeared — turn back at the next intersection!")
             : (Type == DayType.Zombie
-                ? Loc.T("긴급 속보! 좀비 출현 — 초록색은 쓸어버리고, 주황색 생존자는 피하세요!", "BREAKING NEWS! Zombies! Plow the green ones, avoid the orange survivors!")
+                ? Loc.T("긴급 속보! 좀비 출현 — 좀비는 쓸어버리고, 생존자는 피하세요!", "BREAKING NEWS! Zombies! Plow the zombies, avoid the survivors!")
                 : Loc.T("긴급 속보! 히어로와 빌런이 하늘에서 전투 중 — 레이저를 피하세요!", "BREAKING NEWS! Hero vs villain in the sky — dodge the lasers!"));
         AlertUntil = Time.unscaledTime + 6f;
         RefreshLabel();

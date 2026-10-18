@@ -118,26 +118,51 @@ public static class PixelArt
         available = byCat.Count > 0;
     }
 
-    /// <summary>종류(npc, zombie, alien, pig, ufo, police, kaiju) 중 무작위 하나. 없으면 null.</summary>
+    // 길가 사람/손님으로는 쓰지 않는 그림: 주인공(Japanese guy)과 같은 그림이 거리에 나오면 이상하다
+    static bool Excluded(PixelSet s) { return s.cat == "npc" && s.name == "Japanese guy"; }
+
+    // 최근에 뽑은 그림 기록: 같은 그림이 한꺼번에 여러 명 나오지 않게 최근 것은 피해서 뽑는다 (종류별)
+    static readonly Dictionary<string, List<PixelSet>> recentPicks = new Dictionary<string, List<PixelSet>>();
+
+    static PixelSet PickVaried(string key, List<PixelSet> pool)
+    {
+        if (pool.Count == 0) return null;
+        List<PixelSet> recent;
+        if (!recentPicks.TryGetValue(key, out recent)) recentPicks[key] = recent = new List<PixelSet>();
+        int window = Mathf.Min(10, pool.Count - 1);                           // 그림이 적으면 창을 줄인다
+        PixelSet pick = null;
+        for (int tries = 0; tries < 12; tries++)
+        {
+            var c = pool[UnityEngine.Random.Range(0, pool.Count)];
+            if (window <= 0 || !recent.Contains(c)) { pick = c; break; }
+        }
+        if (pick == null) pick = pool[UnityEngine.Random.Range(0, pool.Count)];
+        recent.Add(pick);
+        while (recent.Count > window && recent.Count > 0) recent.RemoveAt(0);
+        return pick;
+    }
+
+    /// <summary>종류(npc, zombie, alien, pig, ufo, police, kaiju) 중 무작위 하나. 최근에 뽑은 것과 겹치지 않게 고르고, 주인공 그림은 뺀다. 없으면 null.</summary>
     public static PixelSet Random(string cat)
     {
         if (!Available) return null;
         List<PixelSet> list;
         if (!byCat.TryGetValue(cat, out list) || list.Count == 0) return null;
-        return list[UnityEngine.Random.Range(0, list.Count)];
+        var pool = list.FindAll(s => !Excluded(s));
+        return PickVaried(cat, pool);
     }
 
-    /// <summary>두 종류를 합친 것 중 무작위 하나 (예: 걷는 사람 + 서 있는 사람).</summary>
+    /// <summary>두 종류를 합친 것 중 무작위 하나 (예: 걷는 사람 + 서 있는 사람). 최근 것과 겹치지 않게, 주인공 그림은 뺀다.</summary>
     public static PixelSet RandomMix(string catA, string catB)
     {
         if (!Available) return null;
         List<PixelSet> a, b;
         byCat.TryGetValue(catA, out a);
         byCat.TryGetValue(catB, out b);
-        int na = a != null ? a.Count : 0, nb = b != null ? b.Count : 0;
-        if (na + nb == 0) return null;
-        int i = UnityEngine.Random.Range(0, na + nb);
-        return i < na ? a[i] : b[i - na];
+        var pool = new List<PixelSet>();
+        if (a != null) pool.AddRange(a.FindAll(s => !Excluded(s)));
+        if (b != null) pool.AddRange(b.FindAll(s => !Excluded(s)));
+        return PickVaried(catA + "+" + catB, pool);
     }
 
     /// <summary>종류 안에서 이름으로 찾는다 (예: ("npc", "Japanese guy")). 없으면 null.</summary>

@@ -190,25 +190,25 @@ public static class NewsCatalog
             headline = new[]
             {
                 "도심에 좀비 출현!|원인은 불명,|월요일일 가능성.‖Zombies downtown!|Cause unknown,|maybe it's Monday.",
-                "좀비 떼가 도로로|쏟아지고 있습니다!|초록색을 보면 쓸어!‖Zombies pouring|onto the roads!|See green? Plow it!",
+                "좀비 떼가 도로로|쏟아지고 있습니다!|좀비는 쓸어버려!‖Zombies pouring|onto the roads!|Plow the zombies!",
                 "시민 여러분 침착!|좀비는 걷는 게|느립니다.(운전 중엔)‖Citizens, stay calm!|Zombies walk slow.|(While you're driving)",
             },
             field = new[]
             {
                 "현장의 박 기자!|좀비들이 몰려…|으어… 어? 저도|배가 고픈데…‖Reporter Pete here!|Zombies are swarming…|Uhhh… huh? I'm|getting hungry too…",
                 "박 기자입니다.|좀비가 제 마이크를|뺏어…|으어어어어.‖Pete here.|A zombie took my|microphone…|Uhhhhhhh.",
-                "좀비 앞입니다!|사람처럼 보이지만|초록이 좀비…|…제 손이 초록?‖In front of zombies!|They look human but|green means zombie…|…is my hand green?",
+                "좀비 앞입니다!|사람 같은데|비틀거리면 좀비…|…제가 왜 비틀거리죠?‖In front of zombies!|They look human but|the stumblers are zombies…|…why am I stumbling?",
             },
             closing = new[]
             {
-                "초록색은 쳐도 되고|주황색 생존자는|절대 치지 마세요!‖Hit the green ones,|never hit the|orange survivors!",
+                "좀비는 쳐도 되고|생존자는|절대 치지 마세요!‖Hit the zombies,|never hit the|survivors!",
                 "좀비는 쓸어버리고|생존자는 피하세요.|구분이 어렵다고요?‖Plow zombies,|avoid survivors.|Hard to tell apart?",
                 "분노가 차면 미니건!|좀비 보너스|맛있게 드세요.‖Rage full? Miniguns!|Enjoy the|zombie bonus.",
             },
             forecast = new[]
             {
-                "오늘 좀비 출현이|예상됩니다.|초록색을 조심!‖Zombies are expected|today. Watch out|for green!",
-                "좀비 주의보 발령!|초록은 쓸어버리고|주황은 피하세요.‖Zombie warning issued!|Plow the green,|avoid the orange.",
+                "오늘 좀비 출현이|예상됩니다.|생존자를 조심!‖Zombies are expected|today. Watch out|for survivors!",
+                "좀비 주의보 발령!|좀비는 쓸어버리고|생존자는 피하세요.‖Zombie warning issued!|Plow the zombies,|avoid the survivors.",
             },
             over = new[]
             {
@@ -217,12 +217,12 @@ public static class NewsCatalog
             },
             bulletin = new[]
             {
-                "긴급 속보!|좀비 출현!|초록색은 쓸어버리세요|생존자는 주황색!‖BREAKING NEWS!|Zombies!|Plow the green ones,|survivors are orange!",
+                "긴급 속보!|좀비 출현!|좀비는 쓸어버리세요|생존자는 피하세요!‖BREAKING NEWS!|Zombies!|Plow the zombies,|avoid the survivors!",
                 "속보입니다!|좀비가 도로로!|침착하게 밟으세요.‖News flash!|Zombies on the road!|Step on it calmly.",
             },
             ticker = new[]
             {
-                "좀비 '으어' 한 마디 발언‖Zombie says one word: 'Uhhh'", "생존자 '살려주세요 주황색이에요'‖Survivor: 'Help, I'm the orange one'", "병원 앞 좀비 줄 3km‖Zombie line at hospital: 2 miles",
+                "좀비 '으어' 한 마디 발언‖Zombie says one word: 'Uhhh'", "생존자 '살려주세요 전 좀비 아니에요'‖Survivor: 'Help, I'm not a zombie'", "병원 앞 좀비 줄 3km‖Zombie line at hospital: 2 miles",
                 "정부 '좀비는 월세를 안 냅니다'‖Government: 'Zombies don't pay rent'", "편의점 '뇌 모양 젤리' 품절‖Deli 'brain-shaped jelly' sold out", "시민 '택시 타고 도망가고 싶다'‖Citizen: 'I want to escape by taxi'",
             },
         },
