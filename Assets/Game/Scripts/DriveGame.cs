@@ -500,6 +500,8 @@ public partial class DriveGame : MonoBehaviour
     public AudioClip bgmClip;
     [Range(0f, 1f)]
     public float bgmVolume = 0.35f;
+    [Tooltip("팝업(아슬아슬!, 쾅! 등)이 나오는 고정 높이 (화면 높이의 비율, 0 위 ~ 1 아래). 위쪽 상자들(속보/탑승 정보) 바로 아래쯤")]
+    public float popupY = 0.47f;
     [Header("Rain Glass")]
     [Tooltip("비 올 때 앞유리에 물방울이 맺히는 속도 (초당 개수, 비가 가장 셀 때). 많이 맺힐수록 앞유리가 뿌옇게도 흐려진다")]
     public float rainDropsPerSec = 18f;

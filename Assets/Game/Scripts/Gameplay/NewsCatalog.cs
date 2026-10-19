@@ -197,7 +197,7 @@ public static class NewsCatalog
             {
                 "현장의 피트 기자!|좀비들이 몰려…|으어… 어? 저도|배가 고픈데…‖Reporter Pete here!|Zombies are swarming…|Uhhh… huh? I'm|getting hungry too…",
                 "피트 기자입니다.|좀비가 제 마이크를|뺏어…|으어어어어.‖Pete here.|A zombie took my|microphone…|Uhhhhhhh.",
-                "좀비 앞입니다!|사람 같은데|비틀거리면 좀비…|…제가 왜 비틀거리죠?‖In front of zombies!|They look human but|the stumblers are zombies…|…why am I stumbling?",
+                "좀비 앞입니다!|사람 같은데|비틀거리면 좀비…|…제가 왜 비틀거리죠?‖In front of zombies!|They look human, but|stumblers are zombies…|…why am I stumbling?",
             },
             closing = new[]
             {

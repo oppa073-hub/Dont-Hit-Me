@@ -762,7 +762,7 @@ public partial class DriveGame
         if (!gameOver && flow != GameFlow.Paused) DrawQuirkHud(W, H, u);
 
         // 팝업(쾅!, 아슬아슬! 등)과 도착 인사: 가운데 UI 쌓기 맨 아래의 한 자리에 차례로 (화면 한복판을 가리지 않는다)
-        float msgY = hudStackY + 2 * u;
+        float msgY = H * popupY;                              // 화면 높이의 고정 자리 (가운데 상자들이 늘고 줄어도 위치가 바뀌지 않는다)
         bool popupOn = Time.unscaledTime < popupUntil && !gameOver;
         if (popupOn)
         {

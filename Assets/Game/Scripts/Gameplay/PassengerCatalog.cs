@@ -154,7 +154,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 외계인 손님: 목적지가 지도에 안 나온다. UFO 빛줄기를 찾아서 그 안에서 멈춰야 한다
         {
-            names = new[] { "지구인(자칭)‖Self-Proclaimed Earthling", "초록 손님‖Green Guest" },
+            names = new[] { "지구인(자칭)‖Totally Human", "초록 손님‖Green Guest" },
             dests = new[] { "지구 밖 주차장‖Off-World Parking Lot" },
             hello = new[]
             {
@@ -263,7 +263,7 @@ public static class PassengerCatalog
     public static string NameFor(PixelSet art, PaxType type)
     {
         if (art == null) return PickOne(type.names);
-        if (art.cat == "alien") return Loc.T("지구인(자칭) ", "Self-proclaimed Earthling ") + Loc.S(AlienNames[Random.Range(0, AlienNames.Length)]);
+        if (art.cat == "alien") return Loc.T("지구인(자칭) ", "Totally Human ") + Loc.S(AlienNames[Random.Range(0, AlienNames.Length)]);
         bool male = System.Array.IndexOf(MaleSets, art.name) >= 0;
         return Loc.S((male ? MaleNames : FemaleNames)[Random.Range(0, male ? MaleNames.Length : FemaleNames.Length)]) + " " + Loc.S(Surnames[Random.Range(0, Surnames.Length)]);
     }
