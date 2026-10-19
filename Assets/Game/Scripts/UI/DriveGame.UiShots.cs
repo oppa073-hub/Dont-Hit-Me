@@ -268,6 +268,20 @@ public partial class DriveGame
         yield return Shot(tag + "14-ending-end");
         flow = GameFlow.Lobby;
 
+        // 8-1. 결과 화면 (영업 종료 / 사고로 중단 / 무한 모드)
+        for (int variant = 0; variant < 3; variant++)
+        {
+            StartGame();
+            yield return Frames(3);
+            bestSaved = true;                                // 결과 계산이 우리가 넣은 값을 덮어쓰지 않게
+            newBest = variant == 0;
+            resShift = variant != 2; resDay = 139; resScore = 18450; resTrips = 7; resFare = 38400; resRepairs = 1000; resNet = 37400; resStars = 2;
+            resNear = 24; resHits = 2; resSeconds = 193; resLevel = 6; resEarned = 4120; resCoins = 9263; resGoalsDone = 2; resGoalsMax = 3;
+            session.ForceEnd();
+            yield return Frames(3);
+            yield return Shot(tag + "20-result-" + variant);
+        }
+
         // 8. 일시정지
         StartGame();
         yield return Frames(5);

@@ -76,17 +76,85 @@ public partial class DriveGame
         DrawGoals(0, H * 0.5f - 16 * u, W, u, 17, TextAnchor.UpperCenter);
     }
 
+    // 결과 화면의 숫자 칸 하나: 위에 작은 이름, 아래에 큰 값
+    void StatCard(Rect r, string label, string value, Color valueColor, float u)
+    {
+        Panel(r, 0.58f);
+        Label(new Rect(r.x, r.y + 5 * u, r.width, 20 * u), label, 14, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter);
+        Label(new Rect(r.x, r.y + 26 * u, r.width, 36 * u), value, 26, valueColor, TextAnchor.MiddleCenter);
+    }
+
+    static string ClockText(int sec) { return (sec / 60) + ":" + (sec % 60).ToString("00"); }
+
+    // 영업 종료 / 게임 오버: 제목 -> 점수(+최고 기록) -> 평점 별 -> 숫자 칸 -> 코인과 목표 -> 다음 행동. 한 상자에 몰아 쓰지 않고 칸마다 나눈다.
     void DrawGameOver(float W, float H, float u)
     {
-        Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.6f));
-        if (timeUp) Label(new Rect(0, H * 0.14f, W, 80 * u), Loc.T("영업 종료", "Shift Over"), 62, UiGold, TextAnchor.MiddleCenter);
-        else Label(new Rect(0, H * 0.14f, W, 80 * u), shiftMode ? Loc.T("사고로 영업 중단", "Shift Ended by Crash") : Loc.T("게임 오버", "Game Over"), 62, UiRed, TextAnchor.MiddleCenter);
+        Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.84f));          // 룸미러/내비/계기판 글자가 비쳐 보이지 않게 진하게
+        float cx = W * 0.5f;
 
-        Panel(new Rect(W * 0.5f - 390 * u, H * 0.14f + 96 * u, 780 * u, 290 * u), 0.62f);
-        Label(new Rect(W * 0.5f - 370 * u, H * 0.14f + 108 * u, 740 * u, 270 * u), resultText, 24, Color.white, TextAnchor.UpperCenter);
+        // 제목과 부제
+        if (timeUp) Label(new Rect(0, 26 * u, W, 70 * u), Loc.T("영업 종료", "Shift Over"), 58, UiGold, TextAnchor.MiddleCenter);
+        else Label(new Rect(0, 26 * u, W, 70 * u), resShift ? Loc.T("사고로 영업 중단", "Shift Ended by Crash") : Loc.T("게임 오버", "Game Over"), 58, UiRed, TextAnchor.MiddleCenter);
+        Label(new Rect(0, 94 * u, W, 26 * u), "Day " + resDay + "   ·   " + (resShift ? Loc.T("하루 영업 모드", "Daily Shift") : Loc.T("무한 모드", "Endless Mode")), 18, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
 
+        // 점수와 새 최고 기록
+        Label(new Rect(0, 128 * u, W, 20 * u), Loc.T("점수", "SCORE"), 15, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter);
+        Label(new Rect(0, 146 * u, W, 66 * u), resScore.ToString("N0"), 58, Color.white, TextAnchor.MiddleCenter);
+        if (newBest)
+        {
+            var nb = new Rect(cx + 150 * u, 160 * u, 150 * u, 34 * u);
+            Fill(nb, UiGold);
+            Label(nb, "NEW BEST!", 18, new Color(0.15f, 0.1f, 0f), TextAnchor.MiddleCenter);
+        }
+
+        // 평점 별 (하루 영업 모드만)
+        float rowY = 232 * u;
+        if (resShift)
+        {
+            for (int i = 0; i < 3; i++)
+                Label(new Rect(cx - 90 * u + i * 60 * u, 214 * u, 60 * u, 56 * u), "★", 50, i < resStars ? UiGold : new Color(1f, 1f, 1f, 0.18f), TextAnchor.MiddleCenter);
+            rowY = 282 * u;
+        }
+
+        // 숫자 칸 (한 줄에 네 칸)
+        float cw = 176 * u, ch = 66 * u, gap = 12 * u, x0 = cx - (4 * cw + 3 * gap) * 0.5f;
+        string[] labels; string[] values; Color[] colors;
+        Color white = Color.white;
+        if (resShift)
+        {
+            labels = new[] { Loc.T("손님", "Passengers"), Loc.T("요금 합계", "Total fares"), Loc.T("수리비", "Repairs"), Loc.T("순수익", "Net profit"),
+                             Loc.T("니어미스", "Near misses"), Loc.T("사고", "Crashes"), Loc.T("플레이 시간", "Time played"), Loc.T("레벨", "Level") };
+            values = new[] { resTrips.ToString(), Loc.Money(resFare), "-" + Loc.Money(resRepairs), Loc.Money(resNet),
+                             resNear.ToString(), resHits.ToString(), ClockText(resSeconds), resLevel.ToString() };
+            colors = new[] { white, white, resRepairs > 0 ? UiRed : white, UiGold, white, resHits > 0 ? UiRed : white, white, white };
+        }
+        else
+        {
+            labels = new[] { Loc.T("손님", "Passengers"), Loc.T("요금", "Fares"), Loc.T("니어미스", "Near misses"), Loc.T("충돌", "Hits"),
+                             Loc.T("플레이 시간", "Time played"), Loc.T("레벨", "Level") };
+            values = new[] { resTrips.ToString(), Loc.Money(resFare), resNear.ToString(), resHits.ToString(), ClockText(resSeconds), resLevel.ToString() };
+            colors = new[] { white, UiGold, white, resHits > 0 ? UiRed : white, white, white };
+        }
+        for (int i = 0; i < labels.Length; i++)
+        {
+            int row = i / 4, col = i % 4;
+            int inRow = Mathf.Min(4, labels.Length - row * 4);
+            float rx = cx - (inRow * cw + (inRow - 1) * gap) * 0.5f + col * (cw + gap);
+            StatCard(new Rect(rx, rowY + row * (ch + gap), cw, ch), labels[i], values[i], colors[i], u);
+        }
+        float afterCards = rowY + 2 * (ch + gap);
+
+        // 코인과 오늘의 목표
+        var bar = new Rect(cx - (4 * cw + 3 * gap) * 0.5f, afterCards + 6 * u, 4 * cw + 3 * gap, 48 * u);
+        Panel(bar, 0.5f);
+        float third = bar.width / 3f;
+        Label(new Rect(bar.x, bar.y, third, bar.height), Loc.T("획득 코인  +", "Coins earned  +") + resEarned, 20, UiGold, TextAnchor.MiddleCenter);
+        Label(new Rect(bar.x + third, bar.y, third, bar.height), Loc.T("보유 코인  ", "Total coins  ") + resCoins, 20, Color.white, TextAnchor.MiddleCenter);
+        Label(new Rect(bar.x + third * 2, bar.y, third, bar.height), Loc.T("오늘의 목표  ", "Goals  ") + resGoalsDone + " / " + resGoalsMax, 20, resGoalsDone >= resGoalsMax && resGoalsMax > 0 ? UiGreen : Color.white, TextAnchor.MiddleCenter);
+
+        // 다음 행동
         float breathe = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 3f);
-        Label(new Rect(0, H * 0.84f, W, 40 * u), Loc.T("R 바로 다시 영업      U 로비로 (사장님께)", "R  Start another shift      U  Back to the lobby (Boss)"), 28, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.84f + 42 * u, W, 30 * u), modeText, 17, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
+        Panel(new Rect(cx - 330 * u, H - 90 * u, 660 * u, 56 * u), 0.7f);
+        Label(new Rect(0, H - 82 * u, W, 40 * u), Loc.T("R 바로 다시 영업      U 로비로 (사장님께)", "R  Start another shift      U  Back to the lobby (Boss)"), 26, new Color(UiGreen.r, UiGreen.g, UiGreen.b, breathe), TextAnchor.MiddleCenter);
     }
 }

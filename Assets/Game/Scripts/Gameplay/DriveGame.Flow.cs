@@ -18,6 +18,10 @@ public partial class DriveGame
     bool bestSaved, newBest;              // 이번 판의 결과를 이미 저장했는지 / 이번 판이 최고 기록인지
     string modeText = "", resultText = "";
 
+    // 결과 화면용 숫자들 (게임오버가 된 첫 프레임에 한 번 채운다. 화면은 DriveGame.Screens.cs 의 DrawGameOver)
+    bool resShift;
+    int resDay, resScore, resTrips, resFare, resRepairs, resNet, resStars, resNear, resHits, resSeconds, resLevel, resEarned, resCoins, resGoalsDone, resGoalsMax;
+
     static readonly string NL = ((char)10).ToString();
 
     void LoadBest()
@@ -80,25 +84,20 @@ public partial class DriveGame
         }
         RefreshModeText();
 
-        string head = "Day " + dayEvents.Day + Loc.T("   점수 ", "   Score ") + total + (newBest ? "   NEW BEST!" : "") + NL;
-        string tail = Loc.T("니어미스 " + nearMisses + "   플레이 시간 " + Mathf.RoundToInt(elapsed) + "초   레벨 " + difficulty.MaxLevelReached + NL, "Near misses " + nearMisses + "   Time played " + Mathf.RoundToInt(elapsed) + "s   Level " + difficulty.MaxLevelReached + NL);
-        if (shiftMode)
-        {
-            int fine = hits * accidentFine;
-            resultText = head
-                       + Loc.T("손님 " + taxi.Trips + "명   요금 합계 " + Loc.Money(taxi.FareTotal) + NL, "Passengers " + taxi.Trips + "   Total fares " + Loc.Money(taxi.FareTotal) + NL)
-                       + Loc.T("사고 " + hits + "건   수리비 -" + Loc.Money(fine) + NL, "Crashes " + hits + "   Repairs -" + Loc.Money(fine) + NL)
-                       + Loc.T("오늘 순수익 " + Loc.Money(ShiftNet()) + "   평점 " + ShiftStars() + " / 3" + NL, "Net profit today " + Loc.Money(ShiftNet()) + "   Rating " + ShiftStars() + " / 3" + NL)
-                       + tail
-                       + GrantRunCoins();
-        }
-        else
-        {
-            resultText = head
-                       + Loc.T("손님 " + taxi.Trips + "명   요금 " + Loc.Money(taxi.FareTotal) + NL, "Passengers " + taxi.Trips + "   Fares " + Loc.Money(taxi.FareTotal) + NL)
-                       + Loc.T("충돌 " + hits + "   ", "Hits " + hits + "   ") + tail
-                       + GrantRunCoins();
-        }
+        // 결과 숫자들: 화면이 칸을 나눠 그린다
+        resShift = shiftMode;
+        resDay = dayEvents.Day;
+        resScore = total;
+        resTrips = taxi.Trips;
+        resFare = taxi.FareTotal;
+        resRepairs = hits * accidentFine;
+        resNet = ShiftNet();
+        resStars = ShiftStars();
+        resNear = nearMisses;
+        resHits = hits;
+        resSeconds = Mathf.RoundToInt(elapsed);
+        resLevel = difficulty.MaxLevelReached;
+        GrantRunCoins();                  // 코인을 주고 resEarned/resCoins/resGoals* 를 채운다
         dayEvents.CompleteDay();          // 하루가 끝났다: 다음 날 번호로
         RefreshModeText();
     }

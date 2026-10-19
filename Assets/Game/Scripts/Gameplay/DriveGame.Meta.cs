@@ -76,6 +76,10 @@ public partial class DriveGame
     {
         int earned = RunIncome() / 10 + nearMisses * 5;
         upgrades.AddCoins(earned);
+        resEarned = earned;
+        resCoins = upgrades.Coins;
+        resGoalsDone = goals.DoneTodayCount;
+        resGoalsMax = goals.Count;
         return Loc.T("획득 코인 +" + earned + "   보유 " + upgrades.Coins + NL + "오늘의 목표 " + goals.DoneTodayCount + "/" + goals.Count + " 달성",
                      "Coins earned +" + earned + "   Total " + upgrades.Coins + NL + "Goals completed " + goals.DoneTodayCount + "/" + goals.Count);
     }
