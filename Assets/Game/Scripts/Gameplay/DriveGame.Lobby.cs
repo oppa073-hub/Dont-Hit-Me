@@ -16,12 +16,12 @@ public partial class DriveGame
     class LobbyNpcDef { public string name, cat, set, prompt; public float x, scale; public int voice; }
     static readonly LobbyNpcDef[] LobbyNpcs =
     {
-        new LobbyNpcDef { name = "토니 사장‖Boss Tony", cat = "boss", set = null, x = 625f, scale = 1.1f, voice = 0, prompt = "Space  대화 / 상점‖Space  Talk / Shop" },
-        new LobbyNpcDef { name = "제시카 비서‖Jessica", cat = "stand", set = "Lady with handbag", x = 725f, scale = 1.0f, voice = 4, prompt = "Space  말 걸기‖Space  Talk" },
-        new LobbyNpcDef { name = "세차 알바 매니‖Manny", cat = "npc", set = "Dealer", x = 130f, scale = 1.0f, voice = 2, prompt = "Space  말 걸기‖Space  Talk" },
-        new LobbyNpcDef { name = "프랭키 기사‖Frankie", cat = "npc", set = "Businessman", x = 990f, scale = 1.0f, voice = 1, prompt = "Space  말 걸기‖Space  Talk" },
-        new LobbyNpcDef { name = "비니 기사‖Vinnie", cat = "npc", set = "Photographer", x = 1190f, scale = 1.0f, voice = 2, prompt = "Space  말 걸기‖Space  Talk" },
-        new LobbyNpcDef { name = "빅 마이크 기사‖Big Mike", cat = "stand", set = "Bodybuilder", x = 1405f, scale = 1.0f, voice = 0, prompt = "Space  말 걸기‖Space  Talk" },
+        new LobbyNpcDef { name = "토니 사장‖Boss Tony", cat = "boss", set = null, x = 625f, scale = 1.1f, voice = 0, prompt = "{accept}  대화 / 상점‖{accept}  Talk / Shop" },
+        new LobbyNpcDef { name = "제시카 비서‖Jessica", cat = "stand", set = "Lady with handbag", x = 725f, scale = 1.0f, voice = 4, prompt = "{accept}  말 걸기‖{accept}  Talk" },
+        new LobbyNpcDef { name = "세차 알바 매니‖Manny", cat = "npc", set = "Dealer", x = 130f, scale = 1.0f, voice = 2, prompt = "{accept}  말 걸기‖{accept}  Talk" },
+        new LobbyNpcDef { name = "프랭키 기사‖Frankie", cat = "npc", set = "Businessman", x = 990f, scale = 1.0f, voice = 1, prompt = "{accept}  말 걸기‖{accept}  Talk" },
+        new LobbyNpcDef { name = "비니 기사‖Vinnie", cat = "npc", set = "Photographer", x = 1190f, scale = 1.0f, voice = 2, prompt = "{accept}  말 걸기‖{accept}  Talk" },
+        new LobbyNpcDef { name = "빅 마이크 기사‖Big Mike", cat = "stand", set = "Bodybuilder", x = 1405f, scale = 1.0f, voice = 0, prompt = "{accept}  말 걸기‖{accept}  Talk" },
     };
 
     string lobbySpeakerName = StoryCatalog.NpcName;

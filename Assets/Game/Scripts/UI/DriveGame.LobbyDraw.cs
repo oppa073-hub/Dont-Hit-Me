@@ -586,8 +586,8 @@ public partial class DriveGame
         if (!lobby.InDialogue && lobby.BoardFade < 0f)
         {
             float bounce = Mathf.Sin(t * 4f) * 4f;
-            if (lobby.NearNpc) LobbyPrompt(LobbyNpcs[lobby.NearNpcIdx].x, 398f + bounce - (lobby.NearNpcIdx <= 1 || lobby.NearNpcIdx == 5 ? 52f : 0f), Loc.S(LobbyNpcs[lobby.NearNpcIdx].prompt), 220f);
-            if (lobby.NearTaxi) LobbyPrompt(LobbyManager.TaxiX, 395f + bounce, Loc.T("Space  택시에 타고 영업 시작", "Space  Get in the cab and start the shift"), 290f);
+            if (lobby.NearNpc) LobbyPrompt(LobbyNpcs[lobby.NearNpcIdx].x, 398f + bounce - (lobby.NearNpcIdx <= 1 || lobby.NearNpcIdx == 5 ? 52f : 0f), Keybinds.Fill(Loc.S(LobbyNpcs[lobby.NearNpcIdx].prompt)), 220f);
+            if (lobby.NearTaxi) LobbyPrompt(LobbyManager.TaxiX, 395f + bounce, Keybinds.Fill(Loc.T("{accept}  택시에 타고 영업 시작", "{accept}  Get in the cab and start the shift")), 290f);
         }
 
         // 위쪽 정보와 아래쪽 조작 안내: 대화 중에는 대화 상자가 위를 쓰니까 숨긴다
@@ -614,7 +614,7 @@ public partial class DriveGame
 
             // 아래: 조작 안내
             Panel(new Rect(W * 0.5f - 300 * u, H - 44 * u, 600 * u, 30 * u), 0.45f);
-            Label(new Rect(W * 0.5f - 300 * u, H - 44 * u, 600 * u, 30 * u), Loc.T("A / D 이동      Space 말 걸기 / 타기      O 설정      Esc 타이틀", "A / D Move      Space Talk / Ride      O Settings      Esc Title"), 15, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
+            Label(new Rect(W * 0.5f - 300 * u, H - 44 * u, 600 * u, 30 * u), LobbyHint(), 15, new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
         }
 
         if (lobby.InDialogue) DrawLobbyDialogue(W, H, u);
@@ -628,6 +628,24 @@ public partial class DriveGame
     }
 
     string lobbyModeCached, lobbyModeLine1 = "", lobbyModeLine2 = "";
+
+    // 로비 아래 조작 안내 (키 설정과 언어에 따라, 바뀔 때만 새로 만든다)
+    string lobbyHintText = "";
+    int lobbyHintKey = -1;
+
+    string LobbyHint()
+    {
+        int key = Loc.Lang * 100000 + Keybinds.Version;
+        if (key != lobbyHintKey)
+        {
+            lobbyHintKey = key;
+            string mv = Keybinds.KeyName(Keybinds.Map[Keybinds.SteerLeft]) + " / " + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerRight]);
+            string ac = Keybinds.KeyName(Keybinds.Map[Keybinds.Accept]);
+            lobbyHintText = Loc.Ko ? mv + " 이동      " + ac + " 말 걸기 / 타기      O 설정      Esc 타이틀"
+                                   : mv + " Move      " + ac + " Talk / Ride      O Settings      Esc Title";
+        }
+        return lobbyHintText;
+    }
 
     void LobbyPrompt(float wx, float y, string text, float w)
     {
@@ -651,6 +669,6 @@ public partial class DriveGame
         style.wordWrap = true;
         Label(new Rect(tx, box.y + 52 * u, box.width - box.height * 1.3f, box.height - 90 * u), lobby.Shown, 24, Color.white, TextAnchor.UpperLeft);
         style.wordWrap = false;
-        Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), lobby.LineDone ? Loc.T("[Space] 계속", "[Space] Continue") : Loc.T("[Space] 빨리 보기", "[Space] Skip"), 18, UiCyan, TextAnchor.LowerLeft);
+        Label(new Rect(tx, box.yMax - 38 * u, box.width - box.height * 1.2f, 30 * u), Keybinds.Fill(lobby.LineDone ? Loc.T("[{accept}] 계속", "[{accept}] Continue") : Loc.T("[{accept}] 빨리 보기", "[{accept}] Skip")), 18, UiCyan, TextAnchor.LowerLeft);
     }
 }

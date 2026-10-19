@@ -69,6 +69,17 @@ public static class Keybinds
     public static readonly Key[] Map = (Key[])Defaults.Clone();
     public static int Version;                            // 키가 바뀔 때마다 올라간다 (키 안내 글자를 다시 만들 때 쓴다)
 
+    /// <summary>글 속의 자리표시자를 지금 키 설정으로 바꾼다: {steer} = "A / D", {brake}, {accept}, {decline}, {blink} = "Q / E".</summary>
+    public static string Fill(string s)
+    {
+        if (string.IsNullOrEmpty(s) || s.IndexOf('{') < 0) return s;
+        return s.Replace("{steer}", KeyName(Map[SteerLeft]) + " / " + KeyName(Map[SteerRight]))
+                .Replace("{brake}", KeyName(Map[Brake]))
+                .Replace("{accept}", KeyName(Map[Accept]))
+                .Replace("{decline}", KeyName(Map[Decline]))
+                .Replace("{blink}", KeyName(Map[BlinkLeft]) + " / " + KeyName(Map[BlinkRight]));
+    }
+
     public static string ActionName(int a)
     {
         switch (a)

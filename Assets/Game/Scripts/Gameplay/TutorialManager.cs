@@ -9,10 +9,10 @@ public class TutorialManager
 
     static readonly string[] Steps =
     {
-        "A / D 로 좌우 조향 — 길을 건너는 사람을 피하세요‖Steer left and right with A / D — dodge people crossing the road",
-        "머리 위 느낌표 `!` 손님 옆에서 S(브레이크)로 완전히 멈추고, Space 로 태우세요‖Stop completely next to a passenger with the exclamation mark `!` (S = brake), then press Space to pick them up",
-        "화면 위 내비 글자와 대시보드 지도를 보며 목적지 교차로로 가세요. 돌 때는 교차로 전에 Q / E 로 깜빡이를 켜 두세요‖Follow the nav text and the dashboard map to the destination intersection. To turn, switch on the blinker (Q / E) before the intersection",
-        "목적지 근처에서 S 로 멈추면 요금 정산! 게임오버 뒤 U 키로 코인 상점을 열 수 있어요‖Stop near the destination with S to collect the fare! After a game over, press U for the coin shop",
+        "{steer} 로 좌우 조향 — 길을 건너는 사람을 피하세요‖Steer left and right with {steer} — dodge people crossing the road",
+        "머리 위 느낌표 `!` 손님 옆에서 {brake}(브레이크)로 완전히 멈추고, {accept} 로 태우세요‖Stop completely next to a passenger with the exclamation mark `!` ({brake} = brake), then press {accept} to pick them up",
+        "화면 위 내비 글자와 대시보드 지도를 보며 목적지 교차로로 가세요. 돌 때는 교차로 전에 {blink} 로 깜빡이를 켜 두세요‖Follow the nav text and the dashboard map to the destination intersection. To turn, switch on the blinker ({blink}) before the intersection",
+        "목적지 근처에서 {brake} 로 멈추면 요금 정산! 게임오버 뒤 U 키로 코인 상점을 열 수 있어요‖Stop near the destination with {brake} to collect the fare! After a game over, press U for the coin shop",
     };
 
     int step;
@@ -22,7 +22,24 @@ public class TutorialManager
     /// <summary>지금 안내를 보여 주는 중인가.</summary>
     public bool Active { get; private set; }
 
-    public string Text { get { return Active ? Loc.S(Steps[step]) : ""; } }
+    // 안내 글: 지금 언어와 키 설정으로 만든다 (바뀔 때만 새로 만든다)
+    string textCache = "";
+    int textCacheKey = -1;
+
+    public string Text
+    {
+        get
+        {
+            if (!Active) return "";
+            int key = (step * 2 + Loc.Lang) * 1000 + Keybinds.Version;
+            if (key != textCacheKey)
+            {
+                textCacheKey = key;
+                textCache = Keybinds.Fill(Loc.S(Steps[step]));
+            }
+            return textCache;
+        }
+    }
 
     public TutorialManager()
     {

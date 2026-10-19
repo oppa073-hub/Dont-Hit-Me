@@ -82,7 +82,7 @@ public partial class DriveGame
                 sound.PlayOink();
                 break;
             case EncounterType.Emergency:
-                dayEvents.RaiseAlert(Loc.T("구급차가 뒤에서 달려옵니다! 길을 비켜 주세요! (A / D)", "Ambulance coming from behind! Make way! (steer aside)"), 5f);
+                dayEvents.RaiseAlert(Keybinds.Fill(Loc.T("구급차가 뒤에서 달려옵니다! 길을 비켜 주세요! ({steer})", "Ambulance coming from behind! Make way! (steer aside: {steer})")), 5f);
                 traffic.SpawnAmbulance(carX, speed);
                 sirenWailT = 0f;
                 break;
