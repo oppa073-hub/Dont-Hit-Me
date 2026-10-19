@@ -306,6 +306,9 @@ public partial class DriveGame
         File.AppendAllText(uiAuditPath, "\n== 점검 끝: " + auditCount + "건\n");
         BotExitCode = 0;
         BotFinished = true;
+#if !UNITY_EDITOR
+        Application.Quit(0);                                 // 빌드에서 돌릴 때는 끝나면 스스로 종료 (에디터는 SimBotLauncher 가 끈다)
+#endif
     }
 }
 #endif
