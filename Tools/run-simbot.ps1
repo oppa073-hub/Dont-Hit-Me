@@ -10,7 +10,7 @@
 # 시험은 저장 데이터(PlayerPrefs)를 지우고 시작하므로, 실행 전에 레지스트리를 백업하고 끝나면 되돌린다.
 # 결과: SimReports/simbot-*.txt (보고서), SimReports/editor-*.log (Unity 로그)
 param(
-    [int]$Days = 5, [int]$Skill = 1, [switch]$Cover, [switch]$Endless, [switch]$NoShop, [switch]$NoGraphics, [switch]$UiAudit, [switch]$Gfx, [switch]$Dbg, [switch]$Ending, [switch]$Full, [int]$StartDay = 1, [switch]$NoUnav, [string]$Set = "", [int]$DayType = -1,
+    [int]$Days = 5, [int]$Skill = 1, [switch]$Cover, [switch]$Endless, [switch]$NoShop, [switch]$NoGraphics, [switch]$UiAudit, [switch]$Gfx, [switch]$TurnShots, [switch]$Dbg, [switch]$Ending, [switch]$Full, [int]$StartDay = 1, [switch]$NoUnav, [string]$Set = "", [int]$DayType = -1,
     [int]$Seed = 1234, [int]$MaxSec = 1500,
     [string]$UnityExe = "C:\unityproject\6000.3.5f2\Editor\Unity.exe"
 )
@@ -45,6 +45,7 @@ if ($NoShop) { $args2 += "-simnoshop" }
 if ($NoGraphics) { $args2 += "-nographics" }
 if ($Gfx) { $args2 += "-uigfx" }      # 글자 점검 없이 화면만 그린다(IMGUI/렌더링 비용 측정용, 720p)
 if ($UiAudit) { $args2 += @("-uiaudit", "-uiaudit-dir", "`"$out`"") }      # 글자가 상자 밖으로 나오는지/영어 모드에 한국어가 남았는지 SimReports/audit-*.txt 에 쌓는다 (화면을 그려야 하니 -NoGraphics 와 같이 쓰지 말 것)
+if ($TurnShots) { $tsDir = Join-Path $out ("turnshots-" + $stamp); New-Item -ItemType Directory -Force $tsDir | Out-Null; $args2 += @("-turnshots", "`"$tsDir`""); "교차로 회전 사진 폴더: $tsDir" }      # 교차로 회전 장면을 연속으로 찍는다 (-Gfx 와 같이 쓴다)
 if ($Dbg) { $args2 += "-simdbg" }
 if ($Ending) { $args2 += "-simending" }
 if ($Full) { $args2 += "-simfull" }

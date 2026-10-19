@@ -251,7 +251,7 @@ public partial class DriveGame
         Label(new Rect((x + 10f - lbCam) * lbU, (fy - 38f) * lbU, (w - 20f) * lbU, 32f * lbU), name, 18, new Color(1f, 0.9f, 0.5f), TextAnchor.MiddleCenter);
     }
 
-    static readonly float[] TreeXs = { 940f, 1722f, 2150f };          // 간판을 가리지 않는 자리 (라면 휴게실/편의점 사이, 약국/사무실 사이)
+    static readonly float[] TreeXs = { 1722f, 2150f };                // 간판을 가리지 않는 자리 (약국/사무실 사이, 그 오른쪽). 라면 휴게실 쪽(940)은 간판과 겹쳐서 뺐다
 
     // 아파트: 층마다 창문과 발코니(난간, 에어컨 실외기, 빨래), 1층 현관에는 간판 없이 차양과 우편함
     void LApartment(float x, float w, float h, Color wall, float dark, int seed)

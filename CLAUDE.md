@@ -108,6 +108,11 @@
 ### 성능 작업 기록
 - 켤 때 로딩 화면(UpdateLoading/DrawLoading, 소리·음악 미리 읽기 AudioManager.Preload). 로비/상점/엔딩에서는 카메라 culling mask 를 0 으로 해 3D 월드를 안 그림(camMaskCaptured 로 원래 마스크 저장). 크기가 바뀌는 글자는 LabelScaled(글꼴 크기 고정+화면 배율). 길가 소품 재질 공유(머티리얼 1145->약 214). 로비는 화면 밖 그림 생략. UI/DriveGame.Sections.cs 의 Sec()/SectionReport() 가 구간별 시간과 할당량을 재서 봇 보고서에 붙임(-simbot/-uishots 때만 기록). **소리 데이터 미리 읽기**: 소리 파일(_External 의 wav)이 전부 Preload Audio Data 꺼짐이라 Resources 로 불러오기만 하면 처음 재생할 때 파일을 읽어 30ms 쯤 멈춘다(Profiler: SoundManager.LoadFMODSound -> File.Open, 비+충돌 프레임 41.9ms 의 원인). AudioManager.Preload 가 로딩 중에 LoadAudioData() 로 효과음/음악/비/결산음을 메모리에 올리고 기다림(점검: 효과음 91개 첫 재생 최대 46.8ms -> 0.3ms, 로딩 화면은 약 2.5초). 새 소리 파일을 Resources 에 더하면 자동으로 포함됨. 점검 도구 -uishots 가 audit 에 "첫 재생 비용"을 적음. 사용자 실측: 비+사람 많이 친 장면 92 FPS(CPU main 10.8ms, Batches 1073, SetPass 560, 2560x1440 에디터).
 
+### 차 폭발과 교차로 회전 (최근)
+- 차 폭발: 일반 차/트럭/고장 난 차/경찰차를 들이받거나 라이벌 택시를 격파하면 TrafficManager.SpawnCarExplosion 이 큰 불덩이 하나 + 작은 불꽃 6개(Obj.boomMax/boomLife/yOff/delay, 시간차로 터짐)를 차보다 4.5m 앞에 만들고 차를 검게 그을림(baseColor). 카메라 코앞에서 터지면 화면을 덮어서 앞으로 옮김. 폭발음은 sound.PlayBoom(OnTrafficHit, OnRivalDestroyed). 화면 점검 -uishots 가 차를 세워 박는 연속 사진(16-boom-*)을 남김(TrafficManager.DebugSpawnCar).
+- 교차로 회전 중 기울어 보이던 건물: 휘어진 면 위에서 도로가 옆으로 돌면 먼 건물/도로가 크게 기울어 보이던 것을, 회전 중에만 휘어짐을 줄여 해결(WorldView curvK/Curv, 인스펙터 turnFlattenIn 0.3초로 줄이고 turnFlattenOut 0.6초로 되돌림). 원인 확인: -Set "curvature=0.00005" 로 찍으면 깔끔. 회전 장면 연속 사진은 `Tools/run-simbot.ps1 -Days 2 -Skill 2 -Gfx -TurnShots` (SimReports/turnshots-*, 2프레임마다 한 장, 최대 3번).
+- 로비: 라면 휴게실 간판과 겹치던 940 자리 가로수를 뺌(TreeXs).
+
 ### 빌드 시험
 - Tools/run-build-test.ps1 : 에디터를 끄고 돌리면 개발 빌드(Editor/BuildTest.cs, Windows Mono)를 저장소 밖 D:\Unity\project\_Builds\DontHitMe-test 에 만들고, 그 exe 로 -uishots 화면 점검을 돌려 스크린샷을 SimReports/build-시각/ 에 남긴다(-SkipBuild, -SkipRun). 분홍색 셰이더/빠진 파일 확인용. Shader.Find 로 찾는 URP Lit/Unlit 은 GraphicsSettings 의 Always Included Shaders 에 넣어 둠(BuildTest.EnsureShaders, 메뉴 Game > Ensure URP Shaders Included). 빌드 폴더는 구매한 에셋이 들어 있어 절대 커밋하지 않는다. 첫 시험: 오류 0, 분홍색 없음(눈으로 확인), 소리와 조작감은 미확인. 빌드에서 로딩은 약 3.8초(소리 데이터 미리 읽기).
 

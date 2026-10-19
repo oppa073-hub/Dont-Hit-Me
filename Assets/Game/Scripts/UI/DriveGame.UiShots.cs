@@ -24,6 +24,29 @@ public partial class DriveGame
 
     public static bool UiShotsRequested { get { return HasArg("-uishots"); } }
 
+    // 교차로 회전 장면 연속 사진: 명령줄에 -turnshots 폴더 가 있으면 회전이 시작될 때마다(최대 3번) 2프레임에 한 장씩 찍는다. Tools/run-simbot.ps1 -Gfx -TurnShots
+    string turnShotDir;
+    int turnShotFrame, turnShotRun;
+    bool turnShotPrev;
+
+    void TurnShotTick()
+    {
+        if (turnShotDir == null)
+        {
+            turnShotDir = ArgAfter("-turnshots") ?? "";
+            if (turnShotDir.Length > 0) Directory.CreateDirectory(turnShotDir);
+        }
+        if (turnShotDir.Length == 0) return;
+        if (turning)
+        {
+            if (!turnShotPrev) { turnShotRun++; turnShotFrame = 0; }
+            if (turnShotRun <= 3 && turnShotFrame % 2 == 0)
+                ScreenCapture.CaptureScreenshot(Path.Combine(turnShotDir, "turn" + turnShotRun + "-" + turnShotFrame.ToString("000") + ".png"));
+            turnShotFrame++;
+        }
+        turnShotPrev = turning;
+    }
+
     bool uiAuditOn;
     string uiAuditPath;
     readonly HashSet<string> auditSeen = new HashSet<string>();
@@ -294,6 +317,16 @@ public partial class DriveGame
             session.ForceEnd();
             yield return Frames(3);
             yield return Shot(tag + "20-result-" + variant);
+        }
+
+        // 7-3. 차 폭발: 앞에 차를 세워 박는다 (부딪힌 직후부터 0.12초 간격 연속 사진)
+        StartGame();
+        yield return Frames(5);
+        traffic.DebugSpawnCar(carX, 4f);
+        for (int s = 0; s < 8; s++)
+        {
+            yield return new WaitForSecondsRealtime(0.12f);
+            yield return Shot(tag + "16-boom-" + s);
         }
 
         // 8. 일시정지

@@ -271,6 +271,30 @@ public partial class TrafficManager
         o.life = 0.35f;
     }
 
+    /// <summary>차가 부서지며 폭발한다: 큰 불덩이 하나와 작은 불꽃 여러 개가 시간차로 터지고, 차는 검게 그을린다.</summary>
+    public void SpawnCarExplosion(Obj car)
+    {
+        float sz = car.kind == Truck ? 1.35f : 1f;
+        var big = MakeSpriteObj("Boom", Boom, cfg.flameSprite != null ? cfg.flameSprite : sprites.flame);
+        float ez = Mathf.Max(car.z, 0f) + 4.5f;                          // 차가 카메라 코앞에서 터지면 불덩이가 화면을 덮으니, 조금 앞에서 터지게 한다
+        big.x = car.x; big.z = ez; big.life = 0.6f; big.boomLife = 0.6f; big.boomMax = 0.55f * sz; big.yOff = 0.6f;
+        for (int k = 0; k < 6; k++)
+        {
+            var b = MakeSpriteObj("Boom", Boom, cfg.flameSprite != null ? cfg.flameSprite : sprites.flame);
+            b.x = car.x + Random.Range(-1.3f, 1.3f) * sz;
+            b.z = ez + Random.Range(-0.5f, 0.5f);
+            b.yOff = Random.Range(0.1f, 1.6f);
+            b.boomLife = Random.Range(0.35f, 0.55f); b.life = b.boomLife;
+            b.boomMax = Random.Range(0.15f, 0.35f);
+            b.delay = Random.Range(0.02f, 0.3f);
+            b.body.enabled = false;
+        }
+        var burnt = new Color(0.22f, 0.2f, 0.2f, 1f);                  // 그을린 차
+        car.baseColor = burnt;
+        if (car.body != null) car.body.color = burnt;
+        if (car.detail != null) car.detail.color = burnt;
+    }
+
     /// <summary>총에 맞았다: 차/콘/공은 날아가 쓰러지고 불길은 꺼진다. (괴수와 장식은 맞지 않는다)</summary>
     public void Shoot(Obj o)
     {

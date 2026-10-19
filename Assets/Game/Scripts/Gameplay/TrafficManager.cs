@@ -38,6 +38,7 @@ public partial class TrafficManager
         public Color baseColor = Color.white;
         public float phase;                 // 흔들림/깜빡임이 물체마다 다르게 보이게 하는 값
         public PixelSet art;                // 외부 픽셀 아트 애니메이션 (돼지, 경찰차, 괴수). 없으면 예전 그림
+        public float boomMax = 1f, boomLife = 0.35f, yOff, delay;   // 폭발: 커지는 정도, 지속 시간, 높이 보정, 터지기 전 대기
     }
 
     readonly DriveGame cfg;
@@ -166,6 +167,12 @@ public partial class TrafficManager
             }
             else if (o.kind == Smoke || o.kind == Boom)
             {
+                if (o.kind == Boom && o.delay > 0f)
+                {
+                    o.delay -= dt;                                   // 시간차로 터지는 폭발은 차례가 올 때까지 안 보인다
+                    o.body.enabled = o.delay <= 0f;
+                    continue;
+                }
                 o.life -= dt;
                 if (o.life <= 0f || o.z < -6f) RemoveAt(i);
                 continue;
@@ -250,10 +257,14 @@ public partial class TrafficManager
                         o.stage = 2;
                         o.fallT = 0f;
                         o.kickDir = o.x >= carX ? 1f : -1f;
-                        SpawnBoom(o.x, o.z);
+                        SpawnCarExplosion(o);                                   // 격파: 차가 폭발하고 검게 그을린다
                         if (RivalDestroyed != null) RivalDestroyed();
                     }
-                    else if (RivalHit != null) RivalHit(o.hp, knockDir);
+                    else
+                    {
+                        SpawnBoom(o.x, o.z - 0.3f);                              // 맞았지만 아직 안 부서졌다: 작은 불꽃
+                        if (RivalHit != null) RivalHit(o.hp, knockDir);
+                    }
                     continue;
                 }
                 if (o.z < -6f) RemoveAt(i);
@@ -303,6 +314,7 @@ public partial class TrafficManager
                         o.hitDone = true;
                         o.fallT = 0f;
                         o.kickDir = o.x >= carX ? 1f : -1f;
+                        if (o.kind == Sedan || o.kind == Truck || o.kind == Broken || o.kind == Police) SpawnCarExplosion(o);      // 들이받힌 차는 폭발한다
                         if (Hit != null) Hit(o);
                         if (o.kind == Kaiju || o.kind == Flame) RemoveAt(i);       // 괴수는 물러나고 불길은 꺼진다
                         continue;
@@ -321,6 +333,14 @@ public partial class TrafficManager
     }
 
     // ---- 만들기 ----
+
+    /// <summary>(점검용) 차 한 대를 원하는 자리에 세운다. 화면 점검 도구가 충돌 연출을 찍을 때 쓴다.</summary>
+    public void DebugSpawnCar(float x, float z)
+    {
+        SpawnVehicle(z);
+        var o = objs[objs.Count - 1];
+        o.x = x; o.z = z; o.speed = 0f;
+    }
 
     void SpawnVehicle(float spawnZ)
     {

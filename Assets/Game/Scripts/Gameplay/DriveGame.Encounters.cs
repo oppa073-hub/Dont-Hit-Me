@@ -115,6 +115,7 @@ public partial class DriveGame
         speed *= 0.45f;                                       // 마지막 일격도 넉백 + 잠깐 무적
         session.ExtendInvuln(0.9f);
         shakeUntil = Mathf.Max(shakeUntil, Time.unscaledTime + 0.3f);
+        sound.PlayBoom();
         sound.PlayArrive();
         Popup(Loc.T("라이벌 택시 격파!  +", "Rival cab destroyed!  +") + Loc.Money(reward), UiGold);
     }

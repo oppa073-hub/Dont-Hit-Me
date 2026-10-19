@@ -53,7 +53,11 @@ public partial class DriveGame
 
     float SpawnZ => Mathf.Min(StripCount * StripLen - 12f, Mathf.Sqrt(camHeight / curvature) + Mathf.Sqrt(1.75f / curvature) + 8f);
 
-    float Drop(float z) => -curvature * z * z;
+    // 회전 중에는 휘어짐을 줄인다 (curvK 1 = 평소, 0 = 평평). 휘어진 면 위에서 도로가 옆으로 돌면 먼 건물이 크게 기울어 보이기 때문.
+    float curvK = 1f;
+    float Curv => curvature * curvK;
+
+    float Drop(float z) => -Curv * z * z;
 
     // ---------- 월드 표현 ----------
 
@@ -105,6 +109,9 @@ public partial class DriveGame
 
     void UpdateWorldVisuals()
     {
+        float flatTime = turning ? turnFlattenIn : turnFlattenOut;
+        float flatTarget = turning && turnFlattenIn > 0f ? 0f : 1f;
+        curvK = flatTime <= 0f ? flatTarget : Mathf.MoveTowards(curvK, flatTarget, Time.unscaledDeltaTime / flatTime);
         bool nightNow = NightK > 0.003f;
         wvTint = nightNow || wvWasTinted;
         wvWasTinted = nightNow;
@@ -162,7 +169,7 @@ public partial class DriveGame
             rendHead = roleB ? headB : heading;
 
             float drop = Drop(zc);
-            float pitch = Mathf.Atan(2f * curvature * zc) * Mathf.Rad2Deg;
+            float pitch = Mathf.Atan(2f * Curv * zc) * Mathf.Rad2Deg;
             var pitchRot = Quaternion.Euler(pitch, 0f, 0f);
             float len = StripLen * 1.08f;
             bool even = (idx & 1) == 0;
@@ -325,10 +332,10 @@ public partial class DriveGame
             else if (o.kind == TrafficManager.Boom)
             {
                 // 폭발은 순식간에 부풀었다가 사라진다
-                float bk = 1f - Mathf.Clamp01(o.life / 0.35f);
-                sy = 1f + 2.4f * bk;
-                o.t.localScale = new Vector3(1f + 2.4f * bk, sy, 1f);
-                o.body.color = new Color(1f, 0.8f, 0.4f, 1f - bk);
+                float bk = 1f - Mathf.Clamp01(o.life / o.boomLife);
+                sy = 1f + 2.4f * o.boomMax * bk;
+                o.t.localScale = new Vector3(1f + 2.4f * o.boomMax * bk, sy, 1f);
+                o.body.color = new Color(1f, Mathf.Lerp(0.85f, 0.35f, bk), Mathf.Lerp(0.45f, 0.1f, bk), 1f - bk * bk);        // 노랗게 터져 붉게 식으며 사라진다
             }
             else if (o.kind == TrafficManager.Smoke)
             {
@@ -338,7 +345,7 @@ public partial class DriveGame
             // 괴수와 연기 기둥은 도로가 휘어 사라지는 거리 밖에 있어도 지평선 위로 보이게, 휘어짐(Drop)은 도로 끝 거리까지만 적용한다
             float dropZ = (o.kind == TrafficManager.Kaiju || o.kind == TrafficManager.Smoke) ? Mathf.Min(oz, SpawnZ) : oz;
             float lift = (o.art != null && o.kind == TrafficManager.Pig) ? SidewalkLift(o.x, rw) : 0f;           // 인도에 오른 돼지는 발이 묻히지 않게
-            o.t.position = new Vector3(ox, Drop(dropZ) + o.centerY * sy + lift, oz);
+            o.t.position = new Vector3(ox, Drop(dropZ) + o.centerY * sy + lift + o.yOff, oz);
             float tilt = o.angle;                                           // 공: 구르는 각도
             if (o.fallT >= 0f) tilt = -o.kickDir * Mathf.Min(o.fallT * 4f, 1f) * 35f;   // 부딪힌 차/콘: 옆으로 기울며 밀려난다
             o.t.rotation = Quaternion.Euler(0f, 0f, tilt);
@@ -409,7 +416,7 @@ public partial class DriveGame
                 {
                     var sp = cs.spec[i];
                     float z = z0 + sp.y;
-                    float pitch = Mathf.Atan(2f * curvature * z) * Mathf.Rad2Deg;
+                    float pitch = Mathf.Atan(2f * Curv * z) * Mathf.Rad2Deg;
                     var rot = Quaternion.Euler(pitch, 0f, 0f) * Quaternion.Euler(0f, sp.z, 0f);
                     rendRot = false;
                     Place(cs.objs[i].transform, new Vector3(sp.x, Drop(z) + 0.2f, z), rot, Vector3.one * sp.w);
@@ -801,7 +808,7 @@ public partial class DriveGame
 
     Quaternion PitchQ(float z)
     {
-        return Quaternion.Euler(Mathf.Atan(2f * curvature * z) * Mathf.Rad2Deg, 0f, 0f);
+        return Quaternion.Euler(Mathf.Atan(2f * Curv * z) * Mathf.Rad2Deg, 0f, 0f);
     }
 
     // 한쪽 건물(몸통 + 스프라이트)을 모두 끈다. 회전 중 새 도로 건물과 겹치는 옛 건물에 쓴다.

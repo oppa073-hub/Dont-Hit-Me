@@ -26,6 +26,10 @@ public partial class DriveGame : MonoBehaviour
     [Header("World")]
     [Tooltip("클수록 지평선이 가까워지고 더 둥글게 휜다")]
     public float curvature = 0.0008f;
+    [Tooltip("교차로를 도는 동안 휘어짐을 이 시간(초)에 걸쳐 0 까지 줄인다. 휘어진 면 위에서 도로가 옆으로 돌면 먼 건물과 도로가 크게 기울어 보이기 때문. 0 = 줄이지 않음")]
+    public float turnFlattenIn = 0.3f;
+    [Tooltip("회전이 끝나면 휘어짐을 이 시간(초)에 걸쳐 원래대로 되돌린다")]
+    public float turnFlattenOut = 0.6f;
 
     public float roadHalfWidth = 4f;
 
@@ -934,6 +938,9 @@ public partial class DriveGame : MonoBehaviour
 
     void LateUpdate()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        TurnShotTick();                      // 교차로 회전 장면을 연속 사진으로 남기는 점검 도구 (-turnshots 폴더)
+#endif
         if (cam == null) return;
         // 로비/상점/엔딩은 2D 화면이 전부 덮으니 3D 월드(건물, 도로, 운전석)를 그리지 않는다 (카메라가 아무것도 안 보게). 렌더 비용이 크게 줄어든다
         bool hide3D = flow == GameFlow.Lobby || flow == GameFlow.Shop || flow == GameFlow.Ending || (flow == GameFlow.Settings && settingsReturn == GameFlow.Lobby);

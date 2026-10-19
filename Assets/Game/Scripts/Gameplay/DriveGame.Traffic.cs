@@ -60,7 +60,7 @@ public partial class DriveGame
             return;
         }
         if (o.kind == TrafficManager.Flame && invuln > 0f) return;      // 불길 차선을 달릴 때 불길마다 사고가 겹쳐 쌓이지 않게
-        if (o.kind == TrafficManager.Sedan || o.kind == TrafficManager.Truck || o.kind == TrafficManager.Broken) sound.PlayCrash();
+        if (o.kind == TrafficManager.Sedan || o.kind == TrafficManager.Truck || o.kind == TrafficManager.Broken) { sound.PlayCrash(); sound.PlayBoom(); }
         else sound.PlayBonk();
         if (o.kind == TrafficManager.Cones)
         {
