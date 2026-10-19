@@ -48,6 +48,24 @@ public static class BuildTest
         Debug.Log("[BuildTest] Always Included 셰이더 " + added + "개 추가 (총 " + list.arraySize + "개)");
     }
 
+    // 출시용 빌드(개발 빌드 표시 없음, 점검 도구 코드 제외). 명령줄: -executeMethod BuildTest.BuildRelease -buildDir "폴더"
+    public static void BuildRelease()
+    {
+        string dir = Arg("-buildDir") ?? "D:/Unity/project/_Builds/DontHitMe-release";
+        Directory.CreateDirectory(dir);
+        EnsureShaders();
+        var opts = new BuildPlayerOptions
+        {
+            scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+            locationPathName = Path.Combine(dir, "DontHitMe.exe"),
+            target = BuildTarget.StandaloneWindows64,
+            options = BuildOptions.None,
+        };
+        var sum = BuildPipeline.BuildPlayer(opts).summary;
+        Debug.Log("[BuildTest] 출시 빌드 결과 " + sum.result + ", 크기 " + (sum.totalSize / (1024 * 1024)) + "MB, 시간 " + sum.totalTime + ", 오류 " + sum.totalErrors + ", 경고 " + sum.totalWarnings);
+        EditorApplication.Exit(sum.result == BuildResult.Succeeded ? 0 : 1);
+    }
+
     // 명령줄: -executeMethod BuildTest.Build -buildDir "폴더"
     public static void Build()
     {
