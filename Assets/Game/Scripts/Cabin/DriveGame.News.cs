@@ -375,7 +375,7 @@ public partial class DriveGame
         if (ti != newsTickIdx)
         {
             newsTickIdx = ti;
-            newsTickerText.text = ti < 0 ? Loc.T("N 키: 뉴스 건너뛰기", "Press N to skip the news") : (ad ? Loc.T("▶ 광고 문의: 박 택시 (합법 아님)", "▶ Ad inquiries: Big Apple Taxi (not legal)") : Loc.S(NewsCatalog.Tick(newsType, ti)));
+            newsTickerText.text = ti < 0 ? Loc.T("N 키: 뉴스 건너뛰기", "Press N to skip the news") : (ad ? Loc.T("▶ 광고 문의: 빅애플 택시 (합법 아님)", "▶ Ad inquiries: Big Apple Taxi (not legal)") : Loc.S(NewsCatalog.Tick(newsType, ti)));
         }
 
         // 앵커 (광고에는 나오지 않는다)
@@ -488,7 +488,7 @@ public partial class DriveGame
             if (idx != newsSubBeat)
             {
                 newsSubBeat = idx;
-                newsSubSpeaker = beat.kind == 1 ? Loc.T("[현장 기자]", "[Field Reporter]") : (beat.kind == 2 ? Loc.T("[광고]", "[Ad]") : (beat.kind == 3 ? Loc.T("[긴급 속보]", "[Breaking News]") : (newsOver ? Loc.T("[후일담]", "[Aftermath]") : Loc.T("[김 앵커]", "[Anchor Dana]"))));
+                newsSubSpeaker = beat.kind == 1 ? Loc.T("[현장 기자]", "[Field Reporter]") : (beat.kind == 2 ? Loc.T("[광고]", "[Ad]") : (beat.kind == 3 ? Loc.T("[긴급 속보]", "[Breaking News]") : (newsOver ? Loc.T("[후일담]", "[Aftermath]") : Loc.T("[데이나 앵커]", "[Anchor Dana]"))));
                 newsSubColor = beat.kind == 1 ? new Color(1f, 0.7f, 0.3f) : (beat.kind == 2 ? new Color(1f, 0.5f, 0.85f) : (beat.kind == 3 ? new Color(1f, 0.4f, 0.35f) : new Color(0.7f, 0.9f, 1f)));
             }
             newsSubChars = sc;

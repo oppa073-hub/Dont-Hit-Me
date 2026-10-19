@@ -32,7 +32,7 @@ public static class PassengerCatalog
     {
         new PaxType   // 회사원: 요금 높고 사고에 엄격하다
         {
-            names = new[] { "김 사장님‖Mr. Harris", "정 부장님‖Mr. Cohen", "박 과장님‖Ms. Rossi" },
+            names = new[] { "해리스 씨‖Mr. Harris", "코헨 씨‖Mr. Cohen", "로시 씨‖Ms. Rossi" },
             dests = new[] { "시청‖City Hall", "공항‖JFK Airport", "호텔‖Midtown Hotel", "중앙역‖Grand Central" },
             hello = new[] { "{0}까지 가 주세요. 미팅에 늦었어요.‖{0}, please. I'm late for a meeting.", "기사님, {0}까지. 급합니다.‖Driver, {0}. It's urgent.", "{0}까지요. 최대한 빨리, 하지만 안전하게.‖{0}. As fast as you can — but safely." },
             react = new[] { "이봐요, 운전 똑바로 합시다!‖Hey, drive properly, buddy!", "지금 뭐 하시는 겁니까!‖What do you think you're doing!", "사람을 칠 뻔했잖아요!‖You almost hit someone!" },
@@ -41,7 +41,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 할머니: 느긋하고 놀람이 크다
         {
-            names = new[] { "박 할머니‖Grandma Betty", "최 할머니‖Grandma Rose", "윤 할머니‖Grandma June" },
+            names = new[] { "베티 할머니‖Grandma Betty", "로즈 할머니‖Grandma Rose", "준 할머니‖Grandma June" },
             dests = new[] { "대학병원‖University Hospital", "시장‖Farmers Market", "공원 입구‖Central Park Gate" },
             hello = new[] { "아이고, 택시 잡았네. {0}까지 천천히 가 주오.‖Oh my, I caught a cab. {0}, nice and slow, dear.", "기사 양반, {0}까지 가 주시게.‖Driver, take me to {0}, would you?", "{0}에 가요. 서두르지 말아요.‖Going to {0}. Don't rush." },
             react = new[] { "아이고 깜짝이야!‖Oh my goodness!", "아이구, 이게 무슨 일이래!‖Good heavens, what was that!", "아이고 놀래라!!‖Oh, you scared me!!" },
@@ -50,7 +50,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 학생: 요금은 조금 낮고, 리액션은 크지만 사고 감액은 작다
         {
-            names = new[] { "이 학생‖Student Mia", "한 학생‖Student Jake", "서 학생‖Student Lily" },
+            names = new[] { "학생 미아‖Student Mia", "학생 제이크‖Student Jake", "학생 릴리‖Student Lily" },
             dests = new[] { "도서관‖Public Library", "중앙역‖Grand Central", "시청‖City Hall" },
             hello = new[] { "기사님, {0}까지요! 빨리빨리요!‖Driver, {0}! Hurry hurry!", "{0}까지 가 주세요! 수업 늦었어요!‖{0}, please! I'm late for class!", "{0}! 지각이에요 지각!‖{0}! I'm so late, so late!" },
             react = new[] { "헐 뭐야!! 방금 뭐 쳤어요?‖Whoa, what!! Did you just hit something?", "꺄악!! 기사님!!‖Aaah!! Driver!!", "으아악!! 대박!!‖AAAH!! No way!!" },
@@ -59,7 +59,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 아저씨
         {
-            names = new[] { "최 아저씨‖Mr. Rodriguez", "오 아저씨‖Mr. O'Brien", "강 아저씨‖Mr. Carter" },
+            names = new[] { "로드리게스 씨‖Mr. Rodriguez", "오브라이언 씨‖Mr. O'Brien", "카터 씨‖Mr. Carter" },
             dests = new[] { "시장‖Farmers Market", "중앙역‖Grand Central", "공원 입구‖Central Park Gate", "시청‖City Hall" },
             hello = new[] { "어이, {0}까지 갑시다.‖Hey, let's go to {0}.", "{0}까지 가요. 막히지 않게 잘 가 봅시다.‖Going to {0}. Let's avoid the traffic.", "택시! {0}까지 부탁해요.‖Taxi! {0}, please." },
             react = new[] { "어허, 운전 조심해!‖Hey, watch it!", "에이, 이 사람아!‖Come on, pal!", "거 운전 좀 살살 합시다!‖Take it easy on the driving!" },
@@ -68,7 +68,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 아주머니
         {
-            names = new[] { "한 아주머니‖Mrs. Patel", "송 아주머니‖Mrs. Kowalski", "조 아주머니‖Mrs. Johnson" },
+            names = new[] { "파텔 부인‖Mrs. Patel", "코왈스키 부인‖Mrs. Kowalski", "존슨 부인‖Mrs. Johnson" },
             dests = new[] { "시장‖Farmers Market", "대학병원‖University Hospital", "도서관‖Public Library", "공원 입구‖Central Park Gate" },
             hello = new[] { "기사님, {0}까지요. 애들 데리러 가야 해요.‖Driver, {0}, please. I have to pick up the kids.", "{0}까지 부탁드려요. 장 본 게 무거워서요.‖{0}, please. My groceries are heavy.", "어휴, 잡았다. {0}요, 천천히 안전하게요.‖Phew, finally got one. {0}, nice and safe, please." },
             react = new[] { "꺄악!! 기사님!!‖Aaah!! Driver!!", "어머, 어머! 조심하세요!!‖Oh my! Oh my! Be careful!!", "방금 사람 쳤어요!?‖Did you just hit someone!?" },
@@ -86,7 +86,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 수다쟁이: 가는 동안 계속 말을 걸고, 대신 팁이 후하다
         {
-            names = new[] { "홍 언니‖Sassy Sue", "백 오빠‖Chatty Chad", "마 작가님‖Author Maya" },
+            names = new[] { "수다쟁이 수‖Sassy Sue", "수다쟁이 채드‖Chatty Chad", "마야 작가님‖Author Maya" },
             dests = new[] { "시장‖Farmers Market", "도서관‖Public Library", "공원 입구‖Central Park Gate", "호텔‖Midtown Hotel" },
             hello = new[] { "기사님 안녕하세요~ {0}까지요! 가면서 얘기나 해요.‖Hi driver~ {0}, please! Let's chat on the way.", "{0}까지 가 주세요! 오늘 날씨 진짜 좋죠?‖{0}, please! Beautiful weather today, right?" },
             react = new[] { "헉, 지금 뭐예요!?‖Gasp, what was that!?", "어머 놀라라!‖Oh my, that startled me!", "기사님 괜찮아요!?‖Are you okay, driver!?" },
@@ -96,7 +96,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 서두르는 손님: 시간이 아주 짧지만 요금과 팁이 높다
         {
-            names = new[] { "급한 김 씨‖Rushing Ron", "박 배달원‖Courier Pete", "조 대리‖Assistant Jo" },
+            names = new[] { "서두르는 론‖Rushing Ron", "배달원 피트‖Courier Pete", "조 대리‖Assistant Jo" },
             dests = new[] { "공항‖JFK Airport", "중앙역‖Grand Central", "시청‖City Hall" },
             hello = new[] { "{0}까지! 제발 빨리요, 비행기 놓쳐요!‖{0}! Please hurry, I'll miss my flight!", "{0}까지요! 최대한 빨리 부탁합니다!‖{0}! As fast as you possibly can!" },
             react = new[] { "아 뭐예요! 시간 없다고요!‖Hey! I don't have time for this!", "으악, 늦겠어요!‖Aaah, I'm going to be late!", "지금 장난해요!?‖Are you kidding me!?" },
@@ -105,7 +105,7 @@ public static class PassengerCatalog
         },
         new PaxType   // 멀미하는 손님: 핸들을 급하게 꺾으면 요금이 깎인다
         {
-            names = new[] { "창백한 이 씨‖Pale Pat", "멀미 많은 최 씨‖Queasy Quinn" },
+            names = new[] { "창백한 팻‖Pale Pat", "멀미쟁이 퀸‖Queasy Quinn" },
             dests = new[] { "대학병원‖University Hospital", "공원 입구‖Central Park Gate", "도서관‖Public Library" },
             hello = new[] { "{0}까지요… 저 멀미가 심해서 핸들 살살 돌려 주세요…‖{0}… I get really carsick, please turn the wheel gently…", "{0}까지 부탁해요. 급하게 틀면 안 돼요… 우웩.‖{0}, please. No sharp turns… blegh." },
             react = new[] { "우웩… 살살 좀 몰아요…‖Blegh… drive gently…", "으… 속이 울렁거려요…‖Ugh… my stomach is churning…", "핸들 좀 부드럽게요!‖Smoother with the wheel!" },

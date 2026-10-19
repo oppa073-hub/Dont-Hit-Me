@@ -62,8 +62,8 @@ public static class NewsCatalog
             },
             ticker = new[]
             {
-                "시민 김모씨(42) '택시 타고 싶다'‖Local man (42): 'I want a taxi'", "편의점 도시락 오늘도 맛있음‖Deli lunch boxes still tasty today", "가로등 하나 깜빡임 (원인 불명)‖One streetlight flickering (cause unknown)",
-                "비둘기 3마리 횡단보도 무단횡단‖3 pigeons jaywalk at crosswalk", "박 사장 '미니건은 합법 아님'‖Boss Tony: 'Miniguns are not legal'", "오늘의 점심 메뉴: 라면‖Today's lunch special: ramen",
+                "시민 존 씨(42) '택시 타고 싶다'‖Local man (42): 'I want a taxi'", "편의점 도시락 오늘도 맛있음‖Deli lunch boxes still tasty today", "가로등 하나 깜빡임 (원인 불명)‖One streetlight flickering (cause unknown)",
+                "비둘기 3마리 횡단보도 무단횡단‖3 pigeons jaywalk at crosswalk", "토니 사장 '미니건은 합법 아님'‖Boss Tony: 'Miniguns are not legal'", "오늘의 점심 메뉴: 라면‖Today's lunch special: ramen",
             },
         },
         // 사람 많은 날
@@ -79,7 +79,7 @@ public static class NewsCatalog
             },
             field = new[]
             {
-                "현장의 박 기자!|여기 사람이 너무|많아서…|(밀려남)‖Reporter Pete here!|There are so many|people here…|(gets pushed away)",
+                "현장의 피트 기자!|여기 사람이 너무|많아서…|(밀려남)‖Reporter Pete here!|There are so many|people here…|(gets pushed away)",
                 "축제 현장입니다!|제 뒤로 사람이|끝없이…|으아 밀지 마!‖At the festival!|Behind me, people|go on forever…|Hey, stop pushing!",
             },
             closing = new[]
@@ -107,9 +107,9 @@ public static class NewsCatalog
             },
             field = new[]
             {
-                "현장의 박 기자!|제 뒤에 보이는 게|괴수인가요?|…꺄아아악!‖Reporter Pete here!|Is that thing behind|me the monster?|…AAAAH!",
+                "현장의 피트 기자!|제 뒤에 보이는 게|괴수인가요?|…꺄아아악!‖Reporter Pete here!|Is that thing behind|me the monster?|…AAAAH!",
                 "괴수 앞입니다!|숨소리가 닿을…|지지직 …연결이|…끊겼습니다.‖In front of the monster!|I can feel its breath…|*static* …we've|…lost the connection.",
-                "박 기자입니다.|괴수가 제 카메라를|물었…|뚝.‖Pete here.|The monster just bit|my camera…|*click*",
+                "피트 기자입니다.|괴수가 제 카메라를|물었…|뚝.‖Pete here.|The monster just bit|my camera…|*click*",
             },
             closing = new[]
             {
@@ -151,8 +151,8 @@ public static class NewsCatalog
             },
             field = new[]
             {
-                "현장의 박 기자!|하늘에서 번쩍번쩍!|눈이 부…|아 안 보여요!‖Reporter Pete here!|Flashing in the sky!|So bright I can't|…I can't see!",
-                "박 기자입니다.|레이저가 지나가서|제 머리카락이|…탔습니다.‖Pete here.|A laser just passed|and my hair|…burned.",
+                "현장의 피트 기자!|하늘에서 번쩍번쩍!|눈이 부…|아 안 보여요!‖Reporter Pete here!|Flashing in the sky!|So bright I can't|…I can't see!",
+                "피트 기자입니다.|레이저가 지나가서|제 머리카락이|…탔습니다.‖Pete here.|A laser just passed|and my hair|…burned.",
                 "결투 현장입니다!|히어로가 이쪽을|보고…|지직 …뚝.‖At the duel!|The hero is looking|this way…|*static* *click*",
             },
             closing = new[]
@@ -195,8 +195,8 @@ public static class NewsCatalog
             },
             field = new[]
             {
-                "현장의 박 기자!|좀비들이 몰려…|으어… 어? 저도|배가 고픈데…‖Reporter Pete here!|Zombies are swarming…|Uhhh… huh? I'm|getting hungry too…",
-                "박 기자입니다.|좀비가 제 마이크를|뺏어…|으어어어어.‖Pete here.|A zombie took my|microphone…|Uhhhhhhh.",
+                "현장의 피트 기자!|좀비들이 몰려…|으어… 어? 저도|배가 고픈데…‖Reporter Pete here!|Zombies are swarming…|Uhhh… huh? I'm|getting hungry too…",
+                "피트 기자입니다.|좀비가 제 마이크를|뺏어…|으어어어어.‖Pete here.|A zombie took my|microphone…|Uhhhhhhh.",
                 "좀비 앞입니다!|사람 같은데|비틀거리면 좀비…|…제가 왜 비틀거리죠?‖In front of zombies!|They look human but|the stumblers are zombies…|…why am I stumbling?",
             },
             closing = new[]
@@ -231,7 +231,7 @@ public static class NewsCatalog
     // 광고 (평범한 날에 끼어든다): 병맛
     static readonly string[] Ads =
     {
-        "박 택시|지붕에 미니건|달아드립니다|(합법 아님)‖Big Apple Taxi|Roof miniguns|installed for you|(not legal)",
+        "빅애플 택시|지붕에 미니건|달아드립니다|(합법 아님)‖Big Apple Taxi|Roof miniguns|installed for you|(not legal)",
         "라면 휴게실|오픈 기념|국물 무한 리필|(면은 유한)‖Ramen Lounge|Grand opening|Unlimited broth refills|(noodles limited)",
         "하늘을 나는 택시|곧 출시!|날개는 옵션|비행은 자기 책임‖The Flying Taxi|Coming soon!|Wings optional|Fly at your own risk",
         "분노 조절 학원|수강생 모집|…아 줄 서 있는데|새치기 하지 마!‖Anger Management|Now enrolling|…hey, I'm in line,|no cutting!",
@@ -256,8 +256,8 @@ public static class NewsCatalog
         r.AddRange(Ads); r.AddRange(AfterKaiju); r.AddRange(AfterHero); r.AddRange(AfterZombie); r.AddRange(AfterCrowded);
         r.AddRange(new[]
         {
-            "안녕하세요,|시티뉴스|김 앵커입니다.|(졸려요)‖Hello,|City News,|Anchor Dana here.|(so sleepy)",
-            "좋은 아침입니다.|김 앵커입니다.|…좋은 건 모르겠고.‖Good morning.|Anchor Dana.|…Not sure about 'good'.",
+            "안녕하세요,|시티뉴스|데이나 앵커입니다.|(졸려요)‖Hello,|City News,|Anchor Dana here.|(so sleepy)",
+            "좋은 아침입니다.|데이나 앵커입니다.|…좋은 건 모르겠고.‖Good morning.|Anchor Dana.|…Not sure about 'good'.",
             "시티뉴스 시작합니다.|오늘도 월세를|위해 달립니다!‖City News begins.|Running for the|rent again today!",
             "여러분 안녕하세요.|저는 오늘도|출근했습니다.‖Hello everyone.|I showed up|to work again.",
             "오늘은 비가 옵니다.|와이퍼를 믿으세요.|(믿지 마세요)‖It's raining today.|Trust your wipers.|(Don't)",
@@ -288,8 +288,8 @@ public static class NewsCatalog
         var list = new System.Collections.Generic.List<NewsBeat>();
         string[] greets =
         {
-            "안녕하세요,|시티뉴스|김 앵커입니다.|(졸려요)‖Hello,|City News,|Anchor Dana here.|(so sleepy)",
-            "좋은 아침입니다.|김 앵커입니다.|…좋은 건 모르겠고.‖Good morning.|Anchor Dana.|…Not sure about 'good'.",
+            "안녕하세요,|시티뉴스|데이나 앵커입니다.|(졸려요)‖Hello,|City News,|Anchor Dana here.|(so sleepy)",
+            "좋은 아침입니다.|데이나 앵커입니다.|…좋은 건 모르겠고.‖Good morning.|Anchor Dana.|…Not sure about 'good'.",
             "시티뉴스 시작합니다.|오늘도 월세를|위해 달립니다!‖City News begins.|Running for the|rent again today!",
             "여러분 안녕하세요.|저는 오늘도|출근했습니다.‖Hello everyone.|I showed up|to work again.",
         };

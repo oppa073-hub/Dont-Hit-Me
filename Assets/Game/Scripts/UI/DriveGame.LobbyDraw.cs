@@ -452,7 +452,7 @@ public partial class DriveGame
         LTileBuilding(150f, 10, 2, 1, 0, 7, shade);
         Color navy = Color.Lerp(new Color(0.1f, 0.12f, 0.18f), new Color(0.04f, 0.05f, 0.09f), dark);
         LR(150f + 52f * 5f, 560f - 128f - 96f, 52f * 5f, 64f, navy);
-        Label(new Rect((150f + 52f * 5f - lbCam) * lbU, (560f - 128f - 96f) * lbU, 52f * 5f * lbU, 64f * lbU), Loc.T("박 택시", "Big Apple Taxi"), 30, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
+        Label(new Rect((150f + 52f * 5f - lbCam) * lbU, (560f - 128f - 96f) * lbU, 52f * 5f * lbU, 64f * lbU), Loc.T("빅애플 택시", "Big Apple Taxi"), 30, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
         LR(150f + 52f * 1f, 560f - 128f, 52f * 3f, 128f, new Color(0.08f, 0.08f, 0.1f));                      // 열린 차고
         LR(150f + 52f * 1f, 560f - 128f, 52f * 3f, 56f, new Color(0.5f, 0.53f, 0.58f) * shade);              // 반쯤 내려온 셔터
         for (int k = 0; k < 4; k++) LR(150f + 52f * 1f, 560f - 120f + k * 14f, 52f * 3f, 3f, new Color(0.4f, 0.43f, 0.48f) * shade);
@@ -542,7 +542,7 @@ public partial class DriveGame
             }
             LR(165f, 312f, 610f, 22f, new Color(0.25f, 0.25f, 0.3f));
             LR(330f, 262f, 280f, 50f, new Color(0.1f, 0.12f, 0.18f));
-            Label(new Rect((330f - lbCam) * u, 262f * u, 280f * u, 50f * u), Loc.T("박 택시", "Big Apple Taxi"), 26, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
+            Label(new Rect((330f - lbCam) * u, 262f * u, 280f * u, 50f * u), Loc.T("빅애플 택시", "Big Apple Taxi"), 26, new Color(1f, 0.85f, 0.35f), TextAnchor.MiddleCenter);
             LR(250f, 430f, 190f, 160f, new Color(0.08f, 0.08f, 0.1f));                     // 열린 차고
             LR(250f, 430f, 190f, 66f, new Color(0.5f, 0.53f, 0.58f));                       // 반쯤 내려온 셔터
             for (int k = 0; k < 4; k++) LR(250f, 438f + k * 16f, 190f, 3f, new Color(0.4f, 0.43f, 0.48f));
