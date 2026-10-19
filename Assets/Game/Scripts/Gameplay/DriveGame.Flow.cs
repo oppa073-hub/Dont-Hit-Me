@@ -65,7 +65,7 @@ public partial class DriveGame
     void UpdateLoading()
     {
         loadT += Time.unscaledDeltaTime;
-        loadShown = Mathf.MoveTowards(loadShown, sound.PreloadProgress, Time.unscaledDeltaTime * 1.5f);
+        loadShown = Mathf.MoveTowards(loadShown, Mathf.Max(loadShown, sound.PreloadProgress), Time.unscaledDeltaTime * 1.5f);
         if ((sound.PreloadDone && fontsWarm && loadT >= 0.8f && loadShown >= 0.99f) || loadT > 20f) loadingDone = true;      // 20초가 넘으면 안전장치로 그냥 시작
     }
 

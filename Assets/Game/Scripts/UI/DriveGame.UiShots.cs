@@ -129,8 +129,13 @@ public partial class DriveGame
         float loadStart = Time.realtimeSinceStartup;
         yield return Frames(4);
         yield return Shot(tag + "00-loading");
-        while (!loadingDone && Time.realtimeSinceStartup - loadStart < 25f) yield return null;
-        File.AppendAllText(uiAuditPath, "로딩 화면이 보인 시간: " + (Time.realtimeSinceStartup - loadStart).ToString("0.0") + "초 (미리 읽기 끝 " + sound.PreloadDone + ", 글꼴 " + fontsWarm + ")\n");
+        float loadMaxDt = 0f;
+        while (!loadingDone && Time.realtimeSinceStartup - loadStart < 25f) { yield return null; loadMaxDt = Mathf.Max(loadMaxDt, Time.unscaledDeltaTime); }
+        File.AppendAllText(uiAuditPath, "로딩 중 가장 긴 프레임: " + (loadMaxDt * 1000f).ToString("0") + "ms, LoadAudioData 호출 최대 " + sound.PreloadMaxCallMs.ToString("0") + "ms\n");
+        File.AppendAllText(uiAuditPath, "로딩 화면이 보인 시간: " + (Time.realtimeSinceStartup - loadStart).ToString("0.0") + "초 (미리 읽기 끝 " + sound.PreloadDone + ", 글꼴 " + fontsWarm + ", 소리 데이터 안 올라온 효과음 " + sound.NotLoadedCount() + "개)\n");
+
+        File.AppendAllText(uiAuditPath, "첫 재생 비용(미리 읽은 상태): " + sound.DebugFirstPlayCost(false) + "\n");
+        File.AppendAllText(uiAuditPath, "첫 재생 비용(소리 데이터 내린 상태 = 수정 전과 같은 조건): " + sound.DebugFirstPlayCost(true) + "\n");
 
         // 1. 타이틀
         flow = GameFlow.Title;

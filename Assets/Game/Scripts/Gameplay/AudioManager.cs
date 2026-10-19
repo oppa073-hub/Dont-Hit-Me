@@ -185,9 +185,10 @@ public class AudioManager
     static int VoiceGroup(int voice) { return voice <= 2 ? 0 : (voice <= 5 ? 1 : 2); }
 
     bool voicesReady, voicesLoading;
-    int loadSteps;
+    int loadSteps, loadTotal = 60;                                              // 진행도 = 읽은 단계 / 전체 단계 (전체는 소리 목록이 정해지면 정확히 고친다)
     public bool PreloadDone { get; private set; }
-    public float PreloadProgress { get { return PreloadDone ? 1f : Mathf.Clamp01(loadSteps / 40f); } }
+    public float PreloadMaxCallMs { get; private set; }                         // (점검용) LoadAudioData 호출 한 번에 메인 스레드가 막힌 가장 긴 시간
+    public float PreloadProgress { get { return PreloadDone ? 1f : Mathf.Clamp01(loadSteps / (float)loadTotal); } }
 
     // 한 조각을 읽어 앞쪽(소리가 시작한 뒤 약 1초)만 보관한다. 전부 보관하면 메모리를 쓸데없이 많이 쓴다
     void AddVoiceClip(AudioClip c)
@@ -258,8 +259,65 @@ public class AudioManager
             loadSteps++;
             yield return null;
         }
+
+        // 소리 데이터까지 미리 읽는다. Resources 로 불러오기만 하면 파일은 "처음 재생할 때" 읽혀서(소리 파일의 Preload Audio Data 가 꺼져 있음)
+        // 플레이 도중 처음 나는 소리(피, 비명, 결산 효과음 등)에서 30ms 쯤 멈춘다. (Profiler: SoundManager.LoadFMODSound -> File.Open)
+        var pending = new List<AudioClip>();
+        foreach (var l in bank.Values) pending.AddRange(l);
+        foreach (var t in tracks) if (t != null) pending.Add(t);
+        var extra = new[] { Resources.Load<AudioClip>("Audio/rain"), Resources.Load<AudioClip>("Audio/stinger_win"), Resources.Load<AudioClip>("Audio/stinger_lose") };
+        foreach (var c in extra) if (c != null) pending.Add(c);
+        loadTotal = loadSteps + (pending.Count + PreloadBatch - 1) / PreloadBatch;
+        for (int i = 0; i < pending.Count; i += PreloadBatch)
+        {
+            int end = Mathf.Min(pending.Count, i + PreloadBatch);
+            float callT = Time.realtimeSinceStartup;
+            for (int j = i; j < end; j++) pending[j].LoadAudioData();             // 뒤에서 읽기 시작
+            PreloadMaxCallMs = Mathf.Max(PreloadMaxCallMs, (Time.realtimeSinceStartup - callT) * 1000f);
+            float t0 = Time.realtimeSinceStartup;
+            bool allDone;
+            do
+            {
+                yield return null;
+                allDone = true;
+                for (int j = i; j < end; j++) if (pending[j].loadState == AudioDataLoadState.Loading) allDone = false;
+            } while (!allDone && Time.realtimeSinceStartup - t0 < 5f);           // 안전장치: 한 묶음에 5초 넘으면 다음으로
+            loadSteps++;
+        }
         PreloadDone = true;
     }
+
+    /// <summary>(점검용) 효과음 중 소리 데이터가 아직 메모리에 안 올라온 것의 수. 미리 읽기가 끝났으면 0 이어야 한다.</summary>
+    public int NotLoadedCount()
+    {
+        int n = 0;
+        if (bank == null) return 0;
+        foreach (var l in bank.Values) foreach (var c in l) if (c.loadState != AudioDataLoadState.Loaded) n++;
+        return n;
+    }
+
+    /// <summary>(점검용) 효과음을 하나씩 처음 재생할 때 메인 스레드가 막힌 시간(ms)의 최대와 합계. unload 면 소리 데이터를 먼저 내려서 미리 읽기가 없던 때와 같은 조건으로 잰다.</summary>
+    public string DebugFirstPlayCost(bool unload)
+    {
+        if (bank == null) return "효과음 없음";
+        var go = new GameObject("FirstPlayTest");
+        var a = go.AddComponent<AudioSource>();
+        a.playOnAwake = false;
+        float max = 0f, sum = 0f; int n = 0; string worst = "";
+        foreach (var kv in bank) foreach (var c in kv.Value)
+        {
+            if (unload) c.UnloadAudioData();
+            float t0 = Time.realtimeSinceStartup;
+            a.PlayOneShot(c, 0f);
+            float ms = (Time.realtimeSinceStartup - t0) * 1000f;
+            sum += ms; n++;
+            if (ms > max) { max = ms; worst = c.name; }
+        }
+        Object.Destroy(go);
+        return "효과음 " + n + "개 첫 재생: 최대 " + max.ToString("0.0") + "ms (" + worst + "), 합계 " + sum.ToString("0") + "ms";
+    }
+
+    const int PreloadBatch = 2;                                                 // 한 번에 읽기 시작하는 소리 수
 
     AudioClip Blip(int voice, int code)
     {

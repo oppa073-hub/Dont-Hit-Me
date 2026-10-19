@@ -106,7 +106,7 @@
 - 남은 약점: 업그레이드로 목숨이 5개가 되면 쉬워진다(12일 이후 사망 13%). 필요하면 후반 난이도 스케일(레벨 시작값 상승 등)을 넣을 것.
 
 ### 성능 작업 기록
-- 켤 때 로딩 화면(UpdateLoading/DrawLoading, 소리·음악 미리 읽기 AudioManager.Preload). 로비/상점/엔딩에서는 카메라 culling mask 를 0 으로 해 3D 월드를 안 그림(camMaskCaptured 로 원래 마스크 저장). 크기가 바뀌는 글자는 LabelScaled(글꼴 크기 고정+화면 배율). 길가 소품 재질 공유(머티리얼 1145->약 214). 로비는 화면 밖 그림 생략. UI/DriveGame.Sections.cs 의 Sec()/SectionReport() 가 구간별 시간과 할당량을 재서 봇 보고서에 붙임(-simbot/-uishots 때만 기록). 사용자 실측: 비+사람 많이 친 장면 92 FPS(CPU main 10.8ms, Batches 1073, SetPass 560, 2560x1440 에디터).
+- 켤 때 로딩 화면(UpdateLoading/DrawLoading, 소리·음악 미리 읽기 AudioManager.Preload). 로비/상점/엔딩에서는 카메라 culling mask 를 0 으로 해 3D 월드를 안 그림(camMaskCaptured 로 원래 마스크 저장). 크기가 바뀌는 글자는 LabelScaled(글꼴 크기 고정+화면 배율). 길가 소품 재질 공유(머티리얼 1145->약 214). 로비는 화면 밖 그림 생략. UI/DriveGame.Sections.cs 의 Sec()/SectionReport() 가 구간별 시간과 할당량을 재서 봇 보고서에 붙임(-simbot/-uishots 때만 기록). **소리 데이터 미리 읽기**: 소리 파일(_External 의 wav)이 전부 Preload Audio Data 꺼짐이라 Resources 로 불러오기만 하면 처음 재생할 때 파일을 읽어 30ms 쯤 멈춘다(Profiler: SoundManager.LoadFMODSound -> File.Open, 비+충돌 프레임 41.9ms 의 원인). AudioManager.Preload 가 로딩 중에 LoadAudioData() 로 효과음/음악/비/결산음을 메모리에 올리고 기다림(점검: 효과음 91개 첫 재생 최대 46.8ms -> 0.3ms, 로딩 화면은 약 2.5초). 새 소리 파일을 Resources 에 더하면 자동으로 포함됨. 점검 도구 -uishots 가 audit 에 "첫 재생 비용"을 적음. 사용자 실측: 비+사람 많이 친 장면 92 FPS(CPU main 10.8ms, Batches 1073, SetPass 560, 2560x1440 에디터).
 
 ### 아직 안 고친 점검 지적 (심각도 낮음)
 - 정지 화면(일시정지/게임오버)에 정전/팬 플래시/피격 붉은 막이 남음(Overlays/Gui). 분노 중 폭탄이 터지면 요금만 깎임. 분노 중 급감속이 부케를 날림. 일시정지에서 R로 재시작하면 최고점/Day 저장 안 됨. 회전 때 구급차가 판정 없이 사라짐. 구급차가 정차 중 손님 태우기와 겹칠 수 있음.
