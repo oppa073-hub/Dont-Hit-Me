@@ -302,6 +302,10 @@ public partial class DriveGame
         flow = GameFlow.Paused;
         yield return Frames(3);
         yield return Shot(tag + "15-pause");
+        pauseLobbyArmed = true;
+        yield return Frames(3);
+        yield return Shot(tag + "15-pause-armed");
+        pauseLobbyArmed = false;
 
         File.AppendAllText(uiAuditPath, "\n== 점검 끝: " + auditCount + "건\n");
         BotExitCode = 0;

@@ -111,9 +111,18 @@ public partial class DriveGame
         Fill(new Rect(0, 0, W, H), new Color(0f, 0f, 0f, 0.55f));
         Panel(new Rect(W * 0.5f - 320 * u, H * 0.5f - 184 * u, 640 * u, 288 * u), 0.7f);
         Label(new Rect(0, H * 0.5f - 170 * u, W, 70 * u), Loc.T("일시정지", "Paused"), 56, Color.white, TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.5f - 96 * u, W, 34 * u), Loc.T("Esc 또는 P  계속      R  처음부터 다시      O  설정", "Esc or P  Resume      R  Restart      O  Settings"), 22, UiCyan, TextAnchor.MiddleCenter);
-        Label(new Rect(0, H * 0.5f - 44 * u, W, 26 * u), Loc.T("오늘의 목표", "Today's Goals"), 19, UiGold, TextAnchor.MiddleCenter);
-        DrawGoals(0, H * 0.5f - 16 * u, W, u, 17, TextAnchor.UpperCenter);
+        Label(new Rect(0, H * 0.5f - 100 * u, W, 30 * u), Loc.T("Esc 또는 P  계속      R  처음부터 다시", "Esc or P  Resume      R  Restart"), 22, UiCyan, TextAnchor.MiddleCenter);
+        if (pauseLobbyArmed)
+        {
+            string what = shiftMode ? Loc.T("오늘 영업을 정산하고 로비로", "settle today's shift and go to the lobby") : Loc.T("지금까지 기록을 정산하고 로비로", "settle your run and go to the lobby");
+            Label(new Rect(0, H * 0.5f - 68 * u, W, 30 * u), Loc.T("U 한 번 더: ", "Press U again: ") + what, 20, UiRed, TextAnchor.MiddleCenter);
+            if (taxi.State == TaxiState.Carrying)                          // 태운 손님의 요금은 도착해야 정산된다
+                Label(new Rect(0, H * 0.5f - 46 * u, W, 24 * u), Loc.T("(타고 있는 손님의 요금은 받지 못해요)", "(You won't get the fare of the passenger on board)"), 17, UiRed, TextAnchor.MiddleCenter);
+        }
+        else
+            Label(new Rect(0, H * 0.5f - 68 * u, W, 30 * u), Loc.T("O  설정      U  로비로", "O  Settings      U  Back to lobby"), 22, UiCyan, TextAnchor.MiddleCenter);
+        Label(new Rect(0, H * 0.5f - 28 * u, W, 26 * u), Loc.T("오늘의 목표", "Today's Goals"), 19, UiGold, TextAnchor.MiddleCenter);
+        DrawGoals(0, H * 0.5f, W, u, 17, TextAnchor.UpperCenter);
     }
 
     // 결과 화면의 숫자 칸 하나: 위에 작은 이름, 아래에 큰 값

@@ -14,7 +14,7 @@
 
 ## 게임 규칙
 - 차는 제자리, 월드가 다가온다. 도로는 앞쪽으로 갈수록 아래로 휜다(y = -curvature * z^2, 동물의 숲 방식).
-- 조작: A/D 또는 ←/→ 조향, S/↓ 브레이크(완전 정지), Q/E 좌/우 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작, 상점은 로비의 정비사에게 말을 걸면 열림(숫자키로 구매), 게임오버에서 U = 로비, O 설정(타이틀/로비/일시정지에서). 시작은 타이틀 화면에서 Space/Enter. 반응형(음악 리듬 없음).
+- 조작: A/D 또는 ←/→ 조향, S/↓ 브레이크(완전 정지), Q/E 좌/우 깜빡이, Space 손님 태우기, X 거절, Esc/P 일시정지, R 다시 시작, 상점은 로비의 정비사에게 말을 걸면 열림(숫자키로 구매), 게임오버에서 U = 로비(일시정지 화면에서도 U 를 두 번 누르면 지금까지의 영업을 정산하고 로비로: pauseLobbyArmed), O 설정(타이틀/로비/일시정지에서). 시작은 타이틀 화면에서 Space/Enter. 반응형(음악 리듬 없음).
 - 택시: 인도의 손님(느낌표)에게 차를 붙여 정차하면 옆 시점 대화 후 탑승, 목적지 근처에서 정차하면 요금 정산. 태운 채 사람을 치면 손님 리액션과 요금 감액.
 - 교차로: 80m마다 교차로. 깜빡이를 미리 켜 두면 교차로 22m 전부터 자동 감속하고, 교차로 중심(십자가 중심)에 도착했을 때 그 자리에서 약 1.1초 동안 월드가 90도 회전(진입 전에는 절대 돌지 않음. 회전 중간에 새 도로 구간으로 교체, 건물 배치가 바뀜). 도시는 격자 좌표(gx, gy)와 방향(heading)으로 추적.
 - 보행자는 2D 스프라이트 빌보드. 양쪽 인도에 사람이 많이 걷고, 일부가 도로로 나온다(멀리서 이미 건너는 사람 / 가까이서 갑자기 튀어나오는 사람, 튀어나오기 전 연석에서 잠깐 멈칫). 도로를 건너는 사람과 충돌하면 목숨 -1(3개), 아슬아슬하게 피하면 니어미스 보너스. 인도만 걷는 사람은 충돌/점수 없음.
@@ -107,6 +107,9 @@
 
 ### 성능 작업 기록
 - 켤 때 로딩 화면(UpdateLoading/DrawLoading, 소리·음악 미리 읽기 AudioManager.Preload). 로비/상점/엔딩에서는 카메라 culling mask 를 0 으로 해 3D 월드를 안 그림(camMaskCaptured 로 원래 마스크 저장). 크기가 바뀌는 글자는 LabelScaled(글꼴 크기 고정+화면 배율). 길가 소품 재질 공유(머티리얼 1145->약 214). 로비는 화면 밖 그림 생략. UI/DriveGame.Sections.cs 의 Sec()/SectionReport() 가 구간별 시간과 할당량을 재서 봇 보고서에 붙임(-simbot/-uishots 때만 기록). **소리 데이터 미리 읽기**: 소리 파일(_External 의 wav)이 전부 Preload Audio Data 꺼짐이라 Resources 로 불러오기만 하면 처음 재생할 때 파일을 읽어 30ms 쯤 멈춘다(Profiler: SoundManager.LoadFMODSound -> File.Open, 비+충돌 프레임 41.9ms 의 원인). AudioManager.Preload 가 로딩 중에 LoadAudioData() 로 효과음/음악/비/결산음을 메모리에 올리고 기다림(점검: 효과음 91개 첫 재생 최대 46.8ms -> 0.3ms, 로딩 화면은 약 2.5초). 새 소리 파일을 Resources 에 더하면 자동으로 포함됨. 점검 도구 -uishots 가 audit 에 "첫 재생 비용"을 적음. 사용자 실측: 비+사람 많이 친 장면 92 FPS(CPU main 10.8ms, Batches 1073, SetPass 560, 2560x1440 에디터).
+
+### 빌드 시험
+- Tools/run-build-test.ps1 : 에디터를 끄고 돌리면 개발 빌드(Editor/BuildTest.cs, Windows Mono)를 저장소 밖 D:\Unity\project\_Builds\DontHitMe-test 에 만들고, 그 exe 로 -uishots 화면 점검을 돌려 스크린샷을 SimReports/build-시각/ 에 남긴다(-SkipBuild, -SkipRun). 분홍색 셰이더/빠진 파일 확인용. Shader.Find 로 찾는 URP Lit/Unlit 은 GraphicsSettings 의 Always Included Shaders 에 넣어 둠(BuildTest.EnsureShaders, 메뉴 Game > Ensure URP Shaders Included). 빌드 폴더는 구매한 에셋이 들어 있어 절대 커밋하지 않는다. 첫 시험: 오류 0, 분홍색 없음(눈으로 확인), 소리와 조작감은 미확인. 빌드에서 로딩은 약 3.8초(소리 데이터 미리 읽기).
 
 ### 아직 안 고친 점검 지적 (심각도 낮음)
 - 정지 화면(일시정지/게임오버)에 정전/팬 플래시/피격 붉은 막이 남음(Overlays/Gui). 분노 중 폭탄이 터지면 요금만 깎임. 분노 중 급감속이 부케를 날림. 일시정지에서 R로 재시작하면 최고점/Day 저장 안 됨. 회전 때 구급차가 판정 없이 사라짐. 구급차가 정차 중 손님 태우기와 겹칠 수 있음.

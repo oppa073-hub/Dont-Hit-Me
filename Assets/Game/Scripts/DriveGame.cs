@@ -548,6 +548,7 @@ public partial class DriveGame : MonoBehaviour
     bool loadingDone;                      // 켤 때 소리/음악을 미리 읽는 로딩이 끝났는가 (끝나기 전에는 로딩 화면)
     float loadT, loadShown;
     bool world3DHidden;
+    bool pauseLobbyArmed;                  // 일시정지에서 U 를 한 번 눌러 "정말 로비로?" 확인 중
 
     public float masterVolume = 0.6f;
     [Tooltip("효과음(소리, 목소리, 비소리) 크기. 설정에서 바꾼다")]
@@ -798,7 +799,10 @@ public partial class DriveGame : MonoBehaviour
 
         // 일시정지: Esc 또는 P (게임오버 화면에서는 쓰지 않는다)
         if (!gameOver && (kb.escapeKey.wasPressedThisFrame || kb.pKey.wasPressedThisFrame))
+        {
             flow = flow == GameFlow.Paused ? GameFlow.Playing : GameFlow.Paused;
+            pauseLobbyArmed = false;
+        }
         if (flow == GameFlow.Paused)
         {
             Time.timeScale = 0f;
@@ -807,7 +811,13 @@ public partial class DriveGame : MonoBehaviour
                 SaveResultOnce();            // 일시정지에서 다시 시작해도 이번 판의 코인, 최고 점수, 날짜 기록은 남긴다
                 StartGame();
             }
+            else if (kb.uKey.wasPressedThisFrame)
+            {
+                if (pauseLobbyArmed) { SaveResultOnce(); EnterLobby(); }      // 두 번째 U: 지금까지의 영업을 정산하고 로비로
+                else pauseLobbyArmed = true;                                  // 첫 U: 실수로 누른 게 아닌지 확인 문구
+            }
             else if (kb.oKey.wasPressedThisFrame) OpenSettings(GameFlow.Paused);
+            else if (kb.anyKey.wasPressedThisFrame) pauseLobbyArmed = false;  // 다른 키를 누르면 확인 취소
             UpdateWorldVisuals();
             return;
         }
