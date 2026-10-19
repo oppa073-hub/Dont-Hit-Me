@@ -24,6 +24,28 @@ public static class BuildTest
         return null;
     }
 
+    // 게임 아이콘(exe 아이콘과 창 아이콘): Assets 안의 아이콘 그림을 기본 아이콘으로 지정한다. 파일이 없으면 건너뛴다.
+    const string IconPath = "Assets/돈히트미 아이콘.png";
+
+    [MenuItem("Game/Apply Game Icon")]
+    public static void ApplyIcon()
+    {
+        if (!File.Exists(IconPath)) { Debug.LogWarning("[BuildTest] 아이콘 파일이 없어 건너뜀: " + IconPath); return; }
+        AssetDatabase.ImportAsset(IconPath, ImportAssetOptions.ForceUpdate);
+        var imp = AssetImporter.GetAtPath(IconPath) as TextureImporter;
+        if (imp != null && (imp.textureType != TextureImporterType.Default || imp.npotScale != TextureImporterNPOTScale.None || imp.mipmapEnabled))
+        {
+            imp.textureType = TextureImporterType.Default;
+            imp.npotScale = TextureImporterNPOTScale.None;
+            imp.mipmapEnabled = false;
+            imp.SaveAndReimport();
+        }
+        var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(IconPath);
+        if (tex == null) { Debug.LogWarning("[BuildTest] 아이콘을 읽지 못함"); return; }
+        PlayerSettings.SetIcons(UnityEditor.Build.NamedBuildTarget.Unknown, new[] { tex }, IconKind.Any);
+        Debug.Log("[BuildTest] 기본 아이콘 지정: " + IconPath + " (" + tex.width + "x" + tex.height + ")");
+    }
+
     [MenuItem("Game/Ensure URP Shaders Included")]
     public static void EnsureShaders()
     {
@@ -54,6 +76,7 @@ public static class BuildTest
         string dir = Arg("-buildDir") ?? "D:/Unity/project/_Builds/DontHitMe-release";
         Directory.CreateDirectory(dir);
         EnsureShaders();
+        ApplyIcon();
         var opts = new BuildPlayerOptions
         {
             scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
@@ -72,6 +95,7 @@ public static class BuildTest
         string dir = Arg("-buildDir") ?? "D:/Unity/project/_Builds/DontHitMe-test";
         Directory.CreateDirectory(dir);
         EnsureShaders();
+        ApplyIcon();
         var opts = new BuildPlayerOptions
         {
             scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
