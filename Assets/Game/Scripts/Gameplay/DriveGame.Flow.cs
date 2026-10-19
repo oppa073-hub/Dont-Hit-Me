@@ -61,6 +61,14 @@ public partial class DriveGame
         return AudioManager.TrackDay;
     }
 
+    // 켠 직후 로딩: 소리/음악을 읽는 동안(최소 0.8초) 로딩 화면. 다 읽으면 타이틀로
+    void UpdateLoading()
+    {
+        loadT += Time.unscaledDeltaTime;
+        loadShown = Mathf.MoveTowards(loadShown, sound.PreloadProgress, Time.unscaledDeltaTime * 1.5f);
+        if ((sound.PreloadDone && fontsWarm && loadT >= 0.8f && loadShown >= 0.99f) || loadT > 20f) loadingDone = true;      // 20초가 넘으면 안전장치로 그냥 시작
+    }
+
     void ResetFlowState()
     {
         bestSaved = newBest = false;

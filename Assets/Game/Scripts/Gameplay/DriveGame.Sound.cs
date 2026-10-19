@@ -13,5 +13,6 @@ public partial class DriveGame
     {
         sound = new AudioManager(this, gameObject, cam);
         taxi.CallerAppeared += sound.PlayChime;
+        StartCoroutine(sound.Preload());                 // 소리 파일을 시작할 때 미리 읽는다 (여러 프레임에 나눠서)
     }
 }

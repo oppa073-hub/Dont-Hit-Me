@@ -454,29 +454,44 @@ public partial class DriveGame
 
     static Sprite glowSprite;
 
+    // 소품 재질은 색마다 하나만 만들어 모든 소품이 같이 쓴다
+    readonly Dictionary<int, Material> propMats = new Dictionary<int, Material>();
+
+    Material PMat(Color c) { return CachedProp(c, false); }
+    Material PUnlit(Color c) { return CachedProp(c, true); }
+
+    Material CachedProp(Color c, bool unlit)
+    {
+        var c32 = (Color32)c;
+        int key = (c32.r << 24 | c32.g << 16 | c32.b << 8 | c32.a) ^ (unlit ? 0x5bd1e995 : 0);
+        Material m;
+        if (!propMats.TryGetValue(key, out m)) propMats[key] = m = unlit ? Unlit(c) : Mat(c);
+        return m;
+    }
+
     GameObject MakeProp(int kind)
     {
         var root = new GameObject("Prop" + kind);
         root.transform.SetParent(transform, false);
-        var dark = Mat(new Color(0.2f, 0.22f, 0.25f));
+        var dark = PMat(new Color(0.2f, 0.22f, 0.25f));
         switch (kind)
         {
             case 1:      // 가로등: 기둥 + 도로 쪽으로 뻗은 팔 + 스스로 빛나는 등
             {
                 PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 2.1f, 0f), new Vector3(0.16f, 2.1f, 0.16f), dark);
                 PropPart(root, PrimitiveType.Cube, new Vector3(0.65f, 4.15f, 0f), new Vector3(1.4f, 0.08f, 0.08f), dark);
-                PropPart(root, PrimitiveType.Cube, new Vector3(1.3f, 4.05f, 0f), new Vector3(0.55f, 0.12f, 0.3f), Unlit(new Color(1f, 0.93f, 0.6f)));
+                PropPart(root, PrimitiveType.Cube, new Vector3(1.3f, 4.05f, 0f), new Vector3(0.55f, 0.12f, 0.3f), PUnlit(new Color(1f, 0.93f, 0.6f)));
                 break;
             }
             case 2:      // 소화전
-                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 0.35f, 0f), new Vector3(0.38f, 0.35f, 0.38f), Mat(new Color(0.8f, 0.12f, 0.1f)));
-                PropPart(root, PrimitiveType.Sphere, new Vector3(0f, 0.78f, 0f), new Vector3(0.4f, 0.3f, 0.4f), Mat(new Color(0.8f, 0.12f, 0.1f)));
+                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 0.35f, 0f), new Vector3(0.38f, 0.35f, 0.38f), PMat(new Color(0.8f, 0.12f, 0.1f)));
+                PropPart(root, PrimitiveType.Sphere, new Vector3(0f, 0.78f, 0f), new Vector3(0.4f, 0.3f, 0.4f), PMat(new Color(0.8f, 0.12f, 0.1f)));
                 break;
             case 3:      // 쓰레기통
-                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 0.45f, 0f), new Vector3(0.55f, 0.45f, 0.55f), Mat(new Color(0.3f, 0.34f, 0.3f)));
+                PropPart(root, PrimitiveType.Cylinder, new Vector3(0f, 0.45f, 0f), new Vector3(0.55f, 0.45f, 0.55f), PMat(new Color(0.3f, 0.34f, 0.3f)));
                 break;
             default:     // 우체통
-                PropPart(root, PrimitiveType.Cube, new Vector3(0f, 0.6f, 0f), new Vector3(0.5f, 1.2f, 0.45f), Mat(new Color(0.2f, 0.35f, 0.75f)));
+                PropPart(root, PrimitiveType.Cube, new Vector3(0f, 0.6f, 0f), new Vector3(0.5f, 1.2f, 0.45f), PMat(new Color(0.2f, 0.35f, 0.75f)));
                 break;
         }
         return root;

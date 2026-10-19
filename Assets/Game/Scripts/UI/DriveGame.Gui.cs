@@ -247,6 +247,15 @@ public partial class DriveGame
 
     // 룸미러: 항상 같은 크기. 뒷유리 너머로 지나온 도로가 뒤로 흘러가고(낮/밤/노을 색, 구급차가 오면 여기에 비친다),
     // 앞좌석의 기사(플레이어)와 뒷좌석 손님이 가슴까지 보이는 전용 그림(Bust)으로 앉아 있다. 거울 밖으로는 잘려서 안 나온다.
+    // 크기가 매 프레임 바뀌는 글자: 글꼴 크기(baseSize)는 고정하고 화면 배율(scale)로 키운다. (글꼴 크기를 바꿔 가며 그리면 새 크기마다 글자 그림을 새로 만들어 렉이 걸린다)
+    void LabelScaled(Vector2 center, float w, float h, string text, int baseSize, float scale, Color col)
+    {
+        var saved = GUI.matrix;
+        GUIUtility.ScaleAroundPivot(new Vector2(scale, scale), center);
+        Label(new Rect(center.x - w * 0.5f, center.y - h * 0.5f, w, h), text, baseSize, col, TextAnchor.MiddleCenter);
+        GUI.matrix = saved;
+    }
+
     // 왼쪽 아래 조작 안내: 지금 키 설정과 언어로 만든다 (바뀔 때만 새로 만든다)
     string controlsHintText = "";
     int controlsHintKey = -1;
@@ -491,7 +500,7 @@ public partial class DriveGame
             if (sp.z > 0f)
             {
                 float size = Mathf.Clamp(1100f / sp.z, 26f, 90f);
-                Label(new Rect(sp.x - 40 * u, H - sp.y - size * u, 80 * u, size * u * 1.2f), "!", Mathf.RoundToInt(size), new Color(1f, 0.85f, 0.1f), TextAnchor.MiddleCenter);
+                LabelScaled(new Vector2(sp.x, H - sp.y - size * u * 0.4f), 80 * u, 60 * u, "!", 48, size / 48f, new Color(1f, 0.85f, 0.1f));
             }
         }
 
@@ -502,7 +511,7 @@ public partial class DriveGame
             if (sp.z > 0f)
             {
                 float size = Mathf.Clamp(1400f / sp.z, 20f, 60f);
-                Label(new Rect(sp.x - 7f * size * u, H - sp.y - size * u, 14f * size * u, size * u * 1.3f), taxi.DestName, Mathf.RoundToInt(size), new Color(1f, 0.9f, 0.3f), TextAnchor.MiddleCenter);
+                LabelScaled(new Vector2(sp.x, H - sp.y - size * u * 0.6f), 700 * u, 60 * u, taxi.DestName, 40, size / 40f, new Color(1f, 0.9f, 0.3f));
             }
         }
 
@@ -633,6 +642,15 @@ public partial class DriveGame
     {
         if (Event.current.type != EventType.Repaint) return;       // 그리기만 하는 화면이라 Layout/입력 이벤트에서는 건너뛴다 (CPU 절약)
         float W = Screen.width, H = Screen.height, u = H / 720f;
+        MarkAlloc();
+        long guiT = Now();
+        OnGUIBody(W, H, u);
+        Sec("OnGUI", guiT);
+    }
+
+    void OnGUIBody(float W, float H, float u)
+    {
+        if (!loadingDone) { DrawLoading(W, H, u); return; }
 
         // 로비와 정비소(상점), 로비에서 연 설정은 로비 장면 위에 그린다
         if (flow == GameFlow.Lobby || flow == GameFlow.Shop || (flow == GameFlow.Settings && settingsReturn == GameFlow.Lobby))
@@ -771,7 +789,7 @@ public partial class DriveGame
             float fadeP = Mathf.Clamp01((popupUntil - Time.unscaledTime) / 0.25f);           // 끝에서 부드럽게 사라진다
             Color pc = popupColor;
             pc.a *= fadeP;
-            Label(new Rect(0, msgY, W, 52 * u), popupText, Mathf.RoundToInt(32f * pop), pc, TextAnchor.MiddleCenter);
+            LabelScaled(new Vector2(W * 0.5f, msgY + 26 * u), W, 52 * u, popupText, 32, pop, pc);
         }
         if (!gameOver && (taxi.State == TaxiState.Cruise || taxi.State == TaxiState.Waiting) && Time.unscaledTime < taxi.ThanksUntil)
             Label(new Rect(0, msgY + (popupOn ? 50 * u : 0f), W, 34 * u), taxi.ThanksText, 20, new Color(1f, 1f, 1f, 0.95f), TextAnchor.MiddleCenter);

@@ -18,12 +18,16 @@ public partial class DriveGame
 
     void LR(float x, float y, float w, float h, Color c)
     {
-        Fill(new Rect((x - lbCam) * lbU, y * lbU, w * lbU, h * lbU), c);
+        float sx = (x - lbCam) * lbU, sw = w * lbU;
+        if (sx > Screen.width || sx + sw < 0f) return;                       // 화면 밖은 그리지 않는다
+        Fill(new Rect(sx, y * lbU, sw, h * lbU), c);
     }
 
     void LD(float cx, float cy, float size, Color c)
     {
-        Dot(new Vector2((cx - lbCam) * lbU, cy * lbU), size * lbU, c);
+        float sx = (cx - lbCam) * lbU, r = size * lbU * 0.5f;
+        if (sx - r > Screen.width || sx + r < 0f) return;
+        Dot(new Vector2(sx, cy * lbU), size * lbU, c);
     }
 
     // 스프라이트 하나를 IMGUI 로 그린다. footX/footY = 발(피벗) 위치(화면 px), k = 스프라이트 한 픽셀이 화면 몇 px 인가, flip = 좌우 뒤집기
@@ -35,6 +39,7 @@ public partial class DriveGame
         float w = r.width * k, h = r.height * k;
         float pivX = sp.pivot.x * k;
         float left = flip ? footX - (w - pivX) : footX - pivX;
+        if (left > Screen.width || left + w < 0f) return;                    // 화면 밖은 그리지 않는다
         float top = footY + sp.pivot.y * k - h;
         var uv = new Rect(r.x / tex.width, r.y / tex.height, r.width / tex.width, r.height / tex.height);
         if (flip) { uv.x += uv.width; uv.width = -uv.width; }
@@ -186,7 +191,9 @@ public partial class DriveGame
 
     void LRp(float x, float y, float w, float h, Color c, float par)
     {
-        Fill(new Rect((x - lbCam * par) * lbU, y * lbU, w * lbU, h * lbU), c);
+        float sx = (x - lbCam * par) * lbU, sw = w * lbU;
+        if (sx > Screen.width || sx + sw < 0f) return;
+        Fill(new Rect(sx, y * lbU, sw, h * lbU), c);
     }
 
     // 창문 격자: 밤에는 일부 창이 노랗게 켜진다 (seed 로 어느 창이 켜지는지 정함)

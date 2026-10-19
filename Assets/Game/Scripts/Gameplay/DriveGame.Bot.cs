@@ -677,6 +677,8 @@ public partial class DriveGame
             if (causes.Count > 0) sb.AppendLine("사고 원인: " + Dump(causes));
             foreach (var t in trips) sb.AppendLine(t);
             sb.AppendLine("프레임: " + PerfLine());
+            string secs = g.SectionReport();
+            if (secs.Length > 0) sb.Append(secs);
             sb.AppendLine("메모리: 시작 " + memStart + " -> 끝 " + MemSnapshot());
             if (popups.Count > 0) sb.AppendLine("팝업 상위: " + Top(popups, 14));
             sb.AppendLine("--- 타임라인(앞 120줄) ---");

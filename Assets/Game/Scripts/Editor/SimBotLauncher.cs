@@ -20,7 +20,7 @@ public static class SimBotLauncher
         {
             Debug.Log("[SimBot] 장면을 열고 플레이를 시작합니다");
             EditorSceneManager.OpenScene(ScenePath);
-            if (System.Array.Exists(System.Environment.GetCommandLineArgs(), a => a == "-uishots" || a == "-uiaudit"))
+            if (System.Array.Exists(System.Environment.GetCommandLineArgs(), a => a == "-uishots" || a == "-uiaudit" || a == "-uigfx"))
                 PlayModeWindow.SetCustomRenderingResolution(1280, 720, "uishots");        // 스크린샷 해상도를 720p 로 고정
             EditorApplication.EnterPlaymode();
         };

@@ -184,35 +184,81 @@ public class AudioManager
     VoiceSet[] voiceSets;
     static int VoiceGroup(int voice) { return voice <= 2 ? 0 : (voice <= 5 ? 1 : 2); }
 
+    bool voicesReady, voicesLoading;
+    int loadSteps;
+    public bool PreloadDone { get; private set; }
+    public float PreloadProgress { get { return PreloadDone ? 1f : Mathf.Clamp01(loadSteps / 40f); } }
+
+    // 한 조각을 읽어 앞쪽(소리가 시작한 뒤 약 1초)만 보관한다. 전부 보관하면 메모리를 쓸데없이 많이 쓴다
+    void AddVoiceClip(AudioClip c)
+    {
+        try
+        {
+            int n = Mathf.Min(c.samples, c.frequency * 2);                   // 앞 2초만 읽는다
+            var raw = new float[n * c.channels];
+            if (!c.GetData(raw, 0)) return;
+            var mono = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float sum = 0f;
+                for (int ch = 0; ch < c.channels; ch++) sum += raw[i * c.channels + ch];
+                mono[i] = sum / c.channels;
+            }
+            float pk = 0f;
+            for (int i = 0; i < n; i++) pk = Mathf.Max(pk, Mathf.Abs(mono[i]));
+            int on = 0;
+            while (on < n - 1 && Mathf.Abs(mono[on]) < pk * 0.12f) on++;       // 앞의 조용한 부분은 자른다
+            on = Mathf.Max(0, on - c.frequency / 100);
+            int keep = Mathf.Min(n - on, c.frequency);                         // 소리가 시작한 뒤 1초면 충분하다 (글자 조각은 0.5초 안쪽만 쓴다)
+            var trimmed = new float[keep];
+            System.Array.Copy(mono, on, trimmed, 0, keep);
+            int g = c.name.StartsWith("m") ? 0 : (c.name.StartsWith("f") ? 1 : 2);
+            voiceSets[g].data.Add(trimmed);
+            voiceSets[g].rate.Add(c.frequency);
+        }
+        catch (System.Exception) { }
+    }
+
+    // 급할 때(미리 읽기가 끝나기 전에 말소리가 필요) 한꺼번에 읽는다
     void LoadVoices()
     {
+        if (voiceSets == null) voiceSets = new[] { new VoiceSet(), new VoiceSet(), new VoiceSet() };
+        foreach (var c in Resources.LoadAll<AudioClip>("Audio/voice")) AddVoiceClip(c);
+        voicesReady = true;
+    }
+
+    /// <summary>게임을 켤 때 한 번(코루틴): 효과음 묶음과 말소리 조각을 여러 프레임에 나눠 읽어서, 처음 소리가 날 때 화면이 멈추지 않게 한다.</summary>
+    public System.Collections.IEnumerator Preload()
+    {
+        voicesLoading = true;
+        yield return null;
+        Pick("eng0", null);                                                   // 효과음 묶음(Resources.LoadAll) 만들기
+        loadSteps++;
+        yield return null;
         voiceSets = new[] { new VoiceSet(), new VoiceSet(), new VoiceSet() };
-        foreach (var c in Resources.LoadAll<AudioClip>("Audio/voice"))
+        foreach (string prefix in new[] { "m", "f", "a" })
         {
-            try
+            for (int i = 1; i < 60; i++)
             {
-                var raw = new float[c.samples * c.channels];
-                if (!c.GetData(raw, 0)) continue;
-                var mono = new float[c.samples];
-                for (int i = 0; i < mono.Length; i++)
-                {
-                    float sum = 0f;
-                    for (int ch = 0; ch < c.channels; ch++) sum += raw[i * c.channels + ch];
-                    mono[i] = sum / c.channels;
-                }
-                float pk = 0f;
-                for (int i = 0; i < mono.Length; i++) pk = Mathf.Max(pk, Mathf.Abs(mono[i]));
-                int on = 0;
-                while (on < mono.Length - 1 && Mathf.Abs(mono[on]) < pk * 0.12f) on++;       // 앞의 조용한 부분은 자른다
-                on = Mathf.Max(0, on - c.frequency / 100);
-                var trimmed = new float[mono.Length - on];
-                System.Array.Copy(mono, on, trimmed, 0, trimmed.Length);
-                int g = c.name.StartsWith("m") ? 0 : (c.name.StartsWith("f") ? 1 : 2);
-                voiceSets[g].data.Add(trimmed);
-                voiceSets[g].rate.Add(c.frequency);
+                var req = Resources.LoadAsync<AudioClip>("Audio/voice/" + prefix + i.ToString("00"));
+                yield return req;
+                var c = req.asset as AudioClip;
+                if (c == null) break;
+                AddVoiceClip(c);
+                loadSteps++;
+                yield return null;                                            // 한 프레임에 한 조각
             }
-            catch (System.Exception) { }
         }
+        voicesReady = true;
+        voicesLoading = false;
+        // 음악도 미리 읽는다 (플레이 도중 처음 읽으면 한 곡에 0.1~0.3초씩 멈춘다)
+        for (int t = 0; t < tracks.Length; t++)
+        {
+            LoadTrack(t);
+            loadSteps++;
+            yield return null;
+        }
+        PreloadDone = true;
     }
 
     AudioClip Blip(int voice, int code)
@@ -220,7 +266,11 @@ public class AudioManager
         int key = voice * 65536 + code;
         AudioClip c;
         if (blips.TryGetValue(key, out c)) return c;
-        if (voiceSets == null) LoadVoices();
+        if (!voicesReady)
+        {
+            if (!voicesLoading) LoadVoices();                                  // 미리 읽기를 안 쓰는 경우(예: 시험 도구)에는 한 번에 읽는다
+            else return SynthBlip(voice, (code * 7) % 12, (code / 12) % 5);    // 미리 읽는 중이면 이번만 합성음 (캐시하지 않는다)
+        }
         c = voiceSets[VoiceGroup(voice)].data.Count > 0 ? VoiceBlip(voice, code) : SynthBlip(voice, (code * 7) % 12, (code / 12) % 5);
         blips[key] = c;
         return c;

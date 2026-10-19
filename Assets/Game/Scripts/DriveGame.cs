@@ -543,6 +543,12 @@ public partial class DriveGame : MonoBehaviour
     [Header("Sound (코드로 만든 효과음, 외부 에셋 없음)")]
     public bool soundOn = true;
     [Range(0f, 1f)]
+    int camMaskSaved;                      // 카메라의 원래 culling mask (3D 를 숨겼다가 되돌릴 때)
+    bool camMaskCaptured;                  // (마스크 값 -1 이 "전부 보임"이라서 -1 을 "아직 모름" 표시로 쓸 수 없다)
+    bool loadingDone;                      // 켤 때 소리/음악을 미리 읽는 로딩이 끝났는가 (끝나기 전에는 로딩 화면)
+    float loadT, loadShown;
+    bool world3DHidden;
+
     public float masterVolume = 0.6f;
     [Tooltip("효과음(소리, 목소리, 비소리) 크기. 설정에서 바꾼다")]
     public float sfxVolume = 1f;
@@ -696,6 +702,7 @@ public partial class DriveGame : MonoBehaviour
         ResetGame();
         BotInit();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (SimBot.Requested || UiShotsRequested) { loadingDone = true; secOn = true; }        // 시험 도구는 로딩 화면 없이 바로 시작하고, 구간별 시간을 기록한다
         if (UiShotsRequested) StartCoroutine(UiShotsRoutine());      // 화면 점검 도구 (-uishots)
         else InitUiAudit();                                          // -uiaudit: 평소 플레이 중에 글자 넘침/한국어 남음을 파일에 쌓는다
 #endif
@@ -738,6 +745,7 @@ public partial class DriveGame : MonoBehaviour
 
     void Update()
     {
+        if (!loadingDone) { UpdateLoading(); return; }
         Time.timeScale = (!gameOver && flow == GameFlow.Playing && Time.unscaledTime < hitStopUntil) ? 0f : 1f;
         BotUpdate();                         // 자동 운전 시험 봇 (명령줄 -simbot 일 때만 동작)
         var kb = Keyboard.current;
@@ -884,13 +892,19 @@ public partial class DriveGame : MonoBehaviour
         session.TickHeal(dt);
 
         // 보행자: 생성, 이동, 횡단, 충돌 판정 (회전 중에는 월드가 실제로 다가온 만큼만 움직인다)
+        MarkAlloc();
+        long ts = Now();
         peds.PlayerSpeed = speed;
         peds.Tick(dt, elapsed, turning ? worldMove : speed * dt, carX, turning, SpawnZ);
+        ts = Sec("peds", ts);
         UpdateTraffic(dt, turning ? worldMove : speed * dt);
+        ts = Sec("traffic", ts);
         UpdateGoals();
         UpdateAmbience(dt);
+        ts = Sec("goals+ambience", ts);
         UpdateShift(dt);                     // 영업 시간이 다 되면 새 손님을 막고, 손님이 없으면 영업 종료
         if (!gameOver) UpdateEvents(dt, turning ? worldMove : speed * dt);
+        ts = Sec("shift+events", ts);
         UpdateRage(dt);
         if (!gameOver)
         {
@@ -898,18 +912,33 @@ public partial class DriveGame : MonoBehaviour
             UpdatePolice(dt);
             UpdateEncounters(dt);
         }
+        ts = Sec("rage+gun+enc", ts);
         UpdateNews(dt, kb);
+        ts = Sec("news", ts);
         if (!gameOver) UpdateTaxi(dt);       // 같은 프레임에 게임오버가 났으면 대화/정산을 시작하지 않는다
         if (!gameOver) UpdateIntersection(dt);
+        ts = Sec("taxi+inter", ts);
         UpdateWorldVisuals();
+        Sec("worldVisuals", ts);
     }
 
     void LateUpdate()
     {
         if (cam == null) return;
-        sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
-        if (!gameOver) sound.StopStinger();
-        sound.TickMusic(flow == GameFlow.Ending ? 0f : weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f, MusicTrack());
+        // 로비/상점/엔딩은 2D 화면이 전부 덮으니 3D 월드(건물, 도로, 운전석)를 그리지 않는다 (카메라가 아무것도 안 보게). 렌더 비용이 크게 줄어든다
+        bool hide3D = flow == GameFlow.Lobby || flow == GameFlow.Shop || flow == GameFlow.Ending || (flow == GameFlow.Settings && settingsReturn == GameFlow.Lobby);
+        if (!camMaskCaptured) { camMaskSaved = cam.cullingMask; camMaskCaptured = true; }
+        if (hide3D != world3DHidden)
+        {
+            world3DHidden = hide3D;
+            cam.cullingMask = hide3D ? 0 : camMaskSaved;
+        }
+        if (loadingDone)
+        {
+            sound.Tick(speed, maxSpeed, road.Blinker, gameOver || flow != GameFlow.Playing);
+            if (!gameOver) sound.StopStinger();
+        }
+        if (loadingDone) sound.TickMusic(flow == GameFlow.Ending ? 0f : weather.Rain, (flow == GameFlow.Paused || gameOver) ? 0.45f : 1f, MusicTrack());
         Vector3 off = shakeEnabled && Time.unscaledTime < shakeUntil ? (Vector3)(Random.insideUnitCircle * shakeHit) : Vector3.zero;
         cam.transform.position = new Vector3(carX - 0.4f, camHeight, 0f) + off;
         float roll = -lateralVel / maxLateral * 2.5f;

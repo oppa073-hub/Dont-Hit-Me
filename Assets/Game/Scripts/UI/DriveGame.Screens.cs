@@ -25,6 +25,46 @@ public partial class DriveGame
         Label(new Rect(cx + 6 * u, y, 290 * u, 28 * u), what, 18, new Color(1f, 1f, 1f, 0.92f), TextAnchor.MiddleLeft);
     }
 
+    // 글꼴 미리 데우기: IMGUI 글자는 처음 나오는 글자/크기마다 글자 그림을 만들어서(몇 ms~수십 ms) 플레이 도중 렉이 된다.
+    // 로딩 화면 동안 쓰는 크기들로 영어/숫자/기호를 미리 만들어 둔다 (한 프레임에 두 크기씩)
+    static readonly int[] WarmSizes = { 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 25, 26, 28, 30, 32, 34, 36, 38, 40, 44, 46, 50, 56, 58, 62, 70, 84 };
+    int warmIdx;
+    bool fontsWarm;
+    const string WarmChars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·—→…★♥♡▶●○‖é";
+
+    void WarmFonts()
+    {
+        if (fontsWarm) return;
+        try
+        {
+            if (style == null) style = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Bold, wordWrap = false, clipping = TextClipping.Overflow };
+            Font f = uiFont != null ? uiFont : (style.font != null ? style.font : (GUI.skin.font != null ? GUI.skin.font : cabinFont));
+            if (f == null) { fontsWarm = true; return; }
+            float k = Screen.height / 720f;
+            for (int n = 0; n < 2 && warmIdx < WarmSizes.Length; n++, warmIdx++)
+                f.RequestCharactersInTexture(WarmChars, Mathf.RoundToInt(WarmSizes[warmIdx] * k), FontStyle.Bold);
+            if (warmIdx >= WarmSizes.Length) fontsWarm = true;
+        }
+        catch (System.Exception) { fontsWarm = true; }
+    }
+
+    // 로딩 화면: 로고와 택시 체커 모양 진행 막대
+    void DrawLoading(float W, float H, float u)
+    {
+        WarmFonts();
+        Fill(new Rect(0, 0, W, H), new Color(0.03f, 0.04f, 0.07f, 1f));
+        Label(new Rect(0, H * 0.34f, W, 90 * u), "DON'T HIT ME", 70, UiGold, TextAnchor.MiddleCenter);
+        float bw = 520 * u, bh = 18 * u, bx = W * 0.5f - bw * 0.5f, by = H * 0.52f;
+        Fill(new Rect(bx - 3 * u, by - 3 * u, bw + 6 * u, bh + 6 * u), new Color(1f, 1f, 1f, 0.25f));
+        Fill(new Rect(bx, by, bw, bh), new Color(0.05f, 0.05f, 0.07f));
+        float fw = bw * Mathf.Clamp01(loadShown);
+        float cell = bh * 0.5f;
+        for (float x = 0f; x < fw; x += cell)                                         // 택시 지붕의 체커 무늬로 채워진다
+            for (int j = 0; j < 2; j++)
+                Fill(new Rect(bx + x, by + j * cell, Mathf.Min(cell, fw - x), cell), (((int)(x / cell) + j) & 1) == 0 ? new Color(0.05f, 0.05f, 0.06f) : UiGold);
+        Label(new Rect(0, by + 32 * u, W, 30 * u), Loc.T("불러오는 중…  ", "Loading…  ") + Mathf.RoundToInt(Mathf.Clamp01(loadShown) * 100f) + "%", 20, new Color(1f, 1f, 1f, 0.75f), TextAnchor.MiddleCenter);
+    }
+
     void DrawTitle(float W, float H, float u)
     {
         // 화면 전체를 어둡게 + 위아래 가장자리는 더 어둡게 (가운데 글자에 눈이 가게)

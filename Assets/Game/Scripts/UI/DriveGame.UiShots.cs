@@ -113,6 +113,7 @@ public partial class DriveGame
 
     IEnumerator UiShotsRoutine()
     {
+        if (UnityEngine.InputSystem.Keyboard.current == null) UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>("UiShotsKeyboard");   // 배치 모드엔 키보드가 없어 Update 가 일찍 끝나 월드가 배치되지 않는다
         shotDir = ArgAfter("-uishots");
         Directory.CreateDirectory(shotDir);
         int lang;
@@ -122,6 +123,14 @@ public partial class DriveGame
         InitUiAudit();
         string tag = lang == 1 ? "ko-" : "en-";
         yield return Frames(5);
+
+        // 0. 로딩 화면: 켠 직후와 같이 로딩을 한 번 거친다 (걸린 시간을 audit 에 적는다)
+        loadingDone = false; loadT = 0f; loadShown = 0f; warmIdx = 0; fontsWarm = false;
+        float loadStart = Time.realtimeSinceStartup;
+        yield return Frames(4);
+        yield return Shot(tag + "00-loading");
+        while (!loadingDone && Time.realtimeSinceStartup - loadStart < 25f) yield return null;
+        File.AppendAllText(uiAuditPath, "로딩 화면이 보인 시간: " + (Time.realtimeSinceStartup - loadStart).ToString("0.0") + "초 (미리 읽기 끝 " + sound.PreloadDone + ", 글꼴 " + fontsWarm + ")\n");
 
         // 1. 타이틀
         flow = GameFlow.Title;

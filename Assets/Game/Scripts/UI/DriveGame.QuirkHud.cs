@@ -58,7 +58,7 @@ public partial class DriveGame
                 if (!taxi.Grabbed) break;
                 float gw = 460 * u, gh = 30 * u, gx = W * 0.5f - gw * 0.5f, gy = H * 0.60f;
                 float pulse = 1f + 0.05f * Mathf.Sin(Time.unscaledTime * 24f);
-                Label(new Rect(gx, gy - 46 * u, gw, 36 * u), Loc.T("핸들을 잡혔다!  ", "Wheel grabbed!  ") + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerLeft]) + "  " + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerRight]) + Loc.T("  연타!!", "  mash!!"), Mathf.RoundToInt(26 * pulse), UiGold, TextAnchor.MiddleCenter);
+                LabelScaled(new Vector2(gx + gw * 0.5f, gy - 28 * u), gw, 36 * u, Loc.T("핸들을 잡혔다!  ", "Wheel grabbed!  ") + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerLeft]) + "  " + Keybinds.KeyName(Keybinds.Map[Keybinds.SteerRight]) + Loc.T("  연타!!", "  mash!!"), 26, pulse, UiGold);
                 Panel(new Rect(gx - 8 * u, gy - 8 * u, gw + 16 * u, gh + 16 * u), 0.7f);
                 Fill(new Rect(gx, gy, gw, gh), new Color(0f, 0f, 0f, 0.65f));
                 float half = gw * 0.5f;
