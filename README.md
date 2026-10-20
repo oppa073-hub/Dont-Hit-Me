@@ -15,12 +15,8 @@
 
 </div>
 
-<!-- itch.io 페이지와 시연 영상이 생기면 주석을 풀고 링크를 넣으세요.
+<!-- 시연 영상이 생기면 주석을 풀고 링크를 넣으세요.
 <p align="center">
-  <a href="https://아이디.itch.io/게임주소">
-    <img src="https://img.shields.io/badge/itch.io-다운로드-FA5C5C?style=for-the-badge&logo=itchdotio&logoColor=white" />
-  </a>
-  &nbsp;
   <a href="YouTube_링크">
     <img src="https://img.shields.io/badge/YouTube-시연 영상-red?style=for-the-badge&logo=youtube&logoColor=white" />
   </a>
@@ -63,7 +59,6 @@
 | 개발 형태 | 개인 포트폴리오 프로젝트 / 1인 개발 |
 | 개발 기간 | 2026.10 (저장소 첫 커밋 2026.10.13) |
 | 상태 | 안정화와 밸런스 단계 |
-| 배포 | itch.io 등록 예정 |
 | 사용한 외부 에셋 | Kenney City Kit (CC0, 저장소 포함), 그 외 유료 에셋은 저장소에 포함하지 않음 |
 
 ---
